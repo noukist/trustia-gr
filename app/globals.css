@@ -1,26 +1,70 @@
+/* =============================================================
+   globals.css — Global styles for Mastori.gr
+   =============================================================
+   This file sets up:
+   1. Tailwind CSS imports (required for Tailwind to work)
+   2. Brand color variables (used throughout the site)
+   3. Base styles for the body and html elements
+   ============================================================= */
+
+/* Import Tailwind's three layers */
 @import "tailwindcss";
 
+/* ------------------------------------------------------------- 
+   BRAND COLORS — CSS Custom Properties
+   These are the exact colors from our business plan.
+   We define them here so every component can use them
+   consistently via var(--color-primary) etc.
+   ------------------------------------------------------------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Primary navy blue — used for headings, nav, trust elements */
+  --color-primary: #1B4F72;
+  /* Lighter navy — used for hover states */
+  --color-primary-light: #2E86C1;
+  /* Gold accent — used for CTA buttons, highlights, urgency */
+  --color-accent: #D4AC0D;
+  /* Lighter gold — used for hover on accent buttons */
+  --color-accent-light: #F4D03F;
+  /* Green — used for "verified" badges and success states */
+  --color-success: #27AE60;
+  /* Red — used for errors and warnings */
+  --color-danger: #C0392B;
+  /* Gray — used for secondary text and borders */
+  --color-gray: #666666;
+  /* Light backgrounds for alternating table rows and cards */
+  --color-bg-light: #F9FAFB;
+  --color-bg-blue: #EBF5FB;
+  --color-bg-amber: #FDEBD0;
+  --color-bg-green: #EAFAF1;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ------------------------------------------------------------- 
+   BASE STYLES — Applied to the entire page
+   ------------------------------------------------------------- */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* Clean white background */
+  background: #FFFFFF;
+  /* Dark text for readability */
+  color: #333333;
+  /* Remove default margin */
+  margin: 0;
+  /* Smooth font rendering on Mac */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ------------------------------------------------------------- 
+   SMOOTH SCROLLING — When clicking anchor links
+   ------------------------------------------------------------- */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ------------------------------------------------------------- 
+   SELECTION COLOR — When user highlights text
+   Uses our brand blue with white text
+   ------------------------------------------------------------- */
+::selection {
+  background-color: #1B4F72;
+  color: white;
 }
