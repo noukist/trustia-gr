@@ -7,20 +7,21 @@
 // Accessible from the Navbar dropdown → "Το Προφίλ μου"
 //
 // What the user sees:
-// - Their Google profile photo, name, email
+// - Their Google profile photo, name, email (read-only)
 // - Editable display name (what others see on reviews)
+// - Editable contact email (defaults to Google email)
 // - Editable phone number (for booking confirmations)
 // - Account info (member since, login provider)
 //
 // Data flow:
 // 1. Check if user is logged in via Supabase Auth
 // 2. Load their customer record from 'customers' table
-// 3. If no customer record exists, create one (first visit)
+// 3. If no customer record exists, create one on first save
 // 4. User edits fields → saves → updates Supabase
 //
 // Security:
 // - Only the logged-in user can see/edit their own profile
-// - Display name can only be changed once per 30 days
+// - RLS policies enforce this at database level
 // - Phone number is never shown publicly
 // =============================================================
 
@@ -31,19 +32,19 @@ import { supabase } from "@/lib/supabase";
 
 export default function ProfilePage() {
   // ─── STATE ───
-  // loading: shows spinner while fetching data
+  // loading: shows spinner while fetching data from Supabase
   const [loading, setLoading] = useState(true);
 
-  // saving: disables save button while updating
+  // saving: disables save button while the update is in progress
   const [saving, setSaving] = useState(false);
 
-  // saved: shows success message after save
+  // saved: shows green success message after successful save
   const [saved, setSaved] = useState(false);
 
-  // error: shows error message if something fails
+  // error: shows red error message if save fails
   const [error, setError] = useState("");
 
-  // Auth user data from Google (read-only)
+  // authUser: read-only data from Google account
   const [authUser, setAuthUser] = useState<{
     id: string;
     email: string;
@@ -53,11 +54,21 @@ export default function ProfilePage() {
     createdAt: string;
   } | null>(null);
 
-  // Editable customer fields
+  // ─── EDITABLE FIELDS ───
+  // These are saved to the 'customers' table in Supabase
+
+  // displayName: how the user appears on bookings and reviews
   const [displayName, setDisplayName] = useState("");
+
+  // contactEmail: where booking confirmations are sent
+  // Defaults to Google email, but user can change it
+  const [contactEmail, setContactEmail] = useState("");
+
+  // phone: used for booking confirmations, never shown publicly
   const [phone, setPhone] = useState("");
 
-  // Whether a customer record exists in the DB
+  // customerId: tracks whether a customer record exists in DB
+  // null = no record yet (first visit), string = record exists
   const [customerId, setCustomerId] = useState<string | null>(null);
 
   // Language helper
@@ -65,19 +76,22 @@ export default function ProfilePage() {
   const t = (el: string, en: string) => (lang === "el" ? el : en);
 
   // ─── FETCH USER DATA ON LOAD ───
-  // Gets auth info + customer record from Supabase
+  // Runs once when the page loads
+  // Step 1: Get logged-in user from Supabase Auth
+  // Step 2: Check if they have a customer record in the DB
+  // Step 3: Pre-fill form fields with existing data or Google defaults
   useEffect(() => {
     async function fetchProfile() {
-      // Step 1: Get logged-in user from Supabase Auth
+      // Step 1: Get the currently logged-in user
       const { data: authData } = await supabase.auth.getUser();
 
       if (!authData.user) {
-        // Not logged in — redirect to login
+        // Not logged in — send them to the login page
         window.location.href = "/login";
         return;
       }
 
-      // Extract user info from auth metadata
+      // Extract useful info from Google auth metadata
       const user = authData.user;
       setAuthUser({
         id: user.id,
@@ -88,7 +102,7 @@ export default function ProfilePage() {
         createdAt: user.created_at,
       });
 
-      // Step 2: Check if customer record exists
+      // Step 2: Check if a customer record already exists for this user
       const { data: customerData } = await supabase
         .from("customers")
         .select("*")
@@ -96,13 +110,16 @@ export default function ProfilePage() {
         .single();
 
       if (customerData) {
-        // Customer record exists — populate fields
+        // Customer record exists — populate form with saved values
         setCustomerId(customerData.id);
         setDisplayName(customerData.display_name || user.user_metadata?.full_name || "");
+        setContactEmail(customerData.email || user.email || "");
         setPhone(customerData.phone || "");
       } else {
-        // No customer record yet — pre-fill from Google data
+        // No customer record yet — pre-fill from Google account data
+        // Record will be created when they click "Save" for the first time
         setDisplayName(user.user_metadata?.full_name || "");
+        setContactEmail("");
         setPhone("");
       }
 
@@ -112,7 +129,8 @@ export default function ProfilePage() {
   }, []);
 
   // ─── SAVE PROFILE ───
-  // Creates or updates the customer record in Supabase
+  // Called when user clicks "Αποθήκευση Αλλαγών"
+  // Creates a new customer record (first time) or updates existing one
   async function handleSave() {
     if (!authUser) return;
 
@@ -122,11 +140,12 @@ export default function ProfilePage() {
 
     try {
       if (customerId) {
-        // Update existing customer record
+        // ── UPDATE existing customer record ──
         const { error: updateError } = await supabase
           .from("customers")
           .update({
             display_name: displayName,
+            email: contactEmail || authUser.email,
             phone: phone,
             updated_at: new Date().toISOString(),
           })
@@ -138,14 +157,14 @@ export default function ProfilePage() {
           setSaved(true);
         }
       } else {
-        // Create new customer record (first time)
+        // ── INSERT new customer record (first save) ──
         const { data: newCustomer, error: insertError } = await supabase
           .from("customers")
           .insert({
             user_id: authUser.id,
             display_name: displayName,
+            email: contactEmail || authUser.email,
             phone: phone,
-            email: authUser.email,
           })
           .select()
           .single();
@@ -163,7 +182,7 @@ export default function ProfilePage() {
 
     setSaving(false);
 
-    // Hide success message after 3 seconds
+    // Auto-hide success message after 3 seconds
     if (!error) {
       setTimeout(() => setSaved(false), 3000);
     }
@@ -178,7 +197,7 @@ export default function ProfilePage() {
     );
   }
 
-  // ─── NOT LOGGED IN (safety — should redirect above) ───
+  // ─── NOT LOGGED IN (safety fallback) ───
   if (!authUser) return null;
 
   return (
@@ -194,8 +213,8 @@ export default function ProfilePage() {
         </h1>
 
         {/* ═══════════════════════════════════════════════════════ */}
-        {/* PROFILE CARD — Google info (read-only)                */}
-        {/* Shows the info from their Google account              */}
+        {/* GOOGLE ACCOUNT CARD (read-only)                       */}
+        {/* Shows info from their Google account — cannot edit    */}
         {/* ═══════════════════════════════════════════════════════ */}
         <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
           <div className="flex items-center gap-4 mb-4">
@@ -210,20 +229,20 @@ export default function ProfilePage() {
               />
             )}
             <div>
-              {/* Name from Google */}
+              {/* Full name from Google */}
               <h2 className="text-lg font-bold text-gray-900">
                 {authUser.name}
               </h2>
-              {/* Email from Google */}
+              {/* Google email (login email — cannot change) */}
               <p className="text-sm text-gray-500">{authUser.email}</p>
-              {/* Login provider badge */}
+              {/* Badge showing login provider */}
               <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 mt-1 inline-block">
                 {authUser.provider === "google" ? "Google Account" : authUser.provider}
               </span>
             </div>
           </div>
 
-          {/* Member since date */}
+          {/* When the user first created their account */}
           <p className="text-xs text-gray-400">
             {t("Μέλος από", "Member since")}{" "}
             {new Date(authUser.createdAt).toLocaleDateString("el-GR", {
@@ -236,14 +255,16 @@ export default function ProfilePage() {
 
         {/* ═══════════════════════════════════════════════════════ */}
         {/* EDITABLE FIELDS                                       */}
-        {/* Display name and phone — saved to customers table     */}
+        {/* Display name, contact email, phone                   */}
+        {/* Saved to the 'customers' table in Supabase           */}
         {/* ═══════════════════════════════════════════════════════ */}
         <div className="bg-white rounded-2xl shadow-sm p-6">
           <h3 className="font-bold mb-4">
             {t("Στοιχεία Επικοινωνίας", "Contact Details")}
           </h3>
 
-          {/* Display Name */}
+          {/* ── Display Name ── */}
+          {/* This is how the user appears on bookings and reviews */}
           <div className="mb-4">
             <label
               htmlFor="display-name"
@@ -268,7 +289,35 @@ export default function ProfilePage() {
             </p>
           </div>
 
-          {/* Phone Number */}
+          {/* ── Contact Email ── */}
+          {/* Defaults to Google email but can be changed */}
+          {/* Used for booking confirmations and notifications */}
+          <div className="mb-4">
+            <label
+              htmlFor="contact-email"
+              className="text-xs font-semibold text-gray-600 block mb-1"
+            >
+              {t("Email Επικοινωνίας", "Contact Email")}
+            </label>
+            <input
+              id="contact-email"
+              name="contact-email"
+              type="email"
+              value={contactEmail}
+              onChange={(e) => setContactEmail(e.target.value)}
+              placeholder={authUser.email}
+              className="w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              {t(
+                "Αν θέλετε να λαμβάνετε ειδοποιήσεις σε διαφορετικό email. Αφήστε κενό για να χρησιμοποιηθεί το Google email.",
+                "If you want notifications at a different email. Leave empty to use your Google email."
+              )}
+            </p>
+          </div>
+
+          {/* ── Phone Number ── */}
+          {/* Used for booking confirmations — never shown publicly */}
           <div className="mb-4">
             <label
               htmlFor="phone"
@@ -306,6 +355,7 @@ export default function ProfilePage() {
           </button>
 
           {/* ─── SUCCESS MESSAGE ─── */}
+          {/* Green bar that appears for 3 seconds after saving */}
           {saved && (
             <div className="mt-3 p-3 bg-green-50 rounded-xl text-sm text-green-700 text-center">
               ✓ {t("Οι αλλαγές αποθηκεύτηκαν!", "Changes saved!")}
@@ -313,6 +363,7 @@ export default function ProfilePage() {
           )}
 
           {/* ─── ERROR MESSAGE ─── */}
+          {/* Red bar that appears if save fails */}
           {error && (
             <div className="mt-3 p-3 bg-red-50 rounded-xl text-sm text-red-600 text-center">
               {error}
@@ -329,6 +380,7 @@ export default function ProfilePage() {
             {t("Πληροφορίες Λογαριασμού", "Account Info")}
           </h3>
           <div className="space-y-3 text-sm">
+            {/* Login provider */}
             <div className="flex justify-between">
               <span className="text-gray-500">
                 {t("Σύνδεση μέσω", "Login via")}
@@ -337,12 +389,16 @@ export default function ProfilePage() {
                 {authUser.provider === "google" ? "Google" : authUser.provider}
               </span>
             </div>
+            {/* Login email (cannot change) */}
             <div className="flex justify-between">
-              <span className="text-gray-500">Email</span>
+              <span className="text-gray-500">
+                {t("Email Σύνδεσης", "Login Email")}
+              </span>
               <span className="font-medium text-gray-700">
                 {authUser.email}
               </span>
             </div>
+            {/* Registration date */}
             <div className="flex justify-between">
               <span className="text-gray-500">
                 {t("Εγγραφή", "Registered")}
