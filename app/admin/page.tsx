@@ -681,6 +681,7 @@ export default function AdminPage() {
                         onChange={(e) => setCatTier(e.target.value)}
                         className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
                       >
+                        <option value="free">Free (€0 — testing/promo)</option>
                         <option value="light">Light (€10/mo)</option>
                         <option value="trades">Trades (€15/mo)</option>
                         <option value="specialists">Specialists (€25/mo)</option>
