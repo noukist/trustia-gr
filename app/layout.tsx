@@ -32,6 +32,7 @@ export default function RootLayout({
   return (
     <html lang={lang === "el" ? "el" : "en"}>
       <head>
+        <meta httpEquiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
         <title>Mastori.gr — Βρες τον ειδικό για κάθε ανάγκη</title>
         <meta
           name="description"
