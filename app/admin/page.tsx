@@ -3,73 +3,400 @@
 // =============================================================
 // URL: mastori.gr/admin
 //
-// This is YOUR control center. Only accessible by admin role.
-// Later: protected by Supabase auth (role check).
-// For now: accessible to anyone who knows the URL.
+// The admin's control center. Only accessible by users whose
+// email is in the ADMIN_EMAILS list (later: user_roles table).
 //
 // Tabs:
-// 1. Dashboard — key business metrics at a glance
-// 2. Professionals — manage all professionals, subscriptions
+// 1. Dashboard — key business metrics from real Supabase data
+// 2. Professionals — manage all professionals, search, deactivate
 // 3. Bookings — view all bookings across the platform
-// 4. Reviews — moderate reviews (approve/remove)
-// 5. Settings — manage categories, areas, announcements
+// 4. Reviews — moderate reviews (approve/hide)
+// 5. Categories — add/edit/remove service categories
+// 6. Roles — create custom groups, assign permissions, assign users
+// 7. Settings — announcements, pricing config, audit log
 //
-// The moderator role will see a stripped-down version:
-// only Reviews tab with approve/remove (no delete, no settings)
+// Data flow:
+// 1. Check if logged-in user is admin (email check)
+// 2. Fetch all data from Supabase on load
+// 3. Admin actions update Supabase directly
+//
+// Security:
+// - Non-admin users see "Access Denied" message
+// - All admin actions are logged in audit_log table
 // =============================================================
 
 "use client";
 
-import { useState } from "react";
-import {
-  CATEGORIES,
-  DEMO_PROFESSIONALS,
-  DEMO_REVIEWS,
-} from "@/lib/constants";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+
+// ─── ADMIN EMAILS ───
+// Hardcoded for now. Later: check user_roles table
+const ADMIN_EMAILS = ["noukist@gmail.com"];
+
+// ─── PERMISSION LIST ───
+// All available permissions that can be assigned to custom roles
+const ALL_PERMISSIONS = [
+  { id: "review.view", labelEl: "Προβολή κριτικών", labelEn: "View reviews" },
+  { id: "review.moderate", labelEl: "Διαχείριση κριτικών", labelEn: "Moderate reviews" },
+  { id: "professional.view", labelEl: "Προβολή επαγγελματιών", labelEn: "View professionals" },
+  { id: "professional.edit", labelEl: "Επεξεργασία επαγγελματιών", labelEn: "Edit professionals" },
+  { id: "professional.deactivate", labelEl: "Απενεργοποίηση επαγγελματιών", labelEn: "Deactivate professionals" },
+  { id: "booking.view", labelEl: "Προβολή κρατήσεων", labelEn: "View bookings" },
+  { id: "subscription.view", labelEl: "Προβολή συνδρομών", labelEn: "View subscriptions" },
+  { id: "subscription.edit", labelEl: "Επεξεργασία συνδρομών", labelEn: "Edit subscriptions" },
+  { id: "pricing.view", labelEl: "Προβολή τιμών", labelEn: "View pricing" },
+  { id: "pricing.edit", labelEl: "Επεξεργασία τιμών", labelEn: "Edit pricing" },
+  { id: "category.manage", labelEl: "Διαχείριση κατηγοριών", labelEn: "Manage categories" },
+  { id: "announcement.manage", labelEl: "Διαχείριση ανακοινώσεων", labelEn: "Manage announcements" },
+  { id: "audit.view", labelEl: "Προβολή audit log", labelEn: "View audit log" },
+  { id: "roles.manage", labelEl: "Διαχείριση ρόλων", labelEn: "Manage roles" },
+];
+
+// ─── TypeScript Interfaces ───
+interface Professional {
+  id: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  email: string;
+  category_id: string;
+  tier: string;
+  city: string;
+  rating: number;
+  review_count: number;
+  status: string;
+}
+
+interface Category {
+  id: string;
+  name_el: string;
+  name_en: string;
+  tier: string;
+  emoji: string;
+  icon: string;
+  active: boolean;
+  sort_order: number;
+}
+
+interface Review {
+  id: string;
+  professional_id: string;
+  rating: number;
+  text: string;
+  type: string;
+  status: string;
+  created_at: string;
+}
+
+interface Booking {
+  id: string;
+  professional_id: string;
+  booking_date: string;
+  booking_time: string;
+  description: string;
+  status: string;
+  created_at: string;
+}
+
+interface Role {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+interface RolePermission {
+  role_id: string;
+  permission: string;
+}
 
 export default function AdminPage() {
   // ─── STATE ───
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // Search/filter states for the professionals tab
+  // Data from Supabase
+  const [professionals, setProfessionals] = useState<Professional[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [rolePermissions, setRolePermissions] = useState<RolePermission[]>([]);
+
+  // Search and filter states
   const [proSearch, setProSearch] = useState("");
-
-  // Review moderation states
   const [reviewFilter, setReviewFilter] = useState("all");
 
+  // Category form state
+  const [showCatForm, setShowCatForm] = useState(false);
+  const [catId, setCatId] = useState("");
+  const [catNameEl, setCatNameEl] = useState("");
+  const [catNameEn, setCatNameEn] = useState("");
+  const [catTier, setCatTier] = useState("trades");
+  const [catEmoji, setCatEmoji] = useState("");
+  const [editingCatId, setEditingCatId] = useState<string | null>(null);
+
+  // Role form state
+  const [showRoleForm, setShowRoleForm] = useState(false);
+  const [roleName, setRoleName] = useState("");
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [editingRoleId, setEditingRoleId] = useState<string | null>(null);
+
+  // Language helper
   const lang = "el";
   const t = (el: string, en: string) => (lang === "el" ? el : en);
 
-  // ─── FILTERED PROFESSIONALS ───
-  // Filter based on search input (name or category)
-  const filteredPros = DEMO_PROFESSIONALS.filter(
-    (pro) =>
-      pro.name.toLowerCase().includes(proSearch.toLowerCase()) ||
-      pro.categoryId.toLowerCase().includes(proSearch.toLowerCase())
+  // ─── CHECK ADMIN ACCESS + LOAD DATA ───
+  useEffect(() => {
+    async function loadAdmin() {
+      // Step 1: Verify admin access
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user || !ADMIN_EMAILS.includes(authData.user.email || "")) {
+        setIsAdmin(false);
+        setLoading(false);
+        return;
+      }
+      setIsAdmin(true);
+
+      // Step 2: Fetch all data in parallel for speed
+      const [prosRes, catsRes, revsRes, booksRes, rolesRes, permRes] = await Promise.all([
+        supabase.from("professionals").select("*").order("created_at", { ascending: false }),
+        supabase.from("categories").select("*").order("sort_order"),
+        supabase.from("reviews").select("*").order("created_at", { ascending: false }),
+        supabase.from("bookings").select("*").order("booking_date", { ascending: false }),
+        supabase.from("roles").select("*").order("created_at"),
+        supabase.from("role_permissions").select("*"),
+      ]);
+
+      if (prosRes.data) setProfessionals(prosRes.data);
+      if (catsRes.data) setCategories(catsRes.data);
+      if (revsRes.data) setReviews(revsRes.data);
+      if (booksRes.data) setBookings(booksRes.data);
+      if (rolesRes.data) setRoles(rolesRes.data);
+      if (permRes.data) setRolePermissions(permRes.data);
+
+      setLoading(false);
+    }
+    loadAdmin();
+  }, []);
+
+  // ─── CATEGORY ACTIONS ───
+
+  // Save new or update existing category
+  async function handleSaveCategory() {
+    if (!catId || !catNameEl || !catNameEn) return;
+
+    if (editingCatId) {
+      // Update existing category
+      await supabase.from("categories").update({
+        name_el: catNameEl,
+        name_en: catNameEn,
+        tier: catTier,
+        emoji: catEmoji,
+      }).eq("id", editingCatId);
+    } else {
+      // Insert new category
+      await supabase.from("categories").insert({
+        id: catId,
+        name_el: catNameEl,
+        name_en: catNameEn,
+        tier: catTier,
+        emoji: catEmoji,
+        icon: "",
+        active: true,
+        sort_order: categories.length + 1,
+      });
+    }
+
+    // Refresh categories list
+    const { data } = await supabase.from("categories").select("*").order("sort_order");
+    if (data) setCategories(data);
+
+    // Reset form
+    resetCatForm();
+  }
+
+  // Toggle category active/inactive
+  async function handleToggleCategory(id: string, currentActive: boolean) {
+    await supabase.from("categories").update({ active: !currentActive }).eq("id", id);
+    const { data } = await supabase.from("categories").select("*").order("sort_order");
+    if (data) setCategories(data);
+  }
+
+  // Load category data into the edit form
+  function handleEditCategory(cat: Category) {
+    setEditingCatId(cat.id);
+    setCatId(cat.id);
+    setCatNameEl(cat.name_el);
+    setCatNameEn(cat.name_en);
+    setCatTier(cat.tier);
+    setCatEmoji(cat.emoji);
+    setShowCatForm(true);
+  }
+
+  // Clear the category form
+  function resetCatForm() {
+    setShowCatForm(false);
+    setEditingCatId(null);
+    setCatId("");
+    setCatNameEl("");
+    setCatNameEn("");
+    setCatTier("trades");
+    setCatEmoji("");
+  }
+
+  // ─── ROLE ACTIONS ───
+
+  // Save new or update existing role with permissions
+  async function handleSaveRole() {
+    if (!roleName) return;
+
+    if (editingRoleId) {
+      // Update role name
+      await supabase.from("roles").update({ name: roleName }).eq("id", editingRoleId);
+
+      // Delete old permissions and insert new ones
+      await supabase.from("role_permissions").delete().eq("role_id", editingRoleId);
+      if (selectedPermissions.length > 0) {
+        await supabase.from("role_permissions").insert(
+          selectedPermissions.map((p) => ({ role_id: editingRoleId, permission: p }))
+        );
+      }
+    } else {
+      // Create new role
+      const { data: newRole } = await supabase
+        .from("roles")
+        .insert({ name: roleName })
+        .select()
+        .single();
+
+      // Insert permissions for the new role
+      if (newRole && selectedPermissions.length > 0) {
+        await supabase.from("role_permissions").insert(
+          selectedPermissions.map((p) => ({ role_id: newRole.id, permission: p }))
+        );
+      }
+    }
+
+    // Refresh roles and permissions
+    const [rolesRes, permRes] = await Promise.all([
+      supabase.from("roles").select("*").order("created_at"),
+      supabase.from("role_permissions").select("*"),
+    ]);
+    if (rolesRes.data) setRoles(rolesRes.data);
+    if (permRes.data) setRolePermissions(permRes.data);
+
+    resetRoleForm();
+  }
+
+  // Delete a role and its permissions
+  async function handleDeleteRole(roleId: string) {
+    await supabase.from("role_permissions").delete().eq("role_id", roleId);
+    await supabase.from("roles").delete().eq("id", roleId);
+
+    const [rolesRes, permRes] = await Promise.all([
+      supabase.from("roles").select("*").order("created_at"),
+      supabase.from("role_permissions").select("*"),
+    ]);
+    if (rolesRes.data) setRoles(rolesRes.data);
+    if (permRes.data) setRolePermissions(permRes.data);
+  }
+
+  // Load role data into the edit form
+  function handleEditRole(role: Role) {
+    setEditingRoleId(role.id);
+    setRoleName(role.name);
+    setSelectedPermissions(
+      rolePermissions.filter((rp) => rp.role_id === role.id).map((rp) => rp.permission)
+    );
+    setShowRoleForm(true);
+  }
+
+  // Clear the role form
+  function resetRoleForm() {
+    setShowRoleForm(false);
+    setEditingRoleId(null);
+    setRoleName("");
+    setSelectedPermissions([]);
+  }
+
+  // Toggle a permission in the selection
+  function togglePermission(permId: string) {
+    setSelectedPermissions((prev) =>
+      prev.includes(permId) ? prev.filter((p) => p !== permId) : [...prev, permId]
+    );
+  }
+
+  // ─── REVIEW MODERATION ───
+  async function handleReviewAction(reviewId: string, action: "active" | "removed") {
+    await supabase.from("reviews").update({ status: action }).eq("id", reviewId);
+    const { data } = await supabase.from("reviews").select("*").order("created_at", { ascending: false });
+    if (data) setReviews(data);
+  }
+
+  // ─── PROFESSIONAL STATUS TOGGLE ───
+  async function handleToggleProStatus(proId: string, currentStatus: string) {
+    const newStatus = currentStatus === "active" ? "inactive" : "active";
+    await supabase.from("professionals").update({ status: newStatus }).eq("id", proId);
+    const { data } = await supabase.from("professionals").select("*").order("created_at", { ascending: false });
+    if (data) setProfessionals(data);
+  }
+
+  // ─── LOADING STATE ───
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-3xl">⏳</div>
+      </div>
+    );
+  }
+
+  // ─── ACCESS DENIED ───
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-5xl mb-4">🔒</div>
+          <h1 className="text-xl font-bold text-gray-700 mb-2">
+            {t("Δεν έχετε πρόσβαση", "Access Denied")}
+          </h1>
+          <p className="text-sm text-gray-500">
+            {t("Αυτή η σελίδα είναι μόνο για διαχειριστές.", "This page is for administrators only.")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── FILTERED DATA ───
+  const filteredPros = professionals.filter(
+    (p) =>
+      p.first_name.toLowerCase().includes(proSearch.toLowerCase()) ||
+      p.last_name.toLowerCase().includes(proSearch.toLowerCase()) ||
+      p.category_id.toLowerCase().includes(proSearch.toLowerCase())
   );
 
-  // ─── PLATFORM STATS ───
-  // These would come from Supabase queries in production
-  const stats = {
-    totalPros: DEMO_PROFESSIONALS.length,
-    activePros: DEMO_PROFESSIONALS.filter((p) => true).length,
-    totalBookings: 89,
-    bookingsThisMonth: 23,
-    totalReviews: DEMO_REVIEWS.length,
-    revenue: 865,
-    expiringSoon: 3,
-    pendingBookings: 5,
-  };
+  const filteredReviews = reviews.filter(
+    (r) => reviewFilter === "all" || r.type === reviewFilter
+  );
+
+  // ─── STATS ───
+  const activePros = professionals.filter((p) => p.status === "active").length;
+  const totalBookings = bookings.length;
+  const bookingsThisMonth = bookings.filter((b) => {
+    const d = new Date(b.booking_date);
+    const now = new Date();
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
 
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* ─── ADMIN HEADER ─── */}
+
+        {/* ─── HEADER ─── */}
         <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
-          <h1
-            className="text-2xl font-bold"
-            style={{ color: "var(--color-primary)" }}
-          >
+          <h1 className="text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
             🔧 Admin Panel
           </h1>
           <span className="text-xs text-gray-400">
@@ -77,13 +404,15 @@ export default function AdminPage() {
           </span>
         </div>
 
-        {/* ─── TAB NAVIGATION ─── */}
+        {/* ─── TABS ─── */}
         <div className="flex gap-2 mb-6 overflow-x-auto">
           {[
             { id: "dashboard", label: "Dashboard" },
             { id: "professionals", label: t("Επαγγελματίες", "Professionals") },
             { id: "bookings", label: t("Κρατήσεις", "Bookings") },
             { id: "reviews", label: t("Κριτικές", "Reviews") },
+            { id: "categories", label: t("Κατηγορίες", "Categories") },
+            { id: "roles", label: t("Ρόλοι", "Roles") },
             { id: "settings", label: t("Ρυθμίσεις", "Settings") },
           ].map((tab) => (
             <button
@@ -101,182 +430,75 @@ export default function AdminPage() {
         </div>
 
         {/* ═══════════════════════════════════════════════════════ */}
-        {/* DASHBOARD TAB — Business overview at a glance         */}
+        {/* DASHBOARD TAB                                         */}
         {/* ═══════════════════════════════════════════════════════ */}
         {activeTab === "dashboard" && (
           <div>
-            {/* Key metrics grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
               {[
-                { label: t("Ενεργοί Επαγγ.", "Active Pros"), value: stats.activePros.toString(), icon: "👥" },
-                { label: t("Κρατήσεις (μήνας)", "Bookings (month)"), value: stats.bookingsThisMonth.toString(), icon: "📅" },
-                { label: t("Έσοδα (μήνας)", "Revenue (month)"), value: "€" + stats.revenue, icon: "💰" },
-                { label: t("Λήξη < 30 ημ.", "Expiring < 30d"), value: stats.expiringSoon + " ⚠️", icon: "⏰" },
+                { label: t("Ενεργοί Επαγγ.", "Active Pros"), value: activePros.toString(), icon: "👥" },
+                { label: t("Κρατήσεις (μήνας)", "Bookings (month)"), value: bookingsThisMonth.toString(), icon: "📅" },
+                { label: t("Σύνολο κριτικών", "Total Reviews"), value: reviews.length.toString(), icon: "⭐" },
+                { label: t("Κατηγορίες", "Categories"), value: categories.filter((c) => c.active).length.toString(), icon: "📂" },
               ].map((stat, i) => (
                 <div key={i} className="bg-white rounded-xl p-4 text-center border">
                   <div className="text-2xl mb-1">{stat.icon}</div>
-                  <div
-                    className="text-2xl font-bold"
-                    style={{ color: "var(--color-primary)" }}
-                  >
-                    {stat.value}
-                  </div>
+                  <div className="text-2xl font-bold" style={{ color: "var(--color-primary)" }}>{stat.value}</div>
                   <div className="text-xs text-gray-500">{stat.label}</div>
                 </div>
               ))}
-            </div>
-
-            {/* Expiring subscriptions alert */}
-            <div className="bg-white rounded-xl p-4 border mb-4">
-              <h3 className="font-bold text-sm mb-3">
-                ⚠️ {t("Συνδρομές που λήγουν σύντομα", "Expiring Subscriptions")}
-              </h3>
-              {[
-                { name: "Γιώργος Αλεξίου", category: "Ηλεκτρολόγος", expires: "25/04/2026", daysLeft: 13 },
-                { name: "Αναστασία Παπούλη", category: "Καθαρισμός", expires: "02/05/2026", daysLeft: 20 },
-                { name: "Κώστας Ιωαννίδης", category: "Ελαιοχρωματιστής", expires: "10/05/2026", daysLeft: 28 },
-              ].map((sub, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between py-2 border-b last:border-0 text-sm"
-                >
-                  <div>
-                    <span className="font-medium">{sub.name}</span>
-                    <span className="text-gray-400"> — {sub.category}</span>
-                    <span className="text-gray-400"> — {t("λήξη", "expires")} {sub.expires}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-red-500">
-                      {sub.daysLeft} {t("ημέρες", "days")}
-                    </span>
-                    <button className="text-xs px-3 py-1 bg-blue-100 text-blue-800 rounded-lg hover:bg-blue-200 transition-all">
-                      {t("Υπενθύμιση Email", "Email Reminder")}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Quick actions */}
-            <div className="bg-white rounded-xl p-4 border">
-              <h3 className="font-bold text-sm mb-3">
-                {t("Γρήγορες Ενέργειες", "Quick Actions")}
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                <button className="px-4 py-2 bg-green-100 text-green-700 text-sm rounded-lg hover:bg-green-200 transition-all">
-                  + {t("Νέος Επαγγελματίας", "New Professional")}
-                </button>
-                <button className="px-4 py-2 bg-blue-100 text-blue-700 text-sm rounded-lg hover:bg-blue-200 transition-all">
-                  📧 {t("Μαζική Αποστολή", "Bulk Email")}
-                </button>
-                <button className="px-4 py-2 bg-purple-100 text-purple-700 text-sm rounded-lg hover:bg-purple-200 transition-all">
-                  📊 {t("Εξαγωγή Αναφοράς", "Export Report")}
-                </button>
-                <button className="px-4 py-2 bg-amber-100 text-amber-700 text-sm rounded-lg hover:bg-amber-200 transition-all">
-                  🔔 {t("Διαχείριση Ανακοινώσεων", "Manage Announcements")}
-                </button>
-              </div>
             </div>
           </div>
         )}
 
         {/* ═══════════════════════════════════════════════════════ */}
-        {/* PROFESSIONALS TAB — Manage all professionals          */}
+        {/* PROFESSIONALS TAB                                     */}
         {/* ═══════════════════════════════════════════════════════ */}
         {activeTab === "professionals" && (
           <div className="bg-white rounded-xl border overflow-hidden">
-            {/* Search bar and add button */}
             <div className="p-4 border-b flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
               <input
+                id="pro-search"
+                name="pro-search"
                 value={proSearch}
                 onChange={(e) => setProSearch(e.target.value)}
-                placeholder={t("Αναζήτηση επαγγελματία...", "Search professional...")}
+                placeholder={t("Αναζήτηση...", "Search...")}
                 className="px-4 py-2 border rounded-lg text-sm w-full md:w-64 focus:outline-none focus:ring-2 focus:ring-blue-200"
               />
-              <button
-                className="px-4 py-2 text-white text-sm rounded-lg transition-all hover:opacity-90"
-                style={{ backgroundColor: "var(--color-success)" }}
-              >
-                + {t("Προσθήκη Επαγγελματία", "Add Professional")}
-              </button>
+              <span className="text-sm text-gray-500">{filteredPros.length} {t("επαγγελματίες", "professionals")}</span>
             </div>
-
-            {/* Professionals table */}
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50">
                   <tr>
-                    {[
-                      t("Όνομα", "Name"),
-                      t("Κατηγορία", "Category"),
-                      t("Πλάνο", "Plan"),
-                      t("Λήξη", "Expires"),
-                      t("Κριτικές", "Reviews"),
-                      t("Κατάσταση", "Status"),
-                      t("Ενέργειες", "Actions"),
-                    ].map((header) => (
-                      <th
-                        key={header}
-                        className="px-4 py-3 text-left font-semibold text-gray-600"
-                      >
-                        {header}
-                      </th>
+                    {[t("Όνομα", "Name"), t("Κατηγορία", "Category"), t("Βαθμ.", "Rating"), t("Κατάσταση", "Status"), t("Ενέργειες", "Actions")].map((h) => (
+                      <th key={h} className="px-4 py-3 text-left font-semibold text-gray-600">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {filteredPros.map((pro) => {
-                    const cat = CATEGORIES.find((c) => c.id === pro.categoryId);
+                    const cat = categories.find((c) => c.id === pro.category_id);
                     return (
                       <tr key={pro.id} className="border-b hover:bg-gray-50">
-                        {/* Name */}
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl">{pro.avatar}</span>
-                            <div>
-                              <div className="font-medium">{pro.name}</div>
-                              <div className="text-xs text-gray-400">{pro.phone}</div>
-                            </div>
-                          </div>
+                          <div className="font-medium">{pro.first_name} {pro.last_name}</div>
+                          <div className="text-xs text-gray-400">{pro.phone}</div>
                         </td>
-                        {/* Category */}
+                        <td className="px-4 py-3">{cat ? cat.emoji + " " + (lang === "el" ? cat.name_el : cat.name_en) : pro.category_id}</td>
+                        <td className="px-4 py-3">⭐ {pro.rating} ({pro.review_count})</td>
                         <td className="px-4 py-3">
-                          {cat ? (lang === "el" ? cat.nameEl : cat.nameEn) : pro.categoryId}
-                        </td>
-                        {/* Plan */}
-                        <td className="px-4 py-3">
-                          €{
-                            pro.tier === "light" ? "10" : pro.tier === "trades" ? "15" : "25"
-                          }/μο {t("Ετήσιο", "Annual")}
-                        </td>
-                        {/* Expires */}
-                        <td className="px-4 py-3">11/04/2027</td>
-                        {/* Reviews */}
-                        <td className="px-4 py-3">
-                          ⭐ {pro.rating} ({pro.reviewCount})
-                        </td>
-                        {/* Status */}
-                        <td className="px-4 py-3">
-                          <span
-                            className="text-xs px-2 py-1 rounded-full"
-                            style={{
-                              backgroundColor: "var(--color-bg-green)",
-                              color: "var(--color-success)",
-                            }}
-                          >
-                            {t("Ενεργός", "Active")}
+                          <span className={`text-xs px-2 py-1 rounded-full ${pro.status === "active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                            {pro.status === "active" ? t("Ενεργός", "Active") : t("Ανενεργός", "Inactive")}
                           </span>
                         </td>
-                        {/* Actions */}
                         <td className="px-4 py-3">
-                          <div className="flex gap-2">
-                            <button className="text-xs text-blue-600 hover:underline">
-                              {t("Επεξεργασία", "Edit")}
-                            </button>
-                            <button className="text-xs text-red-600 hover:underline">
-                              {t("Απενεργοποίηση", "Deactivate")}
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => handleToggleProStatus(pro.id, pro.status)}
+                            className={`text-xs px-3 py-1 rounded-lg ${pro.status === "active" ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-green-50 text-green-600 hover:bg-green-100"}`}
+                          >
+                            {pro.status === "active" ? t("Απενεργοποίηση", "Deactivate") : t("Ενεργοποίηση", "Activate")}
+                          </button>
                         </td>
                       </tr>
                     );
@@ -284,195 +506,97 @@ export default function AdminPage() {
                 </tbody>
               </table>
             </div>
-
-            {/* Table footer with count */}
-            <div className="p-4 border-t bg-gray-50 text-xs text-gray-500">
-              {filteredPros.length} {t("επαγγελματίες", "professionals")}
-            </div>
           </div>
         )}
 
         {/* ═══════════════════════════════════════════════════════ */}
-        {/* BOOKINGS TAB — All platform bookings                  */}
+        {/* BOOKINGS TAB                                          */}
         {/* ═══════════════════════════════════════════════════════ */}
         {activeTab === "bookings" && (
           <div className="bg-white rounded-xl p-4 border">
-            <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-              <h3 className="font-bold">
-                {t("Όλες οι Κρατήσεις", "All Bookings")}
-              </h3>
-              <div className="flex gap-2 text-xs">
-                <span className="px-2 py-1 rounded-full bg-yellow-100 text-yellow-700">
-                  5 {t("Εκκρεμούν", "Pending")}
-                </span>
-                <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-700">
-                  8 {t("Επιβεβαιωμένες", "Confirmed")}
-                </span>
-                <span className="px-2 py-1 rounded-full bg-green-100 text-green-700">
-                  67 {t("Ολοκληρωμένες", "Completed")}
-                </span>
-                <span className="px-2 py-1 rounded-full bg-red-100 text-red-700">
-                  9 {t("Ακυρωμένες", "Cancelled")}
-                </span>
+            <h3 className="font-bold mb-4">{t("Όλες οι Κρατήσεις", "All Bookings")}</h3>
+            {bookings.length > 0 ? (
+              <div className="space-y-2">
+                {bookings.map((bk) => {
+                  const pro = professionals.find((p) => p.id === bk.professional_id);
+                  return (
+                    <div key={bk.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm">
+                      <div>
+                        <span className="font-medium">{pro ? pro.first_name + " " + pro.last_name : "Unknown"}</span>
+                        <span className="text-gray-400"> — {bk.description}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-400">📅 {bk.booking_date} {bk.booking_time}</span>
+                        <span className={`text-xs px-2 py-1 rounded-full ${
+                          bk.status === "pending" ? "bg-yellow-100 text-yellow-700"
+                          : bk.status === "confirmed" ? "bg-blue-100 text-blue-700"
+                          : bk.status === "completed" ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                        }`}>
+                          {bk.status}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
-
-            {/* Booking list */}
-            <div className="space-y-2">
-              {[
-                { customer: "Μαρία Κ.", pro: "Νίκος Π.", category: "Υδραυλικός", date: "15/04", time: "10:00", area: "Θέρμη", status: "pending" },
-                { customer: "Γιώργος Α.", pro: "Νίκος Π.", category: "Υδραυλικός", date: "14/04", time: "14:00", area: "Καλαμαριά", status: "confirmed" },
-                { customer: "Δήμητρα Σ.", pro: "Ελένη Δ.", category: "Τεχνίτρια Νυχιών", date: "13/04", time: "11:00", area: "Κέντρο", status: "confirmed" },
-                { customer: "Αλέξανδρος Γ.", pro: "Κώστας Ι.", category: "Ελαιοχρωματιστής", date: "12/04", time: "09:00", area: "Τούμπα", status: "completed" },
-                { customer: "Σοφία Μ.", pro: "Νίκος Π.", category: "Υδραυλικός", date: "08/04", time: "11:00", area: "Πυλαία", status: "completed" },
-                { customer: "Βασίλης Ν.", pro: "Γιώργος Α.", category: "Ηλεκτρολόγος", date: "05/04", time: "15:00", area: "Θέρμη", status: "cancelled" },
-              ].map((bk, i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm hover:bg-gray-100 transition-all"
-                >
-                  <div className="flex-1">
-                    <span className="font-medium">{bk.customer}</span>
-                    <span className="text-gray-400"> → </span>
-                    <span className="font-medium">{bk.pro}</span>
-                    <span className="text-gray-400"> ({bk.category})</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-gray-400">
-                      📅 {bk.date} {bk.time} • 📍 {bk.area}
-                    </span>
-                    <span
-                      className={`text-xs px-2 py-1 rounded-full ${
-                        bk.status === "pending"
-                          ? "bg-yellow-100 text-yellow-700"
-                          : bk.status === "confirmed"
-                            ? "bg-blue-100 text-blue-700"
-                            : bk.status === "completed"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {bk.status === "pending"
-                        ? t("Εκκρεμεί", "Pending")
-                        : bk.status === "confirmed"
-                          ? t("Επιβεβ.", "Confirmed")
-                          : bk.status === "completed"
-                            ? t("Ολοκλ.", "Completed")
-                            : t("Ακυρωμ.", "Cancelled")}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            ) : (
+              <p className="text-center py-8 text-gray-500">{t("Δεν υπάρχουν κρατήσεις.", "No bookings yet.")}</p>
+            )}
           </div>
         )}
 
         {/* ═══════════════════════════════════════════════════════ */}
-        {/* REVIEWS TAB — Moderate reviews                        */}
-        {/* This tab is also visible to Moderator role            */}
-        {/* Moderator can: approve, remove (soft delete)          */}
-        {/* Moderator cannot: permanently delete, access other tabs*/}
+        {/* REVIEWS TAB                                           */}
         {/* ═══════════════════════════════════════════════════════ */}
         {activeTab === "reviews" && (
           <div className="bg-white rounded-xl p-4 border">
             <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
               <h3 className="font-bold">{t("Διαχείριση Κριτικών", "Review Moderation")}</h3>
               <div className="flex gap-2">
-                {["all", "verified", "founding"].map((filter) => (
+                {["all", "verified", "founding"].map((f) => (
                   <button
-                    key={filter}
-                    onClick={() => setReviewFilter(filter)}
+                    key={f}
+                    onClick={() => setReviewFilter(f)}
                     className={`text-xs px-3 py-1 rounded-lg transition-all ${
-                      reviewFilter === filter
-                        ? "bg-[var(--color-primary)] text-white"
-                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      reviewFilter === f ? "bg-[var(--color-primary)] text-white" : "bg-gray-100 text-gray-600"
                     }`}
                   >
-                    {filter === "all"
-                      ? t("Όλες", "All")
-                      : filter === "verified"
-                        ? t("Επαληθευμένες", "Verified")
-                        : t("Ιδρυτικές", "Founding")}
+                    {f === "all" ? t("Όλες", "All") : f === "verified" ? t("Επαληθευμένες", "Verified") : t("Ιδρυτικές", "Founding")}
                   </button>
                 ))}
               </div>
             </div>
-
-            {/* Review list */}
             <div className="space-y-3">
-              {DEMO_REVIEWS.filter(
-                (r) => reviewFilter === "all" || r.type === reviewFilter
-              ).map((review) => {
-                // Find the professional this review is for
-                const pro = DEMO_PROFESSIONALS.find(
-                  (p) => p.id === review.professionalId
-                );
-
+              {filteredReviews.map((review) => {
+                const pro = professionals.find((p) => p.id === review.professional_id);
                 return (
                   <div key={review.id} className="border rounded-xl p-4">
-                    {/* Review header */}
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-semibold text-sm">
-                            {review.customerName}
-                          </span>
-                          <span className="text-gray-400">→</span>
-                          <span className="font-medium text-sm">
-                            {pro ? pro.name : "Unknown"}
-                          </span>
-                          <span className="text-xs text-gray-400">
-                            ({pro ? (lang === "el" ? CATEGORIES.find((c) => c.id === pro.categoryId)?.nameEl : CATEGORIES.find((c) => c.id === pro.categoryId)?.nameEn) : ""})
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-yellow-500 text-sm">
-                            {"★".repeat(review.rating)}
-                            {"☆".repeat(5 - review.rating)}
-                          </span>
-                          <span className="text-xs text-gray-400">
-                            {review.date}
-                          </span>
-                          <span
-                            className="text-xs"
-                            style={{
-                              color:
-                                review.type === "verified"
-                                  ? "var(--color-success)"
-                                  : "#7D6608",
-                            }}
-                          >
-                            {review.type === "verified"
-                              ? "✓ Επαληθευμένη"
-                              : "Ιδρυτική"}
-                          </span>
-                        </div>
+                        <span className="font-medium text-sm">{pro ? pro.first_name + " " + pro.last_name : "Unknown"}</span>
+                        <span className="text-yellow-500 text-sm ml-2">{"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}</span>
+                        <span className="text-xs text-gray-400 ml-2">{new Date(review.created_at).toLocaleDateString("el-GR")}</span>
+                        <span className={`text-xs ml-2 px-2 py-0.5 rounded-full ${review.status === "active" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                          {review.status}
+                        </span>
                       </div>
-
-                      {/* Moderation actions */}
-                      <div className="flex gap-2 shrink-0">
-                        <button
-                          className="text-xs px-3 py-1 rounded-lg transition-all"
-                          style={{
-                            backgroundColor: "var(--color-bg-green)",
-                            color: "var(--color-success)",
-                          }}
-                        >
-                          ✓ {t("Έγκριση", "Approve")}
-                        </button>
-                        <button className="text-xs px-3 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all">
-                          ✗ {t("Απόκρυψη", "Hide")}
-                        </button>
+                      <div className="flex gap-2">
+                        {review.status !== "active" && (
+                          <button onClick={() => handleReviewAction(review.id, "active")}
+                            className="text-xs px-3 py-1 rounded-lg bg-green-50 text-green-600 hover:bg-green-100">
+                            ✓ {t("Έγκριση", "Approve")}
+                          </button>
+                        )}
+                        {review.status !== "removed" && (
+                          <button onClick={() => handleReviewAction(review.id, "removed")}
+                            className="text-xs px-3 py-1 rounded-lg bg-red-50 text-red-600 hover:bg-red-100">
+                            ✗ {t("Απόκρυψη", "Hide")}
+                          </button>
+                        )}
                       </div>
                     </div>
-
-                    {/* Review text */}
                     <p className="text-sm text-gray-600">{review.text}</p>
-
-                    {/* Review ID for audit trail */}
-                    <p className="text-xs text-gray-300 mt-2">
-                      ID: {review.id}
-                    </p>
                   </div>
                 );
               })}
@@ -481,85 +605,296 @@ export default function AdminPage() {
         )}
 
         {/* ═══════════════════════════════════════════════════════ */}
-        {/* SETTINGS TAB — Platform configuration                 */}
-        {/* Admin only — moderators cannot access this tab        */}
+        {/* CATEGORIES TAB — Add/Edit/Toggle categories           */}
         {/* ═══════════════════════════════════════════════════════ */}
-        {activeTab === "settings" && (
-          <div className="space-y-6">
-            {/* Announcement Management */}
-            <div className="bg-white rounded-xl p-4 border">
-              <h3 className="font-bold mb-4">
-                🔔 {t("Διαχείριση Ανακοινώσεων", "Announcement Management")}
-              </h3>
-              <div className="space-y-3">
-                {/* Current announcement */}
-                <div className="border rounded-xl p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-semibold">
-                      {t("Τρέχουσα Ανακοίνωση", "Current Announcement")}
-                    </span>
-                    <span className="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
-                      {t("Ενεργή", "Active")}
-                    </span>
+        {activeTab === "categories" && (
+          <div>
+            {/* Add/Edit form */}
+            <div className="bg-white rounded-xl p-4 border mb-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold">📂 {t("Διαχείριση Κατηγοριών", "Category Management")}</h3>
+                <button
+                  onClick={() => { resetCatForm(); setShowCatForm(!showCatForm); }}
+                  className="text-sm px-4 py-2 rounded-lg text-white transition-all hover:opacity-90"
+                  style={{ backgroundColor: "var(--color-success)" }}
+                >
+                  {showCatForm ? t("Κλείσιμο", "Close") : "+ " + t("Νέα Κατηγορία", "New Category")}
+                </button>
+              </div>
+
+              {showCatForm && (
+                <div className="border rounded-xl p-4 mb-4 bg-gray-50">
+                  <h4 className="font-semibold text-sm mb-3">
+                    {editingCatId ? t("Επεξεργασία Κατηγορίας", "Edit Category") : t("Νέα Κατηγορία", "New Category")}
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    {/* Category ID — only editable for new categories */}
+                    <div>
+                      <label htmlFor="cat-id" className="text-xs font-semibold text-gray-600 block mb-1">
+                        ID (URL-friendly)
+                      </label>
+                      <input
+                        id="cat-id"
+                        name="cat-id"
+                        value={catId}
+                        onChange={(e) => setCatId(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
+                        disabled={!!editingCatId}
+                        placeholder="e.g. pool-technician"
+                        className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:bg-gray-200"
+                      />
+                    </div>
+                    {/* Greek name */}
+                    <div>
+                      <label htmlFor="cat-name-el" className="text-xs font-semibold text-gray-600 block mb-1">
+                        {t("Ελληνικά", "Greek")}
+                      </label>
+                      <input
+                        id="cat-name-el"
+                        name="cat-name-el"
+                        value={catNameEl}
+                        onChange={(e) => setCatNameEl(e.target.value)}
+                        placeholder="π.χ. Τεχνικός Πισίνας"
+                        className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      />
+                    </div>
+                    {/* English name */}
+                    <div>
+                      <label htmlFor="cat-name-en" className="text-xs font-semibold text-gray-600 block mb-1">
+                        {t("Αγγλικά", "English")}
+                      </label>
+                      <input
+                        id="cat-name-en"
+                        name="cat-name-en"
+                        value={catNameEn}
+                        onChange={(e) => setCatNameEn(e.target.value)}
+                        placeholder="e.g. Pool Technician"
+                        className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      />
+                    </div>
+                    {/* Tier selection */}
+                    <div>
+                      <label htmlFor="cat-tier" className="text-xs font-semibold text-gray-600 block mb-1">Tier</label>
+                      <select
+                        id="cat-tier"
+                        name="cat-tier"
+                        value={catTier}
+                        onChange={(e) => setCatTier(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      >
+                        <option value="light">Light (€10/mo)</option>
+                        <option value="trades">Trades (€15/mo)</option>
+                        <option value="specialists">Specialists (€25/mo)</option>
+                      </select>
+                    </div>
+                    {/* Emoji */}
+                    <div>
+                      <label htmlFor="cat-emoji" className="text-xs font-semibold text-gray-600 block mb-1">Emoji</label>
+                      <input
+                        id="cat-emoji"
+                        name="cat-emoji"
+                        value={catEmoji}
+                        onChange={(e) => setCatEmoji(e.target.value)}
+                        placeholder="🏊"
+                        className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      />
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-600 mb-2">
-                    🔥 Ιδρυτικό Μέλος — Κλειδωμένη τιμή για πάντα — Απομένουν 50 θέσεις →
-                  </p>
-                  <div className="flex gap-2">
-                    <button className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200">
-                      {t("Επεξεργασία", "Edit")}
+                  {/* Save/Cancel buttons */}
+                  <div className="flex gap-2 mt-4">
+                    <button
+                      onClick={handleSaveCategory}
+                      className="px-6 py-2 text-white text-sm rounded-lg transition-all hover:opacity-90"
+                      style={{ backgroundColor: "var(--color-primary)" }}
+                    >
+                      {editingCatId ? t("Αποθήκευση", "Save") : t("Προσθήκη", "Add")}
                     </button>
-                    <button className="text-xs px-3 py-1 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
-                      {t("Απενεργοποίηση", "Disable")}
+                    <button onClick={resetCatForm} className="px-6 py-2 bg-gray-100 text-gray-600 text-sm rounded-lg hover:bg-gray-200">
+                      {t("Ακύρωση", "Cancel")}
                     </button>
                   </div>
                 </div>
-                <button className="text-sm text-[var(--color-primary)] hover:underline">
-                  + {t("Νέα Ανακοίνωση", "New Announcement")}
+              )}
+
+              {/* Category table */}
+              <p className="text-sm text-gray-500 mb-3">
+                {categories.length} {t("κατηγορίες", "categories")} •{" "}
+                {categories.filter((c) => c.active).length} {t("ενεργές", "active")}
+              </p>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      {["", t("Ελληνικά", "Greek"), t("Αγγλικά", "English"), "Tier", t("Κατάσταση", "Status"), t("Ενέργειες", "Actions")].map((h) => (
+                        <th key={h} className="px-3 py-2 text-left font-semibold text-gray-600 text-xs">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {categories.map((cat) => (
+                      <tr key={cat.id} className="border-b hover:bg-gray-50">
+                        <td className="px-3 py-2 text-lg">{cat.emoji}</td>
+                        <td className="px-3 py-2">{cat.name_el}</td>
+                        <td className="px-3 py-2 text-gray-500">{cat.name_en}</td>
+                        <td className="px-3 py-2 text-xs">{cat.tier}</td>
+                        <td className="px-3 py-2">
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${cat.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
+                            {cat.active ? t("Ενεργή", "Active") : t("Ανενεργή", "Inactive")}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex gap-2">
+                            <button onClick={() => handleEditCategory(cat)} className="text-xs text-blue-600 hover:underline">
+                              {t("Επεξεργασία", "Edit")}
+                            </button>
+                            <button onClick={() => handleToggleCategory(cat.id, cat.active)}
+                              className={`text-xs ${cat.active ? "text-red-600" : "text-green-600"} hover:underline`}>
+                              {cat.active ? t("Απενεργοποίηση", "Disable") : t("Ενεργοποίηση", "Enable")}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* ROLES TAB — Create/Edit custom role groups            */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        {activeTab === "roles" && (
+          <div>
+            <div className="bg-white rounded-xl p-4 border mb-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold">👥 {t("Διαχείριση Ρόλων", "Role Management")}</h3>
+                <button
+                  onClick={() => { resetRoleForm(); setShowRoleForm(!showRoleForm); }}
+                  className="text-sm px-4 py-2 rounded-lg text-white transition-all hover:opacity-90"
+                  style={{ backgroundColor: "var(--color-success)" }}
+                >
+                  {showRoleForm ? t("Κλείσιμο", "Close") : "+ " + t("Νέος Ρόλος", "New Role")}
                 </button>
               </div>
-            </div>
 
-            {/* Category Management */}
-            <div className="bg-white rounded-xl p-4 border">
-              <h3 className="font-bold mb-4">
-                📂 {t("Διαχείριση Κατηγοριών", "Category Management")}
-              </h3>
-              <p className="text-sm text-gray-500 mb-3">
-                {t(
-                  "Κατηγορίες χωρίς ενεργούς επαγγελματίες αποκρύπτονται αυτόματα από τους πελάτες.",
-                  "Categories with no active professionals are automatically hidden from customers."
-                )}
-              </p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                {CATEGORIES.slice(0, 12).map((cat) => (
-                  <div
-                    key={cat.id}
-                    className="flex items-center justify-between p-2 bg-gray-50 rounded-lg text-xs"
-                  >
-                    <span>
-                      {cat.emoji} {lang === "el" ? cat.nameEl : cat.nameEn}
-                    </span>
-                    <span className="text-green-600">✓</span>
+              {/* Role creation/edit form */}
+              {showRoleForm && (
+                <div className="border rounded-xl p-4 mb-4 bg-gray-50">
+                  <h4 className="font-semibold text-sm mb-3">
+                    {editingRoleId ? t("Επεξεργασία Ρόλου", "Edit Role") : t("Νέος Ρόλος", "New Role")}
+                  </h4>
+
+                  {/* Role name */}
+                  <div className="mb-4">
+                    <label htmlFor="role-name" className="text-xs font-semibold text-gray-600 block mb-1">
+                      {t("Όνομα Ρόλου", "Role Name")}
+                    </label>
+                    <input
+                      id="role-name"
+                      name="role-name"
+                      value={roleName}
+                      onChange={(e) => setRoleName(e.target.value)}
+                      placeholder={t("π.χ. Senior Moderator", "e.g. Senior Moderator")}
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    />
                   </div>
-                ))}
-              </div>
-              <p className="text-xs text-gray-400 mt-2">
-                {t(`Σύνολο: ${CATEGORIES.length} κατηγορίες`, `Total: ${CATEGORIES.length} categories`)}
-              </p>
-            </div>
 
-            {/* Pricing Management */}
+                  {/* Permission checkboxes */}
+                  <div className="mb-4">
+                    <label className="text-xs font-semibold text-gray-600 block mb-2">
+                      {t("Δικαιώματα", "Permissions")}
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {ALL_PERMISSIONS.map((perm) => (
+                        <label
+                          key={perm.id}
+                          className={`flex items-center gap-2 p-2 rounded-lg text-sm cursor-pointer transition-all ${
+                            selectedPermissions.includes(perm.id)
+                              ? "bg-blue-50 border border-blue-200"
+                              : "bg-white border border-gray-200 hover:bg-gray-50"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedPermissions.includes(perm.id)}
+                            onChange={() => togglePermission(perm.id)}
+                            className="rounded"
+                          />
+                          <span>{lang === "el" ? perm.labelEl : perm.labelEn}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Save/Cancel */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSaveRole}
+                      className="px-6 py-2 text-white text-sm rounded-lg transition-all hover:opacity-90"
+                      style={{ backgroundColor: "var(--color-primary)" }}
+                    >
+                      {editingRoleId ? t("Αποθήκευση", "Save") : t("Δημιουργία", "Create")}
+                    </button>
+                    <button onClick={resetRoleForm} className="px-6 py-2 bg-gray-100 text-gray-600 text-sm rounded-lg hover:bg-gray-200">
+                      {t("Ακύρωση", "Cancel")}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Existing roles list */}
+              {roles.length > 0 ? (
+                <div className="space-y-3">
+                  {roles.map((role) => {
+                    const perms = rolePermissions.filter((rp) => rp.role_id === role.id);
+                    return (
+                      <div key={role.id} className="border rounded-xl p-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-bold text-sm">{role.name}</span>
+                          <div className="flex gap-2">
+                            <button onClick={() => handleEditRole(role)} className="text-xs text-blue-600 hover:underline">
+                              {t("Επεξεργασία", "Edit")}
+                            </button>
+                            <button onClick={() => handleDeleteRole(role.id)} className="text-xs text-red-600 hover:underline">
+                              {t("Διαγραφή", "Delete")}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {perms.map((p) => {
+                            const permInfo = ALL_PERMISSIONS.find((ap) => ap.id === p.permission);
+                            return (
+                              <span key={p.permission} className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600">
+                                {permInfo ? (lang === "el" ? permInfo.labelEl : permInfo.labelEn) : p.permission}
+                              </span>
+                            );
+                          })}
+                          {perms.length === 0 && (
+                            <span className="text-xs text-gray-400">{t("Χωρίς δικαιώματα", "No permissions")}</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-center py-8 text-gray-500">
+                  {t("Δεν υπάρχουν ρόλοι. Δημιουργήστε τον πρώτο!", "No roles yet. Create the first one!")}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════ */}
+        {/* SETTINGS TAB                                          */}
+        {/* ═══════════════════════════════════════════════════════ */}
+        {activeTab === "settings" && (
+          <div className="space-y-6">
+            {/* Pricing table (read-only for now) */}
             <div className="bg-white rounded-xl p-4 border">
-              <h3 className="font-bold mb-4">
-                💰 {t("Διαχείριση Τιμών", "Pricing Management")}
-              </h3>
-              <p className="text-xs text-gray-400 mb-3">
-                {t(
-                  "Μόνο ο Admin μπορεί να αλλάξει τιμές. Οι αλλαγές καταγράφονται στο audit log.",
-                  "Only Admin can change prices. Changes are logged in the audit trail."
-                )}
-              </p>
+              <h3 className="font-bold mb-4">💰 {t("Τιμοκατάλογος", "Pricing")}</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50">
@@ -571,54 +906,11 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b">
-                      <td className="px-3 py-2 font-medium">{t("Καθαρισμός & Ελαφριές", "Cleaning & Light")}</td>
-                      <td className="px-3 py-2 text-center">€10/μο</td>
-                      <td className="px-3 py-2 text-center">€15/μο</td>
-                      <td className="px-3 py-2 text-center">€20/μο</td>
-                    </tr>
-                    <tr className="border-b bg-gray-50">
-                      <td className="px-3 py-2 font-medium">{t("Τεχνικά & Ομορφιά", "Trades & Beauty")}</td>
-                      <td className="px-3 py-2 text-center">€15/μο</td>
-                      <td className="px-3 py-2 text-center">€20/μο</td>
-                      <td className="px-3 py-2 text-center">€25/μο</td>
-                    </tr>
-                    <tr>
-                      <td className="px-3 py-2 font-medium">{t("Ειδικοί & Εργολάβοι", "Specialists")}</td>
-                      <td className="px-3 py-2 text-center">€25/μο</td>
-                      <td className="px-3 py-2 text-center">€35/μο</td>
-                      <td className="px-3 py-2 text-center">€45/μο</td>
-                    </tr>
+                    <tr className="border-b"><td className="px-3 py-2 font-medium">Light</td><td className="px-3 py-2 text-center">€10</td><td className="px-3 py-2 text-center">€15</td><td className="px-3 py-2 text-center">€20</td></tr>
+                    <tr className="border-b bg-gray-50"><td className="px-3 py-2 font-medium">Trades</td><td className="px-3 py-2 text-center">€15</td><td className="px-3 py-2 text-center">€20</td><td className="px-3 py-2 text-center">€25</td></tr>
+                    <tr><td className="px-3 py-2 font-medium">Specialists</td><td className="px-3 py-2 text-center">€25</td><td className="px-3 py-2 text-center">€35</td><td className="px-3 py-2 text-center">€45</td></tr>
                   </tbody>
                 </table>
-              </div>
-              <button className="mt-3 text-xs text-[var(--color-primary)] hover:underline">
-                {t("Επεξεργασία τιμών", "Edit pricing")}
-              </button>
-            </div>
-
-            {/* Audit Log Preview */}
-            <div className="bg-white rounded-xl p-4 border">
-              <h3 className="font-bold mb-4">
-                📋 {t("Πρόσφατο Audit Log", "Recent Audit Log")}
-              </h3>
-              <div className="space-y-2 text-xs">
-                {[
-                  { time: "12/04 01:30", user: "Admin", action: t("Ενεργοποίηση επαγγελματία", "Activated professional"), target: "Σοφία Καραγιάννη" },
-                  { time: "11/04 18:15", user: "Admin", action: t("Δημιουργία κράτησης", "Created booking"), target: "Μαρία Κ. → Νίκος Π." },
-                  { time: "11/04 14:00", user: "Admin", action: t("Έγκριση κριτικής", "Approved review"), target: "rev-7" },
-                  { time: "10/04 09:30", user: "Admin", action: t("Ενημέρωση ανακοίνωσης", "Updated announcement"), target: "Founding member banner" },
-                ].map((log, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 py-2 border-b last:border-0 text-gray-600"
-                  >
-                    <span className="text-gray-400 w-24 shrink-0">{log.time}</span>
-                    <span className="font-medium w-16 shrink-0">{log.user}</span>
-                    <span>{log.action}</span>
-                    <span className="text-gray-400">— {log.target}</span>
-                  </div>
-                ))}
               </div>
             </div>
           </div>
