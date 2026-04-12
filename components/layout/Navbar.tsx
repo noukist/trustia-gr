@@ -1,194 +1,143 @@
-// =============================================================
-// Navbar.tsx — Top navigation bar for Mastori.gr
-// =============================================================
-// This component appears on EVERY page of the website.
-// It contains:
-// - The Mastori.gr logo (clickable, goes to homepage)
-// - Navigation links (Services, For Pros, How it Works)
-// - Login button
-// - Language toggle (EL/EN)
-// - Mobile hamburger menu (shows on small screens)
-//
-// The navbar is "sticky" — it stays at the top when you scroll.
-// It also has a subtle backdrop blur for a modern feel.
-// =============================================================
+"use client";
 
-"use client"; // This tells Next.js this component runs in the browser
-              // (needed because we use useState for the mobile menu)
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { BRAND } from "@/lib/constants";
+import { supabase } from "@/lib/supabase";
 
-// -------------------------------------------------------------
-// Props interface — what the parent component can pass to Navbar
-// For now, just the language setting
-// -------------------------------------------------------------
 interface NavbarProps {
-  /** Current language: "el" for Greek, "en" for English */
   lang: "el" | "en";
-  /** Function to toggle language */
   onToggleLang: () => void;
 }
 
 export default function Navbar({ lang, onToggleLang }: NavbarProps) {
-  // State to control whether the mobile menu is open or closed
-  // On desktop, the menu is always visible. On mobile, it's hidden
-  // until the user taps the hamburger icon (☰)
   const [menuOpen, setMenuOpen] = useState(false);
+  // Store the logged-in user's info (null = not logged in)
+  const [user, setUser] = useState<{ name: string; email: string; avatar: string } | null>(null);
 
-  // Helper function to translate text based on current language
-  // Usage: t("Αρχική", "Home") → returns "Αρχική" if Greek, "Home" if English
   const t = (el: string, en: string) => (lang === "el" ? el : en);
 
+  // Check if user is logged in when component loads
+  useEffect(() => {
+    async function getUser() {
+      const { data } = await supabase.auth.getUser();
+      if (data.user) {
+        setUser({
+          name: data.user.user_metadata?.full_name || data.user.email || "",
+          email: data.user.email || "",
+          avatar: data.user.user_metadata?.avatar_url || "",
+        });
+      }
+    }
+    getUser();
+
+    // Listen for login/logout changes
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({
+          name: session.user.user_metadata?.full_name || session.user.email || "",
+          email: session.user.email || "",
+          avatar: session.user.user_metadata?.avatar_url || "",
+        });
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => { listener.subscription.unsubscribe(); };
+  }, []);
+
+  // Logout handler
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    setUser(null);
+    window.location.href = "/";
+  }
+
   return (
-    <nav
-      className="
-        sticky top-0 z-50          /* Stays at top when scrolling */
-        flex items-center           /* Horizontal layout, vertically centered */
-        justify-between             /* Logo on left, links on right */
-        px-4 py-3                   /* Padding: 16px horizontal, 12px vertical */
-        bg-white/90                 /* White background with slight transparency */
-        backdrop-blur-md            /* Blur content behind the navbar */
-        border-b border-gray-200    /* Subtle bottom border */
-      "
-    >
-      {/* ─── LOGO ─── */}
-      {/* Clicking the logo always takes you back to the homepage */}
-      <Link
-        href="/"
-        className="flex items-center gap-2"
-        onClick={() => setMenuOpen(false)} // Close mobile menu when clicking logo
-      >
-        {/* Main brand name in navy blue */}
-        <span
-          className="text-2xl font-black"
-          style={{ color: "var(--color-primary)" }}
-        >
-          MASTORI
-        </span>
-        {/* The .gr suffix in lighter gray */}
+    <nav className="sticky top-0 z-50 flex items-center justify-between px-4 py-3 bg-white/90 backdrop-blur-md border-b border-gray-200">
+      {/* Logo */}
+      <Link href="/" className="flex items-center gap-2" onClick={() => setMenuOpen(false)}>
+        <span className="text-2xl font-black" style={{ color: "var(--color-primary)" }}>MASTORI</span>
         <span className="text-xs text-gray-400">.gr</span>
       </Link>
 
-      {/* ─── DESKTOP NAVIGATION ─── */}
-      {/* These links are hidden on mobile (hidden) and shown on medium+ screens (md:flex) */}
+      {/* Desktop nav */}
       <div className="hidden md:flex items-center gap-6 text-sm">
-        {/* Each link navigates to a different page */}
-        <Link
-          href="/services"
-          className="text-gray-600 hover:text-[var(--color-primary)] transition-colors"
-        >
+        <Link href="/services" className="text-gray-600 hover:text-[var(--color-primary)] transition-colors">
           {t("Υπηρεσίες", "Services")}
         </Link>
-
-        <Link
-          href="/pricing"
-          className="text-gray-600 hover:text-[var(--color-primary)] transition-colors"
-        >
+        <Link href="/pricing" className="text-gray-600 hover:text-[var(--color-primary)] transition-colors">
           {t("Για Επαγγελματίες", "For Pros")}
         </Link>
-
-        <Link
-          href="/how-it-works"
-          className="text-gray-600 hover:text-[var(--color-primary)] transition-colors"
-        >
+        <Link href="/how-it-works" className="text-gray-600 hover:text-[var(--color-primary)] transition-colors">
           {t("Πώς Λειτουργεί", "How It Works")}
         </Link>
 
-        {/* Login button — styled differently to stand out */}
-        <Link
-          href="/login"
-          className="
-            px-3 py-1.5
-            bg-[var(--color-primary)] text-white
-            rounded-lg text-sm
-            hover:bg-[var(--color-primary-light)]
-            transition-colors
-          "
-        >
-          {t("Σύνδεση", "Login")}
-        </Link>
+        {/* Show user info if logged in, login button if not */}
+        {user ? (
+          <div className="flex items-center gap-3">
+            {/* User avatar */}
+            {user.avatar && (
+              <img
+                src={user.avatar}
+                alt={user.name}
+                width={28}
+                height={28}
+                className="rounded-full"
+              />
+            )}
+            {/* User name */}
+            <span className="text-sm font-medium text-gray-700">
+              {user.name}
+            </span>
+            {/* Logout button */}
+            <button
+              onClick={handleLogout}
+              className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+            >
+              {t("Αποσύνδεση", "Logout")}
+            </button>
+          </div>
+        ) : (
+          <Link
+            href="/login"
+            className="px-3 py-1.5 bg-[var(--color-primary)] text-white rounded-lg text-sm hover:bg-[var(--color-primary-light)] transition-colors"
+          >
+            {t("Σύνδεση", "Login")}
+          </Link>
+        )}
 
-        {/* Language toggle button */}
-        {/* Shows "EN" when in Greek mode, "ΕΛ" when in English mode */}
-        <button
-          onClick={onToggleLang}
-          className="
-            text-xs border rounded px-2 py-1
-            text-gray-500 hover:text-gray-700
-            hover:border-gray-400
-            transition-colors
-          "
-        >
+        <button onClick={onToggleLang} className="text-xs border rounded px-2 py-1 text-gray-500 hover:text-gray-700 hover:border-gray-400 transition-colors">
           {lang === "el" ? "EN" : "ΕΛ"}
         </button>
       </div>
 
-      {/* ─── MOBILE HAMBURGER BUTTON ─── */}
-      {/* Only visible on small screens (md:hidden hides it on desktop) */}
-      <button
-        onClick={() => setMenuOpen(!menuOpen)}
-        className="md:hidden text-2xl text-gray-600"
-        aria-label="Toggle menu" // Accessibility: screen readers say "Toggle menu"
-      >
-        {/* Show ✕ when menu is open, ☰ when closed */}
+      {/* Mobile hamburger */}
+      <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden text-2xl text-gray-600" aria-label="Toggle menu">
         {menuOpen ? "✕" : "☰"}
       </button>
 
-      {/* ─── MOBILE MENU DROPDOWN ─── */}
-      {/* Only renders when menuOpen is true AND on small screens */}
+      {/* Mobile menu */}
       {menuOpen && (
-        <div
-          className="
-            absolute top-14 left-0 right-0  /* Position below the navbar */
-            bg-white border-b shadow-lg      /* White background with shadow */
-            p-4                              /* Padding inside */
-            flex flex-col gap-3              /* Stack links vertically */
-            md:hidden                        /* Hide on desktop */
-            z-50                             /* Stay above other content */
-          "
-        >
-          <Link
-            href="/services"
-            className="text-gray-600 hover:text-[var(--color-primary)]"
-            onClick={() => setMenuOpen(false)} // Close menu after clicking
-          >
-            {t("Υπηρεσίες", "Services")}
-          </Link>
+        <div className="absolute top-14 left-0 right-0 bg-white border-b shadow-lg p-4 flex flex-col gap-3 md:hidden z-50">
+          <Link href="/services" className="text-gray-600" onClick={() => setMenuOpen(false)}>{t("Υπηρεσίες", "Services")}</Link>
+          <Link href="/pricing" className="text-gray-600" onClick={() => setMenuOpen(false)}>{t("Για Επαγγελματίες", "For Pros")}</Link>
+          <Link href="/how-it-works" className="text-gray-600" onClick={() => setMenuOpen(false)}>{t("Πώς Λειτουργεί", "How It Works")}</Link>
 
-          <Link
-            href="/pricing"
-            className="text-gray-600 hover:text-[var(--color-primary)]"
-            onClick={() => setMenuOpen(false)}
-          >
-            {t("Για Επαγγελματίες", "For Pros")}
-          </Link>
+          {user ? (
+            <div className="flex items-center gap-2 pt-2 border-t">
+              {user.avatar && <img src={user.avatar} alt={user.name} width={24} height={24} className="rounded-full" />}
+              <span className="text-sm font-medium">{user.name}</span>
+              <button onClick={() => { handleLogout(); setMenuOpen(false); }} className="text-xs text-red-500 ml-auto">
+                {t("Αποσύνδεση", "Logout")}
+              </button>
+            </div>
+          ) : (
+            <Link href="/login" className="text-gray-600" onClick={() => setMenuOpen(false)}>{t("Σύνδεση", "Login")}</Link>
+          )}
 
-          <Link
-            href="/how-it-works"
-            className="text-gray-600 hover:text-[var(--color-primary)]"
-            onClick={() => setMenuOpen(false)}
-          >
-            {t("Πώς Λειτουργεί", "How It Works")}
-          </Link>
-
-          <Link
-            href="/login"
-            className="text-gray-600 hover:text-[var(--color-primary)]"
-            onClick={() => setMenuOpen(false)}
-          >
-            {t("Σύνδεση", "Login")}
-          </Link>
-
-          {/* Language toggle in mobile menu */}
-          <button
-            onClick={() => {
-              onToggleLang();
-              setMenuOpen(false);
-            }}
-            className="text-sm text-gray-500 text-left"
-          >
+          <button onClick={() => { onToggleLang(); setMenuOpen(false); }} className="text-sm text-gray-500 text-left">
             {lang === "el" ? "Switch to English" : "Αλλαγή σε Ελληνικά"}
           </button>
         </div>
