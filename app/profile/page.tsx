@@ -137,6 +137,12 @@ export default function ProfilePage() {
     setSaving(true);
     setError("");
     setSaved(false);
+    // Validate email format if contact email is provided
+    if (contactEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+      setError(t("Μη έγκυρη διεύθυνση email.", "Invalid email address."));
+      setSaving(false);
+      return;
+    }
 
     try {
       if (customerId) {
