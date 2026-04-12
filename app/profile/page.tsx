@@ -309,9 +309,9 @@ export default function ProfilePage() {
               className="w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
             />
             <p className="text-xs text-gray-400 mt-1">
-              {t(
-                "Αν θέλετε να λαμβάνετε ειδοποιήσεις σε διαφορετικό email. Αφήστε κενό για να χρησιμοποιηθεί το Google email.",
-                "If you want notifications at a different email. Leave empty to use your Google email."
+            {t(
+                "Προαιρετικό. Αν θέλετε ειδοποιήσεις σε διαφορετικό email. Αν μείνει κενό, χρησιμοποιείται αυτόματα το " + authUser.email,
+                "Optional. If you want notifications at a different email. If left empty, " + authUser.email + " is used automatically."
               )}
             </p>
           </div>
