@@ -8,21 +8,17 @@
 //
 // Tabs:
 // 1. Dashboard — key business metrics from real Supabase data
-// 2. Professionals — manage all professionals, search, deactivate
+// 2. Professionals — manage all professionals, search, toggle status
 // 3. Bookings — view all bookings across the platform
 // 4. Reviews — moderate reviews (approve/hide)
-// 5. Categories — add/edit/remove service categories
-// 6. Roles — create custom groups, assign permissions, assign users
-// 7. Settings — announcements, pricing config, audit log
-//
-// Data flow:
-// 1. Check if logged-in user is admin (email check)
-// 2. Fetch all data from Supabase on load
-// 3. Admin actions update Supabase directly
+// 5. Categories — add/edit/delete/toggle service categories
+// 6. Roles — create custom groups, assign permissions
+// 7. Settings — pricing config
 //
 // Security:
 // - Non-admin users see "Access Denied" message
-// - All admin actions are logged in audit_log table
+// - Categories with active professionals cannot be deleted
+// - Delete actions require confirmation dialog
 // =============================================================
 
 "use client";
@@ -124,7 +120,7 @@ export default function AdminPage() {
   const [roles, setRoles] = useState<Role[]>([]);
   const [rolePermissions, setRolePermissions] = useState<RolePermission[]>([]);
 
-  // Search and filter states
+  // Search and filter
   const [proSearch, setProSearch] = useState("");
   const [reviewFilter, setReviewFilter] = useState("all");
 
@@ -147,7 +143,7 @@ export default function AdminPage() {
   const lang = "el";
   const t = (el: string, en: string) => (lang === "el" ? el : en);
 
-  // ─── CHECK ADMIN ACCESS + LOAD DATA ───
+  // ─── CHECK ADMIN ACCESS + LOAD ALL DATA ───
   useEffect(() => {
     async function loadAdmin() {
       // Step 1: Verify admin access
@@ -159,7 +155,7 @@ export default function AdminPage() {
       }
       setIsAdmin(true);
 
-      // Step 2: Fetch all data in parallel for speed
+      // Step 2: Fetch all data in parallel
       const [prosRes, catsRes, revsRes, booksRes, rolesRes, permRes] = await Promise.all([
         supabase.from("professionals").select("*").order("created_at", { ascending: false }),
         supabase.from("categories").select("*").order("sort_order"),
@@ -181,14 +177,15 @@ export default function AdminPage() {
     loadAdmin();
   }, []);
 
-  // ─── CATEGORY ACTIONS ───
+  // ═══════════════════════════════════════════════════════════
+  // CATEGORY ACTIONS
+  // ═══════════════════════════════════════════════════════════
 
   // Save new or update existing category
   async function handleSaveCategory() {
     if (!catId || !catNameEl || !catNameEn) return;
 
     if (editingCatId) {
-      // Update existing category
       await supabase.from("categories").update({
         name_el: catNameEl,
         name_en: catNameEn,
@@ -196,7 +193,6 @@ export default function AdminPage() {
         emoji: catEmoji,
       }).eq("id", editingCatId);
     } else {
-      // Insert new category
       await supabase.from("categories").insert({
         id: catId,
         name_el: catNameEl,
@@ -209,11 +205,9 @@ export default function AdminPage() {
       });
     }
 
-    // Refresh categories list
+    // Refresh list
     const { data } = await supabase.from("categories").select("*").order("sort_order");
     if (data) setCategories(data);
-
-    // Reset form
     resetCatForm();
   }
 
@@ -224,7 +218,30 @@ export default function AdminPage() {
     if (data) setCategories(data);
   }
 
-  // Load category data into the edit form
+  // Delete a category permanently
+  // Safety: blocks deletion if professionals are using this category
+  async function handleDeleteCategory(id: string) {
+    const prosInCat = professionals.filter((p) => p.category_id === id);
+    if (prosInCat.length > 0) {
+      alert(t(
+        "Δεν μπορείτε να διαγράψετε κατηγορία με ενεργούς επαγγελματίες. Απενεργοποιήστε την αντί αυτού.",
+        "Cannot delete a category with active professionals. Deactivate it instead."
+      ));
+      return;
+    }
+
+    const confirmed = window.confirm(t(
+      "Είστε σίγουρος; Αυτή η ενέργεια δεν αναιρείται.",
+      "Are you sure? This action cannot be undone."
+    ));
+    if (!confirmed) return;
+
+    await supabase.from("categories").delete().eq("id", id);
+    const { data } = await supabase.from("categories").select("*").order("sort_order");
+    if (data) setCategories(data);
+  }
+
+  // Load category into edit form
   function handleEditCategory(cat: Category) {
     setEditingCatId(cat.id);
     setCatId(cat.id);
@@ -246,17 +263,16 @@ export default function AdminPage() {
     setCatEmoji("");
   }
 
-  // ─── ROLE ACTIONS ───
+  // ═══════════════════════════════════════════════════════════
+  // ROLE ACTIONS
+  // ═══════════════════════════════════════════════════════════
 
   // Save new or update existing role with permissions
   async function handleSaveRole() {
     if (!roleName) return;
 
     if (editingRoleId) {
-      // Update role name
       await supabase.from("roles").update({ name: roleName }).eq("id", editingRoleId);
-
-      // Delete old permissions and insert new ones
       await supabase.from("role_permissions").delete().eq("role_id", editingRoleId);
       if (selectedPermissions.length > 0) {
         await supabase.from("role_permissions").insert(
@@ -264,14 +280,12 @@ export default function AdminPage() {
         );
       }
     } else {
-      // Create new role
       const { data: newRole } = await supabase
         .from("roles")
         .insert({ name: roleName })
         .select()
         .single();
 
-      // Insert permissions for the new role
       if (newRole && selectedPermissions.length > 0) {
         await supabase.from("role_permissions").insert(
           selectedPermissions.map((p) => ({ role_id: newRole.id, permission: p }))
@@ -279,19 +293,23 @@ export default function AdminPage() {
       }
     }
 
-    // Refresh roles and permissions
     const [rolesRes, permRes] = await Promise.all([
       supabase.from("roles").select("*").order("created_at"),
       supabase.from("role_permissions").select("*"),
     ]);
     if (rolesRes.data) setRoles(rolesRes.data);
     if (permRes.data) setRolePermissions(permRes.data);
-
     resetRoleForm();
   }
 
   // Delete a role and its permissions
   async function handleDeleteRole(roleId: string) {
+    const confirmed = window.confirm(t(
+      "Είστε σίγουρος; Ο ρόλος και τα δικαιώματά του θα διαγραφούν.",
+      "Are you sure? The role and its permissions will be deleted."
+    ));
+    if (!confirmed) return;
+
     await supabase.from("role_permissions").delete().eq("role_id", roleId);
     await supabase.from("roles").delete().eq("id", roleId);
 
@@ -303,7 +321,7 @@ export default function AdminPage() {
     if (permRes.data) setRolePermissions(permRes.data);
   }
 
-  // Load role data into the edit form
+  // Load role into edit form
   function handleEditRole(role: Role) {
     setEditingRoleId(role.id);
     setRoleName(role.name);
@@ -321,21 +339,25 @@ export default function AdminPage() {
     setSelectedPermissions([]);
   }
 
-  // Toggle a permission in the selection
+  // Toggle a permission checkbox
   function togglePermission(permId: string) {
     setSelectedPermissions((prev) =>
       prev.includes(permId) ? prev.filter((p) => p !== permId) : [...prev, permId]
     );
   }
 
-  // ─── REVIEW MODERATION ───
+  // ═══════════════════════════════════════════════════════════
+  // REVIEW + PROFESSIONAL ACTIONS
+  // ═══════════════════════════════════════════════════════════
+
+  // Change review status (approve or hide)
   async function handleReviewAction(reviewId: string, action: "active" | "removed") {
     await supabase.from("reviews").update({ status: action }).eq("id", reviewId);
     const { data } = await supabase.from("reviews").select("*").order("created_at", { ascending: false });
     if (data) setReviews(data);
   }
 
-  // ─── PROFESSIONAL STATUS TOGGLE ───
+  // Toggle professional active/inactive
   async function handleToggleProStatus(proId: string, currentStatus: string) {
     const newStatus = currentStatus === "active" ? "inactive" : "active";
     await supabase.from("professionals").update({ status: newStatus }).eq("id", proId);
@@ -383,7 +405,6 @@ export default function AdminPage() {
 
   // ─── STATS ───
   const activePros = professionals.filter((p) => p.status === "active").length;
-  const totalBookings = bookings.length;
   const bookingsThisMonth = bookings.filter((b) => {
     const d = new Date(b.booking_date);
     const now = new Date();
@@ -605,12 +626,13 @@ export default function AdminPage() {
         )}
 
         {/* ═══════════════════════════════════════════════════════ */}
-        {/* CATEGORIES TAB — Add/Edit/Toggle categories           */}
+        {/* CATEGORIES TAB                                        */}
+        {/* Add, edit, delete, toggle categories                  */}
         {/* ═══════════════════════════════════════════════════════ */}
         {activeTab === "categories" && (
           <div>
-            {/* Add/Edit form */}
             <div className="bg-white rounded-xl p-4 border mb-4">
+              {/* Header with add button */}
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold">📂 {t("Διαχείριση Κατηγοριών", "Category Management")}</h3>
                 <button
@@ -622,17 +644,16 @@ export default function AdminPage() {
                 </button>
               </div>
 
+              {/* Add/Edit form */}
               {showCatForm && (
                 <div className="border rounded-xl p-4 mb-4 bg-gray-50">
                   <h4 className="font-semibold text-sm mb-3">
                     {editingCatId ? t("Επεξεργασία Κατηγορίας", "Edit Category") : t("Νέα Κατηγορία", "New Category")}
                   </h4>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {/* Category ID — only editable for new categories */}
+                    {/* ID — only editable for new categories */}
                     <div>
-                      <label htmlFor="cat-id" className="text-xs font-semibold text-gray-600 block mb-1">
-                        ID (URL-friendly)
-                      </label>
+                      <label htmlFor="cat-id" className="text-xs font-semibold text-gray-600 block mb-1">ID (URL-friendly)</label>
                       <input
                         id="cat-id"
                         name="cat-id"
@@ -645,9 +666,7 @@ export default function AdminPage() {
                     </div>
                     {/* Greek name */}
                     <div>
-                      <label htmlFor="cat-name-el" className="text-xs font-semibold text-gray-600 block mb-1">
-                        {t("Ελληνικά", "Greek")}
-                      </label>
+                      <label htmlFor="cat-name-el" className="text-xs font-semibold text-gray-600 block mb-1">{t("Ελληνικά", "Greek")}</label>
                       <input
                         id="cat-name-el"
                         name="cat-name-el"
@@ -659,9 +678,7 @@ export default function AdminPage() {
                     </div>
                     {/* English name */}
                     <div>
-                      <label htmlFor="cat-name-en" className="text-xs font-semibold text-gray-600 block mb-1">
-                        {t("Αγγλικά", "English")}
-                      </label>
+                      <label htmlFor="cat-name-en" className="text-xs font-semibold text-gray-600 block mb-1">{t("Αγγλικά", "English")}</label>
                       <input
                         id="cat-name-en"
                         name="cat-name-en"
@@ -671,7 +688,7 @@ export default function AdminPage() {
                         className="w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                       />
                     </div>
-                    {/* Tier selection */}
+                    {/* Tier */}
                     <div>
                       <label htmlFor="cat-tier" className="text-xs font-semibold text-gray-600 block mb-1">Tier</label>
                       <select
@@ -700,7 +717,7 @@ export default function AdminPage() {
                       />
                     </div>
                   </div>
-                  {/* Save/Cancel buttons */}
+                  {/* Save/Cancel */}
                   <div className="flex gap-2 mt-4">
                     <button
                       onClick={handleSaveCategory}
@@ -716,11 +733,13 @@ export default function AdminPage() {
                 </div>
               )}
 
-              {/* Category table */}
+              {/* Category count */}
               <p className="text-sm text-gray-500 mb-3">
                 {categories.length} {t("κατηγορίες", "categories")} •{" "}
                 {categories.filter((c) => c.active).length} {t("ενεργές", "active")}
               </p>
+
+              {/* Category table */}
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50">
@@ -748,8 +767,11 @@ export default function AdminPage() {
                               {t("Επεξεργασία", "Edit")}
                             </button>
                             <button onClick={() => handleToggleCategory(cat.id, cat.active)}
-                              className={`text-xs ${cat.active ? "text-red-600" : "text-green-600"} hover:underline`}>
+                              className={`text-xs ${cat.active ? "text-orange-600" : "text-green-600"} hover:underline`}>
                               {cat.active ? t("Απενεργοποίηση", "Disable") : t("Ενεργοποίηση", "Enable")}
+                            </button>
+                            <button onClick={() => handleDeleteCategory(cat.id)} className="text-xs text-red-600 hover:underline">
+                              {t("Διαγραφή", "Delete")}
                             </button>
                           </div>
                         </td>
@@ -763,11 +785,13 @@ export default function AdminPage() {
         )}
 
         {/* ═══════════════════════════════════════════════════════ */}
-        {/* ROLES TAB — Create/Edit custom role groups            */}
+        {/* ROLES TAB                                             */}
+        {/* Create/edit custom role groups with permissions       */}
         {/* ═══════════════════════════════════════════════════════ */}
         {activeTab === "roles" && (
           <div>
             <div className="bg-white rounded-xl p-4 border mb-4">
+              {/* Header with add button */}
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold">👥 {t("Διαχείριση Ρόλων", "Role Management")}</h3>
                 <button
@@ -779,7 +803,7 @@ export default function AdminPage() {
                 </button>
               </div>
 
-              {/* Role creation/edit form */}
+              {/* Role form */}
               {showRoleForm && (
                 <div className="border rounded-xl p-4 mb-4 bg-gray-50">
                   <h4 className="font-semibold text-sm mb-3">
@@ -893,7 +917,6 @@ export default function AdminPage() {
         {/* ═══════════════════════════════════════════════════════ */}
         {activeTab === "settings" && (
           <div className="space-y-6">
-            {/* Pricing table (read-only for now) */}
             <div className="bg-white rounded-xl p-4 border">
               <h3 className="font-bold mb-4">💰 {t("Τιμοκατάλογος", "Pricing")}</h3>
               <div className="overflow-x-auto">
@@ -907,8 +930,9 @@ export default function AdminPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b"><td className="px-3 py-2 font-medium">Light</td><td className="px-3 py-2 text-center">€10</td><td className="px-3 py-2 text-center">€15</td><td className="px-3 py-2 text-center">€20</td></tr>
-                    <tr className="border-b bg-gray-50"><td className="px-3 py-2 font-medium">Trades</td><td className="px-3 py-2 text-center">€15</td><td className="px-3 py-2 text-center">€20</td><td className="px-3 py-2 text-center">€25</td></tr>
+                    <tr className="border-b"><td className="px-3 py-2 font-medium">Free</td><td className="px-3 py-2 text-center">€0</td><td className="px-3 py-2 text-center">€0</td><td className="px-3 py-2 text-center">€0</td></tr>
+                    <tr className="border-b bg-gray-50"><td className="px-3 py-2 font-medium">Light</td><td className="px-3 py-2 text-center">€10</td><td className="px-3 py-2 text-center">€15</td><td className="px-3 py-2 text-center">€20</td></tr>
+                    <tr className="border-b"><td className="px-3 py-2 font-medium">Trades</td><td className="px-3 py-2 text-center">€15</td><td className="px-3 py-2 text-center">€20</td><td className="px-3 py-2 text-center">€25</td></tr>
                     <tr><td className="px-3 py-2 font-medium">Specialists</td><td className="px-3 py-2 text-center">€25</td><td className="px-3 py-2 text-center">€35</td><td className="px-3 py-2 text-center">€45</td></tr>
                   </tbody>
                 </table>
