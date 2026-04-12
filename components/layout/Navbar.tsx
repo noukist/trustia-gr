@@ -5,19 +5,18 @@
 // - Brand logo linking to homepage
 // - Navigation links (Services, Pricing, How It Works)
 // - Language toggle (EL/EN)
-// - Auth state: shows login button OR user avatar with dropdown
+// - Auth state: login button OR user avatar with dropdown
 // - Mobile hamburger menu
 //
-// Auth flow:
-// 1. On load, checks Supabase Auth for logged-in user
-// 2. Listens for auth state changes (login/logout)
-// 3. If logged in: shows avatar + name + dropdown menu
-// 4. If not: shows "Σύνδεση" button linking to /login
+// Role-based dropdown:
+// - Customer: My Profile, Logout
+// - Professional: My Profile, Dashboard, Logout
+// - Admin: My Profile, Dashboard, Admin Panel, Logout
 //
-// Dropdown menu options vary by role:
-// - Customer: My Profile, Settings, Logout
-// - Professional: Dashboard, My Profile, Settings, Logout
-// - Admin: Admin Panel, Dashboard, My Profile, Settings, Logout
+// How roles are detected:
+// - Professional: has a record in 'professionals' table
+// - Admin: email matches admin list (hardcoded for now)
+// - Customer: everyone else who is logged in
 // =============================================================
 
 "use client";
@@ -26,6 +25,10 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
+// ─── ADMIN EMAILS ───
+// Hardcoded for now. Later: check user_roles table in Supabase
+const ADMIN_EMAILS = ["noukist@gmail.com"];
+
 interface NavbarProps {
   lang: "el" | "en";
   onToggleLang: () => void;
@@ -33,67 +36,99 @@ interface NavbarProps {
 
 export default function Navbar({ lang, onToggleLang }: NavbarProps) {
   // ─── STATE ───
-  // menuOpen: controls mobile hamburger menu visibility
+  // menuOpen: controls mobile hamburger menu
   const [menuOpen, setMenuOpen] = useState(false);
 
-  // dropdownOpen: controls the user profile dropdown on desktop
+  // dropdownOpen: controls desktop profile dropdown
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  // user: stores logged-in user info (null = not logged in)
+  // user: logged-in user info (null = not logged in)
   const [user, setUser] = useState<{
     name: string;
     email: string;
     avatar: string;
   } | null>(null);
 
-  // dropdownRef: used to detect clicks outside the dropdown to close it
+  // isProfessional: true if user has a record in professionals table
+  const [isProfessional, setIsProfessional] = useState(false);
+
+  // isAdmin: true if user's email is in the admin list
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // dropdownRef: detect clicks outside dropdown to close it
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Language helper
   const t = (el: string, en: string) => (lang === "el" ? el : en);
 
-  // ─── CHECK AUTH STATE ON LOAD ───
-  // Fetches the current user from Supabase Auth
-  // Also sets up a listener for auth changes (login/logout)
+  // ─── CHECK AUTH + ROLE ON LOAD ───
+  // 1. Get logged-in user from Supabase Auth
+  // 2. Check if they're a professional (has record in professionals table)
+  // 3. Check if they're an admin (email in admin list)
   useEffect(() => {
     async function getUser() {
       const { data } = await supabase.auth.getUser();
       if (data.user) {
+        const email = data.user.email || "";
+
         setUser({
-          name: data.user.user_metadata?.full_name || data.user.email || "",
-          email: data.user.email || "",
+          name: data.user.user_metadata?.full_name || email,
+          email: email,
           avatar: data.user.user_metadata?.avatar_url || "",
         });
+
+        // Check if admin by email
+        setIsAdmin(ADMIN_EMAILS.includes(email));
+
+        // Check if professional by looking for a record in professionals table
+        const { data: proData } = await supabase
+          .from("professionals")
+          .select("id")
+          .eq("user_id", data.user.id)
+          .single();
+
+        setIsProfessional(!!proData);
       }
     }
     getUser();
 
-    // Listen for login/logout events
+    // Listen for login/logout events to update state in real-time
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      async (_event, session) => {
         if (session?.user) {
+          const email = session.user.email || "";
+
           setUser({
-            name:
-              session.user.user_metadata?.full_name ||
-              session.user.email ||
-              "",
-            email: session.user.email || "",
+            name: session.user.user_metadata?.full_name || email,
+            email: email,
             avatar: session.user.user_metadata?.avatar_url || "",
           });
+
+          setIsAdmin(ADMIN_EMAILS.includes(email));
+
+          // Check professional status on auth change too
+          const { data: proData } = await supabase
+            .from("professionals")
+            .select("id")
+            .eq("user_id", session.user.id)
+            .single();
+
+          setIsProfessional(!!proData);
         } else {
+          // Logged out — reset everything
           setUser(null);
+          setIsProfessional(false);
+          setIsAdmin(false);
         }
       }
     );
 
-    // Cleanup listener when component unmounts
     return () => {
       listener.subscription.unsubscribe();
     };
   }, []);
 
   // ─── CLOSE DROPDOWN ON OUTSIDE CLICK ───
-  // If user clicks anywhere outside the dropdown, close it
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
@@ -108,18 +143,19 @@ export default function Navbar({ lang, onToggleLang }: NavbarProps) {
   }, []);
 
   // ─── LOGOUT HANDLER ───
-  // Signs out from Supabase and redirects to homepage
   async function handleLogout() {
     await supabase.auth.signOut();
     setUser(null);
+    setIsProfessional(false);
+    setIsAdmin(false);
     setDropdownOpen(false);
     window.location.href = "/";
   }
 
   return (
     <nav className="sticky top-0 z-50 flex items-center justify-between px-4 py-3 bg-white/90 backdrop-blur-md border-b border-gray-200">
+
       {/* ─── LOGO ─── */}
-      {/* Clicking the logo always returns to homepage */}
       <Link
         href="/"
         className="flex items-center gap-2"
@@ -136,10 +172,8 @@ export default function Navbar({ lang, onToggleLang }: NavbarProps) {
 
       {/* ═══════════════════════════════════════════════════════ */}
       {/* DESKTOP NAVIGATION                                     */}
-      {/* Hidden on mobile (md:flex), shown on desktop           */}
       {/* ═══════════════════════════════════════════════════════ */}
       <div className="hidden md:flex items-center gap-6 text-sm">
-        {/* Main nav links */}
         <Link
           href="/services"
           className="text-gray-600 hover:text-[var(--color-primary)] transition-colors"
@@ -160,16 +194,13 @@ export default function Navbar({ lang, onToggleLang }: NavbarProps) {
         </Link>
 
         {/* ─── USER SECTION ─── */}
-        {/* If logged in: avatar + name + dropdown */}
-        {/* If not logged in: login button */}
         {user ? (
           <div className="relative" ref={dropdownRef}>
-            {/* Clickable avatar + name area */}
+            {/* Clickable avatar + name */}
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
-              {/* User's Google profile photo */}
               {user.avatar && (
                 <img
                   src={user.avatar}
@@ -179,21 +210,19 @@ export default function Navbar({ lang, onToggleLang }: NavbarProps) {
                   className="rounded-full border-2 border-gray-200"
                 />
               )}
-              {/* User's display name */}
               <span className="text-sm font-medium text-gray-700">
                 {user.name}
               </span>
-              {/* Dropdown arrow indicator */}
               <span className="text-xs text-gray-400">
                 {dropdownOpen ? "▲" : "▼"}
               </span>
             </button>
 
             {/* ─── DROPDOWN MENU ─── */}
-            {/* Appears below the avatar when clicked */}
+            {/* Items shown depend on user role */}
             {dropdownOpen && (
               <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg py-2 z-50">
-                {/* User info header */}
+                {/* User info header — always visible */}
                 <div className="px-4 py-2 border-b border-gray-100">
                   <p className="text-sm font-semibold text-gray-800">
                     {user.name}
@@ -201,7 +230,7 @@ export default function Navbar({ lang, onToggleLang }: NavbarProps) {
                   <p className="text-xs text-gray-400">{user.email}</p>
                 </div>
 
-                {/* My Profile link */}
+                {/* My Profile — visible to ALL logged-in users */}
                 <Link
                   href="/profile"
                   onClick={() => setDropdownOpen(false)}
@@ -210,29 +239,32 @@ export default function Navbar({ lang, onToggleLang }: NavbarProps) {
                   👤 {t("Το Προφίλ μου", "My Profile")}
                 </Link>
 
-                {/* Dashboard link — for professionals */}
-                <Link
-                  href="/dashboard"
-                  onClick={() => setDropdownOpen(false)}
-                  className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  📊 {t("Πίνακας Ελέγχου", "Dashboard")}
-                </Link>
+                {/* Dashboard — only for professionals */}
+                {isProfessional && (
+                  <Link
+                    href="/dashboard"
+                    onClick={() => setDropdownOpen(false)}
+                    className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    📊 {t("Πίνακας Ελέγχου", "Dashboard")}
+                  </Link>
+                )}
 
-                {/* Admin Panel link — visible to all for now */}
-                {/* Later: only show if user role is admin */}
-                <Link
-                  href="/admin"
-                  onClick={() => setDropdownOpen(false)}
-                  className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  🔧 Admin Panel
-                </Link>
+                {/* Admin Panel — only for admins */}
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    onClick={() => setDropdownOpen(false)}
+                    className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    🔧 Admin Panel
+                  </Link>
+                )}
 
-                {/* Divider before logout */}
+                {/* Divider */}
                 <div className="border-t border-gray-100 my-1"></div>
 
-                {/* Logout button */}
+                {/* Logout — always visible */}
                 <button
                   onClick={handleLogout}
                   className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
@@ -243,7 +275,7 @@ export default function Navbar({ lang, onToggleLang }: NavbarProps) {
             )}
           </div>
         ) : (
-          /* Not logged in — show login button */
+          /* Not logged in — login button */
           <Link
             href="/login"
             className="px-3 py-1.5 bg-[var(--color-primary)] text-white rounded-lg text-sm hover:opacity-90 transition-all"
@@ -252,7 +284,7 @@ export default function Navbar({ lang, onToggleLang }: NavbarProps) {
           </Link>
         )}
 
-        {/* Language toggle button */}
+        {/* Language toggle */}
         <button
           onClick={onToggleLang}
           className="text-xs border rounded px-2 py-1 text-gray-500 hover:text-gray-700 hover:border-gray-400 transition-colors"
@@ -263,7 +295,6 @@ export default function Navbar({ lang, onToggleLang }: NavbarProps) {
 
       {/* ═══════════════════════════════════════════════════════ */}
       {/* MOBILE HAMBURGER BUTTON                                */}
-      {/* Visible only on mobile (md:hidden)                     */}
       {/* ═══════════════════════════════════════════════════════ */}
       <button
         onClick={() => setMenuOpen(!menuOpen)}
@@ -275,105 +306,71 @@ export default function Navbar({ lang, onToggleLang }: NavbarProps) {
 
       {/* ═══════════════════════════════════════════════════════ */}
       {/* MOBILE MENU                                            */}
-      {/* Full-width dropdown below the navbar on mobile         */}
+      {/* Same role-based logic as desktop dropdown              */}
       {/* ═══════════════════════════════════════════════════════ */}
       {menuOpen && (
         <div className="absolute top-14 left-0 right-0 bg-white border-b shadow-lg p-4 flex flex-col gap-3 md:hidden z-50">
           {/* Nav links */}
-          <Link
-            href="/services"
-            className="text-gray-600"
-            onClick={() => setMenuOpen(false)}
-          >
+          <Link href="/services" className="text-gray-600" onClick={() => setMenuOpen(false)}>
             {t("Υπηρεσίες", "Services")}
           </Link>
-          <Link
-            href="/pricing"
-            className="text-gray-600"
-            onClick={() => setMenuOpen(false)}
-          >
+          <Link href="/pricing" className="text-gray-600" onClick={() => setMenuOpen(false)}>
             {t("Για Επαγγελματίες", "For Pros")}
           </Link>
-          <Link
-            href="/how-it-works"
-            className="text-gray-600"
-            onClick={() => setMenuOpen(false)}
-          >
+          <Link href="/how-it-works" className="text-gray-600" onClick={() => setMenuOpen(false)}>
             {t("Πώς Λειτουργεί", "How It Works")}
           </Link>
 
-          {/* User section in mobile menu */}
+          {/* User section */}
           {user ? (
             <div className="pt-3 border-t">
               {/* User info */}
               <div className="flex items-center gap-2 mb-3">
                 {user.avatar && (
-                  <img
-                    src={user.avatar}
-                    alt={user.name}
-                    width={28}
-                    height={28}
-                    className="rounded-full"
-                  />
+                  <img src={user.avatar} alt={user.name} width={28} height={28} className="rounded-full" />
                 )}
                 <div>
-                  <span className="text-sm font-medium block">
-                    {user.name}
-                  </span>
+                  <span className="text-sm font-medium block">{user.name}</span>
                   <span className="text-xs text-gray-400">{user.email}</span>
                 </div>
               </div>
 
-              {/* Mobile menu links */}
-              <Link
-                href="/profile"
-                className="block py-2 text-sm text-gray-600"
-                onClick={() => setMenuOpen(false)}
-              >
+              {/* My Profile — always */}
+              <Link href="/profile" className="block py-2 text-sm text-gray-600" onClick={() => setMenuOpen(false)}>
                 👤 {t("Το Προφίλ μου", "My Profile")}
               </Link>
-              <Link
-                href="/dashboard"
-                className="block py-2 text-sm text-gray-600"
-                onClick={() => setMenuOpen(false)}
-              >
-                📊 {t("Πίνακας Ελέγχου", "Dashboard")}
-              </Link>
-              <Link
-                href="/admin"
-                className="block py-2 text-sm text-gray-600"
-                onClick={() => setMenuOpen(false)}
-              >
-                🔧 Admin Panel
-              </Link>
+
+              {/* Dashboard — professionals only */}
+              {isProfessional && (
+                <Link href="/dashboard" className="block py-2 text-sm text-gray-600" onClick={() => setMenuOpen(false)}>
+                  📊 {t("Πίνακας Ελέγχου", "Dashboard")}
+                </Link>
+              )}
+
+              {/* Admin Panel — admins only */}
+              {isAdmin && (
+                <Link href="/admin" className="block py-2 text-sm text-gray-600" onClick={() => setMenuOpen(false)}>
+                  🔧 Admin Panel
+                </Link>
+              )}
 
               {/* Logout */}
               <button
-                onClick={() => {
-                  handleLogout();
-                  setMenuOpen(false);
-                }}
+                onClick={() => { handleLogout(); setMenuOpen(false); }}
                 className="block w-full text-left py-2 text-sm text-red-500 mt-2 border-t"
               >
                 🚪 {t("Αποσύνδεση", "Logout")}
               </button>
             </div>
           ) : (
-            <Link
-              href="/login"
-              className="text-gray-600"
-              onClick={() => setMenuOpen(false)}
-            >
+            <Link href="/login" className="text-gray-600" onClick={() => setMenuOpen(false)}>
               {t("Σύνδεση", "Login")}
             </Link>
           )}
 
           {/* Language toggle */}
           <button
-            onClick={() => {
-              onToggleLang();
-              setMenuOpen(false);
-            }}
+            onClick={() => { onToggleLang(); setMenuOpen(false); }}
             className="text-sm text-gray-500 text-left pt-2 border-t"
           >
             {lang === "el" ? "Switch to English" : "Αλλαγή σε Ελληνικά"}
