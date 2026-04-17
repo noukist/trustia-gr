@@ -1,0 +1,74 @@
+/* =============================================================
+   globals.css — Global styles for Trustia.gr
+   =============================================================
+   This file sets up:
+   1. Tailwind CSS imports (required for Tailwind to work)
+   2. Brand color variables (used throughout the site)
+   3. Base styles for the body and html elements
+   ============================================================= */
+
+/* Import Tailwind's three layers */
+@import "tailwindcss";
+
+/* ------------------------------------------------------------- 
+   BRAND COLORS — CSS Custom Properties
+   These are the exact colors from our business plan.
+   We define them here so every component can use them
+   consistently via var(--color-primary) etc.
+   ------------------------------------------------------------- */
+:root {
+  /* Primary teal — used for brand elements, links, badges, verified states */
+  --color-primary: #2A8F8F;
+  /* Darker teal — used for hover states */
+  --color-primary-dark: #1E6E6E;
+  /* Lighter teal — used for backgrounds, light fills */
+  --color-primary-light: #EBF5F5;
+  /* Coral accent — used for CTA buttons only (Αναζήτηση, Εγγραφή, Ξεκίνα) */
+  --color-accent: #E8734A;
+  /* Lighter coral — used for hover on accent buttons */
+  --color-accent-light: #D4654A;
+  /* Text primary — dark navy for headings and body */
+  --color-text: #1A2B3C;
+  /* Green — used for "verified" badges, online indicators */
+  --color-success: #22C55E;
+  /* Red — used for errors and warnings */
+  --color-danger: #E53E3E;
+  /* Gray — used for secondary text and borders */
+  --color-gray: #64748B;
+  /* Light backgrounds */
+  --color-bg-light: #F7F8FA;
+  --color-bg-teal: #EBF5F5;
+  --color-bg-coral: #FFF0EB;
+  --color-bg-green: #EAFAF1;
+}
+
+/* ------------------------------------------------------------- 
+   BASE STYLES — Applied to the entire page
+   ------------------------------------------------------------- */
+body {
+  /* Clean white background */
+  background: #FFFFFF;
+  /* Dark text for readability */
+  color: #333333;
+  /* Remove default margin */
+  margin: 0;
+  /* Smooth font rendering on Mac */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ------------------------------------------------------------- 
+   SMOOTH SCROLLING — When clicking anchor links
+   ------------------------------------------------------------- */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ------------------------------------------------------------- 
+   SELECTION COLOR — When user highlights text
+   Uses our brand blue with white text
+   ------------------------------------------------------------- */
+::selection {
+  background-color: #2A8F8F;
+  color: white;
+}

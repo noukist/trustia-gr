@@ -1,0 +1,11 @@
+<svg width="600" height="200" viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg">
+    <g transform="translate(50, 45)">
+        <path d="M50 5 L15 25 V65 C15 85 50 110 50 110" fill="none" stroke="#2A8F8F" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M50 5 L85 25 V65 C85 85 50 110 50 110" fill="none" stroke="#1A2B3C" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" />
+        <rect x="30" y="38" width="40" height="10" fill="#1A2B3C" />
+        <rect x="45" y="38" width="10" height="45" fill="#1A2B3C" />
+    </g>
+    <text x="160" y="115" font-family="Arial, sans-serif" font-size="75" font-weight="bold" fill="#1A2B3C" letter-spacing="-2">
+        rustia<tspan font-weight="normal" fill="#94A3B8">.gr</tspan>
+    </text>
+</svg>
