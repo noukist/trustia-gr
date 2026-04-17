@@ -28,6 +28,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { CATEGORIES, TIERS } from "@/lib/constants";
+import { getCategoryIcon } from "@/lib/categoryIcons";
 
 export default function PricingPage() {
   // ─── STATE ───

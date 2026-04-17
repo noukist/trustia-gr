@@ -25,6 +25,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { CATEGORIES } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
+import { getCategoryIcon } from "@/lib/categoryIcons";
 
 // -------------------------------------------------------------
 // TypeScript interfaces — define the shape of our data

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { CATEGORIES } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
+import { getCategoryIcon } from "@/lib/categoryIcons";
 
 interface Professional {
   id: string;
