@@ -60,28 +60,29 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [city, setCity] = useState("");
   const [bio, setBio] = useState("");
-  // ─── CHECK AUTH ON PAGE LOAD ───
+ // ─── CHECK AUTH ON PAGE LOAD ───
   // If user is not logged in, redirect to login page.
   // If logged in, pre-fill name and email from their Google account.
   useEffect(() => {
     async function checkAuth() {
-      const { data } = await supabase.auth.getUser();
-      if (!data.user) {
-        // Not logged in — send them to login, then back here after
-        router.push("/login?redirect=/register");
-        return;
-      }
-      // Store their auth ID (links professional record to their account)
-      setUserId(data.user.id);
-      // Pre-fill from Google account data
-      const meta = data.user.user_metadata;
-      if (meta?.full_name) {
-        const parts = meta.full_name.split(" ");
-        setFirstName(parts[0] || "");
-        setLastName(parts.slice(1).join(" ") || "");
-      }
-      if (data.user.email) {
-        setEmail(data.user.email);
+      try {
+        const { data } = await supabase.auth.getUser();
+        if (!data.user) {
+          router.push("/login?redirect=/register");
+          return;
+        }
+        setUserId(data.user.id);
+        const meta = data.user.user_metadata;
+        if (meta?.full_name) {
+          const parts = meta.full_name.split(" ");
+          setFirstName(parts[0] || "");
+          setLastName(parts.slice(1).join(" ") || "");
+        }
+        if (data.user.email) {
+          setEmail(data.user.email);
+        }
+      } catch (err) {
+        console.error("Auth check failed:", err);
       }
       setAuthLoading(false);
     }
