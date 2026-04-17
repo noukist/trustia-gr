@@ -185,7 +185,7 @@ export default function ProfessionalProfilePage() {
           <div className="p-6 border-b">
             <div className="flex items-start gap-4">
               {/* Category emoji as avatar (replaced by real photo later) */}
-              <span className="text-6xl">{category?.emoji || "👤"}</span>
+              {(() => { const Icon = getCategoryIcon(category?.id || ""); return <Icon className="w-14 h-14" style={{ color: "var(--color-primary)" }} />; })()}
 
               <div className="flex-1">
                 {/* Professional's full name */}
