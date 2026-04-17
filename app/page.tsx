@@ -139,7 +139,7 @@ function Hero() {
             </p>
 
             {/* ── SEARCH BAR ── */}
-            <div className="bg-white rounded-2xl border-[1.5px] border-gray-200 shadow-[0_4px_24px_rgba(0,0,0,0.07)] p-2 mb-5 max-w-[550px] focus-within:border-[var(--color-primary)] transition-colors">
+            <div className="bg-white rounded-2xl border-[1.5px] border-gray-200 shadow-[0_4px_24px_rgba(0,0,0,0.07)] p-2 mb-5 max-w-[700px] focus-within:border-[var(--color-primary)] transition-colors">
               <div className="flex flex-col sm:flex-row items-stretch">
 
                 {/* Category dropdown — wider, more spacious */}
