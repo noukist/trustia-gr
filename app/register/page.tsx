@@ -30,7 +30,22 @@ import {
   getAllAreas,
 } from "@/lib/constants";
 
+// ── Supabase client — for saving registration data ──
+import { supabase } from "@/lib/supabase";
+// ── useEffect — for checking auth on page load ──
+import { useEffect } from "react";
+// ── useRouter — for redirecting unauthenticated users ──
+import { useRouter } from "next/navigation";
+
 export default function RegisterPage() {
+  // ─── ROUTER (for redirecting if not logged in) ───
+  const router = useRouter();
+
+  // ─── AUTH STATE ───
+  // Tracks the logged-in user's ID (needed to link professional to their account)
+  const [userId, setUserId] = useState<string | null>(null);
+  // Shows loading spinner while checking auth
+  const [authLoading, setAuthLoading] = useState(true);
   // ─── STATE ───
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
@@ -45,6 +60,33 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [city, setCity] = useState("");
   const [bio, setBio] = useState("");
+  // ─── CHECK AUTH ON PAGE LOAD ───
+  // If user is not logged in, redirect to login page.
+  // If logged in, pre-fill name and email from their Google account.
+  useEffect(() => {
+    async function checkAuth() {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) {
+        // Not logged in — send them to login, then back here after
+        router.push("/login?redirect=/register");
+        return;
+      }
+      // Store their auth ID (links professional record to their account)
+      setUserId(data.user.id);
+      // Pre-fill from Google account data
+      const meta = data.user.user_metadata;
+      if (meta?.full_name) {
+        const parts = meta.full_name.split(" ");
+        setFirstName(parts[0] || "");
+        setLastName(parts.slice(1).join(" ") || "");
+      }
+      if (data.user.email) {
+        setEmail(data.user.email);
+      }
+      setAuthLoading(false);
+    }
+    checkAuth();
+  }, [router]);
 
   const lang = "el";
   const t = (el: string, en: string) => (lang === "el" ? el : en);
@@ -109,7 +151,15 @@ export default function RegisterPage() {
       </div>
     );
   }
-
+// ─── LOADING STATE ───
+  // Show spinner while checking if user is logged in
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-500">Φόρτωση...</p>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-lg mx-auto px-4 py-8">
@@ -543,7 +593,38 @@ export default function RegisterPage() {
                 ← {t("Πίσω", "Back")}
               </button>
               <button
-                onClick={() => setSubmitted(true)}
+                onClick={async () => {
+                  // ── SAVE TO SUPABASE ──
+                  // Creates a new professional record linked to the logged-in user
+                  // Status is 'pending' — admin activates after payment verification
+                  if (!userId || !selectedCategory) return;
+                  const { error } = await supabase.from("professionals").insert({
+                    user_id: userId,
+                    first_name: firstName,
+                    last_name: lastName,
+                    phone: phone,
+                    email: email,
+                    category_id: selectedCategoryId,
+                    tier: selectedCategory.tier,
+                    city: city,
+                    bio: bio,
+                    account_type: accountType,
+                    billing_plan: billingPlan,
+                    price_text: "",
+                    rank: 0,
+                    rating: 0,
+                    review_count: 0,
+                    job_count: 0,
+                    booking_enabled: false,
+                    featured: false,
+                    status: "pending",
+                  });
+                  if (error) {
+                    alert("Σφάλμα: " + error.message);
+                    return;
+                  }
+                  setSubmitted(true);
+                }}
                 className="
                   flex-1 py-3 font-bold rounded-xl text-lg
                   bg-[var(--color-accent)] hover:bg-[var(--color-accent-light)]
