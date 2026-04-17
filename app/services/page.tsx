@@ -131,8 +131,7 @@ export default function ServicesPage() {
                     </div>
                   )}
                   <div className="flex items-center gap-4">
-                    <span className="text-5xl">{cat?.emoji || "👤"}</span>
-                    <div className="flex-1 min-w-0">
+                      {(() => { const Icon = getCategoryIcon(cat?.id || ""); return <Icon className="w-12 h-12" style={{ color: "var(--color-primary)" }} />; })()}
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-bold text-gray-900">{pro.first_name} {pro.last_name}</span>
                         <span className="text-xs text-gray-400">#{pro.rank} {cat ? (lang === "el" ? cat.nameEl : cat.nameEn) : ""}</span>
