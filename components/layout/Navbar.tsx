@@ -164,7 +164,7 @@ export default function Navbar({ lang, onToggleLang }: NavbarProps) {
         <img 
           src="/logo/trustia-light.svg" 
           alt="Trustia.gr" 
-          className="h-22 w-auto"
+          className="h-20 w-auto"
         />
       </Link>
 
