@@ -156,7 +156,7 @@ function Hero() {
                   {/* Dropdown — wider, taller, better spaced */}
                   {categoryOpen && (
                     <div className="absolute top-full left-0 mt-2 bg-white rounded-xl border border-gray-200 shadow-[0_12px_40px_rgba(0,0,0,0.12)] z-50 py-3 max-h-80 overflow-y-auto"
-                      style={{ minWidth: "320px" }}>
+                      >
                       {categoryGroups.map((group) => (
                         <div key={group.label}>
                           {/* Group label */}
