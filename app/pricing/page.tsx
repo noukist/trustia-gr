@@ -128,7 +128,7 @@ export default function PricingPage() {
                       grayscale group-hover:grayscale-0
                       transition-all duration-300
                     ">
-                      {cat.emoji}
+                      {(() => { const Icon = getCategoryIcon(cat.id); return <Icon className="w-5 h-5" style={{ color: "var(--color-primary)" }} />; })()}
                     </span>
                   </div>
 
@@ -162,7 +162,7 @@ export default function PricingPage() {
 
             {/* Selected category confirmation */}
             <div className="text-center mb-6">
-              <span className="text-4xl">{selectedCategory.emoji}</span>
+              {(() => { const Icon = getCategoryIcon(selectedCategory.id); return <Icon className="w-10 h-10" style={{ color: "var(--color-primary)" }} />; })()}
               <h2
                 className="text-xl font-bold mt-2"
                 style={{ color: "var(--color-primary)" }}
