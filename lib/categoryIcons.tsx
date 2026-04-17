@@ -17,7 +17,7 @@ import {
   Hammer, Snowflake, Key, Truck, Bug, Sofa, Plug,
   DoorOpen, Droplets, Ruler, TreePine, Shirt, Dog,
   Package, Building2, Home, Landmark, Palette, Sun,
-  Smartphone, CookingPot, Layers, Flame, ArrowUpDown
+  Smartphone, CookingPot, Layers, Flame, ArrowUpDown,
   Waves, Fence, Shovel, ShieldCheck, Eye, Camera,
   Blinds, Pipette, type LucideIcon,
 } from "lucide-react";
@@ -75,7 +75,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   "insulation": Layers,
   "structural": Building2,
   "fireplace": Flame,
-  "elevator": ArrowUpDown
+  "elevator": ArrowUpDown,
   "pool": Waves,
   "fencing": Fence,
   "excavation": Shovel,
