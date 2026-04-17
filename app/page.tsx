@@ -93,7 +93,7 @@ function Hero() {
   ];
 
   return (
-    <section className="px-5 sm:px-8 overflow-hidden" style={{ background: "linear-gradient(180deg, #EBF5F5 0%, #F7F8FA 100%)" }}>
+    <section className="px-5 sm:px-8 overflow-hidden" style={{ background: "linear-gradient(180deg, #D4EDED 0%, #EBF5F5 60%, #F7F8FA 100%)" }}>
       <div className="max-w-[1200px] mx-auto py-12 md:py-16 lg:py-20">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-10 lg:gap-12 items-center">
 
