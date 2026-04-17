@@ -5,7 +5,7 @@
         <rect x="30" y="38" width="40" height="10" fill="#1A2B3C" />
         <rect x="45" y="38" width="10" height="45" fill="#1A2B3C" />
     </g>
-    <text x="148" y="120" font-family="Arial, sans-serif" font-size="75" font-weight="bold" fill="#1A2B3C" letter-spacing="-2">
+    <text x="148" y="125" font-family="Arial, sans-serif" font-size="75" font-weight="bold" fill="#1A2B3C" letter-spacing="-2">
         rustia<tspan font-weight="normal" fill="#94A3B8">.gr</tspan>
     </text>
 </svg>
