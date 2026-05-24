@@ -1,0 +1,1670 @@
+*[Platform] — System PRD v1.0 — Confidential*
+
+**[PLATFORM NAME]**
+
+Complete System PRD
+
+ 
+
+Product Requirements Document — Version 1.0
+
+61 Topics • Every User Journey • Every Edge Case
+
+Lazy Consultant — Confidential — April 2026
+
+# Table of Contents
+
+Part I — Platform Overview
+
+  1. Overview & Scope
+
+  2. User Roles & Permissions
+
+  3. Feature Entitlements System
+
+Part II — Registration & Onboarding
+
+  4. Registration (Google, Facebook, Email)
+
+  5. Professional Onboarding Flow
+
+  6. Customer Onboarding
+
+  7. Duplicate Detection
+
+Part III — Search & Discovery
+
+  8. Search System & Filters
+
+  9. Proximity Suggestions (120km)
+
+  10. SEO Landing Pages (14,400)
+
+  11. SEO Meta Tags & Open Graph
+
+  12. Structured Data (Google Rich Results)
+
+  13. Sitemap & Robots.txt
+
+Part IV — Professional Profiles
+
+  14. Standard Profile
+
+  15. Business Page (Premium)
+
+  16. Portfolio Gallery & Before/After
+
+  17. Services Catalog
+
+  18. Profile Editing & Category Change Approval
+
+  19. Profile Preview
+
+  20. Professional URL Structure
+
+  21. Profile Completion Requirements
+
+Part V — Booking System
+
+  22. Three Booking Modes
+
+  23. Booking Calendar (Full Mode)
+
+  24. Booking Lifecycle & State Machine
+
+  25. No-Show Detection
+
+  26. Professional Response Deadline (48h)
+
+  27. Book for Someone Else
+
+  28. National Holidays
+
+  29. Race Condition Handling
+
+  30. Timezone Handling
+
+Part VI — Customer Features
+
+  31. My Bookings Page
+
+  32. Favorites
+
+  33. Multi-Address Support
+
+  34. Recently Viewed (Threshold: 3 profiles)
+
+  35. Share Button (Login Required for Contact)
+
+  36. Help & FAQ Page
+
+Part VII — Review System
+
+  37. Review Types & Weighting
+
+  38. Review Invitation Links
+
+  39. Review Management (Edit, Delete)
+
+  40. My Reviews Page
+
+  41. Word Filter (Soft Warning)
+
+  42. Report System
+
+Part VIII — Notification & Email
+
+  43. Notification & Inbox System
+
+  44. Email Templates (9 Templates)
+
+  45. Email Unsubscribe & Exit Survey
+
+  46. Email Deliverability (SPF, DKIM, DMARC)
+
+Part IX — Subscription & Payments
+
+  47. Subscription Tiers & Pricing
+
+  48. Payment Methods (IRIS QR, Bank QR, PayPal)
+
+  49. Payment Reference Codes
+
+  50. Payment Strategy (Admin Configurable)
+
+  51. Subscription Renewal & Stacking
+
+  52. Subscription Cancellation (No Refund)
+
+  53. Expiry Reminders (20/12/7/3/1 days)
+
+  54. Invoices & Receipts (PDF + CSV Export)
+
+  55. Προβολή Plus
+
+Part X — Professional Account Management
+
+  56. Vacation Mode
+
+  57. Professional Leaving Platform
+
+  58. Referral Program
+
+  59. Ranking Algorithm (Built, Disabled at Launch)
+
+Part XI — Admin Panel
+
+  60. Action Center (Pending Items)
+
+  61. Category Management (CRUD)
+
+  62. Roles & Permissions
+
+  63. Platform Settings (All Configurable Fields)
+
+  64. User Management (Search, Ban, Impersonate)
+
+  65. Announcement Bar Management
+
+  66. Reports & Data Export
+
+Part XII — CRM & Marketing
+
+  67. CRM Integration (Brevo)
+
+  68. GDPR Consent & Marketing Opt-in
+
+  69. Third-Party Advertising
+
+  70. Customer Segmentation
+
+Part XIII — Technical
+
+  71. Database Schema (All Tables)
+
+  72. Rate Limiting
+
+  73. Image Storage & Compression
+
+  74. Analytics
+
+  75. Error Monitoring (Sentry)
+
+  76. Staging Environment
+
+  77. Browser Support
+
+  78. Accessibility (a11y)
+
+  79. Multi-Language (EL, EN, RU)
+
+  80. Maintenance Mode
+
+  81. Custom 404 Page
+
+Part XIV — Legal
+
+  82. Terms of Service
+
+  83. Privacy Policy (GDPR)
+
+  84. Subscription Agreement
+
+  85. Cookie Consent Banner
+
+  86. Data Export (GDPR Right)
+
+# Part I — Platform Overview
+
+# 1. Overview & Scope
+
+[Platform] is a subscription-based directory connecting Greek homeowners with verified professionals across 48+ service categories. The platform charges professionals a flat monthly subscription (no commissions). Customers use the platform for free.
+
+**1.1 Goals**
+
+- Enable customers to find, compare, and book verified professionals
+
+- Provide three booking modes: contact only, date-based, and full calendar with services catalog
+
+- Build trust through a verified review system with weighted scoring
+
+- Offer professionals two presence levels: Standard Profile and Business Page
+
+- Provide admin with complete control over all platform settings via configurable admin panel
+
+- Support third-party advertising through CRM segmentation
+
+- Achieve GDPR compliance from Day 1
+
+**1.2 Non-Goals (Not in this release unless noted)**
+
+- Payment processing for customer-professional transactions (they pay directly)
+
+- Cancellation penalties (free cancellation at launch)
+
+- SMS/Viber notifications (email + in-app only)
+
+- Native mobile app (web responsive only)
+
+- In-app messaging between customer and professional (build with mobile app)
+
+- Customer referral program
+
+- AI review moderation (manual + word filter at launch)
+
+# 2. User Roles & Permissions
+
+| **Role** | **Can Do** | **Cannot Do** |
+| --- | --- | --- |
+| Customer | Browse, search, book, review (verified bookings), edit own profile, favorites, manage addresses, report professionals | See others’ data, access admin, leave reviews without completed booking |
+| Professional | Own profile, bookings, reviews, stats, toggle booking mode, generate invitation links, referral program, vacation mode | See other professionals’ data, modify pricing, access admin |
+| Admin | EVERYTHING. All settings configurable. Can impersonate users, ban users, create reviews, manage categories/roles, export data | Nothing restricted |
+| Moderator | Moderate reviews (approve/hide), view reports, view bookings (read-only) | Delete professionals, change pricing, manage roles, access payments |
+| Custom Groups | Admin creates named groups with specific permissions from the full permission list and assigns users | Only what admin has not granted |
+
+CRITICAL: Every admin function, setting, and action supports delegation to custom role groups via the permission system. This is a universal rule across the entire platform.
+
+A professional can ALSO be a customer. Their customer bookings and professional bookings are displayed in separate lists.
+
+# 3. Feature Entitlements System
+
+All premium features are controlled by a reusable access control system. Each feature can be enabled/disabled globally and restricted by plan type, custom group, or individual user.
+
+**3.1 Pattern (applies to all features)**
+
+- Enabled/Disabled toggle (global)
+
+- Available to plan types: checkboxes for Free, Monthly, Semi-Annual, Annual
+
+- Available to groups: checkboxes for any admin-created group (VIP, Founding Members, etc.)
+
+- Available to individual users: search and add specific users
+
+- Feature-specific settings (e.g., max days for vacation, max photos for portfolio)
+
+**3.2 Features using this pattern**
+
+- Vacation Mode (max 40 days/year, default: annual plan only)
+
+- Business Page (default: annual plan + business accounts)
+
+- Review Invitation Links (max 30/month, configurable per plan)
+
+- Portfolio Gallery (max 20 photos, configurable)
+
+- Προβολή Plus (€10/month add-on)
+
+- Custom URL slug (default: 12-month subscribers)
+
+- All future premium features follow this same pattern
+
+# Part II — Registration & Onboarding
+
+# 4. Registration
+
+**4.1 Login providers (launch)**
+
+- Google OAuth — one-click sign in
+
+- Facebook OAuth — one-click sign in
+
+- Email/Password — standard registration with email verification link
+
+**4.2 Login providers (Phase 2, Month 3+)**
+
+- Apple Sign In
+
+- Microsoft (Outlook/Hotmail)
+
+**4.3 Customer registration flow**
+
+- Click “Sign in with Google/Facebook” or fill email/password form
+
+- Account created in Supabase Auth
+
+- Redirected to homepage
+
+- First visit to /profile prompts display name and phone (optional)
+
+- Welcome email sent (Email Template 8)
+
+**4.4 Professional registration flow**
+
+- Step 1: Select category (with “Other” option for unlisted services)
+
+- Step 2: Choose booking mode (Contact Only / Date Booking / Full Calendar)
+
+- Step 3: Choose Solo or Business account type
+
+- Step 4: See pricing based on category tier, choose billing cycle
+
+- Step 5: Fill profile details (name, phone, email, city, bio)
+
+- Step 6: Accept Terms of Service + Subscription Agreement (checkbox)
+
+- Step 7: Payment page with all available methods + QR codes + reference code
+
+- Step 8: Profile activated immediately (trust-first approach)
+
+- Step 9: Onboarding modal on first dashboard login
+
+**4.5 “Other” category flow**
+
+- Professional selects “Other” and describes their service
+
+- Auto-email to professional: “Received, reviewing within 48 hours”
+
+- Notification to admin + any group with category.review permission
+
+- Admin creates new category, assigns to existing, or declines
+
+- Professional notified of decision via email + inbox notification
+
+**4.6 GDPR consent during registration**
+
+- Checkbox 1 (required): Accept Terms of Service
+
+- Checkbox 2 (optional): “Θέλω να λαμβάνω ενημερώσεις, προσφορές και διαφημίσεις από το [Platform] και συνεργαζόμενες επιχειρήσεις”
+
+# 5. Professional Onboarding
+
+**5.1 First login modal**
+
+Styled modal (not browser alert) with profile completion checklist. Works on mobile. Shows required fields. “Start now” button or “Later” option.
+
+**5.2 Subsequent logins (incomplete profile)**
+
+Persistent banner at top of dashboard showing completion percentage. Not a modal. Dismissible but returns next login. Professional NOT visible in search until required fields are complete.
+
+**5.3 Required fields (minimum to appear in search)**
+
+- First name + Last name (from registration)
+
+- Phone (from registration)
+
+- Category (from registration)
+
+- City / Base area
+
+- Booking mode selection
+
+**5.4 Optional fields (improve profile, not blocking)**
+
+- Profile photo (separate from Google avatar)
+
+- Bio / description
+
+- Price text
+
+- Availability hours
+
+- Service areas
+
+**5.5 Reminder emails for incomplete profiles**
+
+- 24 hours after registration: first reminder
+
+- 48 hours: second reminder
+
+- 72 hours: third reminder + admin notification
+
+- 7 days: final reminder
+
+Admin configurable: reminder timing, which fields are required, all settings assignable to groups.
+
+# 6. Customer Onboarding
+
+Minimal friction. Customer signs in and can immediately browse and book. Profile completion (display name, phone, contact email) is prompted on first visit to /profile but not required for browsing.
+
+# 7. Duplicate Detection
+
+During registration, system checks for existing records:
+
+- Same phone number: “Αυτό το τηλέφωνο χρησιμοποιείται ήδη”
+
+- Same name + same category + same area: flagged for admin review (notification in Action Center)
+
+# Part III — Search & Discovery
+
+# 8. Search System & Filters
+
+**8.1 Search bar (homepage)**
+
+- Category dropdown (grouped by tier: Light, Trades, Specialists)
+
+- Location input with Google Places Autocomplete (restricted to Greece)
+
+- Search button
+
+**8.2 Sort options**
+
+- Ranking (default — algorithm-based, disabled at launch, falls back to review count)
+
+- Highest rating
+
+- Most reviews
+
+- Nearest first (requires customer location)
+
+**8.3 Filters**
+
+| **Filter** | **Options** | **Priority** |
+| --- | --- | --- |
+| Βαθμολογία | Όλοι / 3★+ / 4★+ / 4.5★+ | 1st |
+| Τρόπος κράτησης | Όλοι / Online / Ημερομηνία / Τηλέφωνο | 2nd |
+| Κριτικές | Όλοι / Με κριτικές μόνο | 3rd |
+| Απόσταση | Οπουδήποτε / 5km / 10km / 30km / 60km / 120km | 4th |
+
+# 9. Proximity Suggestions
+
+When search returns 0 results, show professionals within 120km sorted by distance:
+
+- “Δεν βρέθηκαν [κατηγορία] στο [περιοχή].”
+
+- Show nearby professionals with distance in km
+
+- Note: “Η χρέωση μετακίνησης καθορίζεται από τον επαγγελματία.”
+
+- Email capture: “Θέλετε να ειδοποιηθείτε;” for demand tracking
+
+- Professional recruitment CTA: “Είστε [κατηγορία] στο [περιοχή]; Εγγραφή →”
+
+# 10. SEO Landing Pages
+
+Auto-generated pages for every category × area combination. 48 categories × 300 areas = 14,400 pages.
+
+- URL format: [platform]/[category-slug]/[area-slug]
+
+- Pages with professionals: show results list
+
+- Pages with zero professionals: show proximity suggestions + recruitment CTA + email capture
+
+- All pages indexed by Google via sitemap.xml
+
+# 11. SEO Meta Tags & Open Graph
+
+Every page includes proper meta tags for social sharing:
+
+- Title: “[Professional Name] — [Κατηγορία] | [Platform]”
+
+- Description: bio excerpt or category description
+
+- Open Graph image: professional photo or platform default
+
+- When shared on WhatsApp/Facebook/Viber, shows rich preview with name, rating, category
+
+# 12. Structured Data (Google Rich Results)
+
+JSON-LD schema markup on professional profile pages:
+
+- LocalBusiness schema with name, rating, review count, price range, area served
+
+- AggregateRating schema for star display in Google results
+
+- Dramatically increases click-through rate from Google search
+
+# 13. Sitemap & Robots.txt
+
+- sitemap.xml: auto-generated, auto-updated when professionals join or categories change
+
+- robots.txt: allows all search engines, points to sitemap
+
+- Updated via background job (daily or on-change)
+
+# Part IV — Professional Profiles
+
+# 14. Standard Profile
+
+Every professional gets a Standard Profile included in their subscription.
+
+- URL: [platform]/professional/[name-slug] (auto-generated from name)
+
+- Content: name, photo, category, city, rating, rank, bio, price text, reviews, booking (based on mode)
+
+- Phone number: hidden behind “Show number” click. Clicking reveals number + “Κλήση” button (mobile) + “Αντιγραφή” button (desktop)
+
+- Phone click tracked for analytics (admin sees aggregate data in reports)
+
+- Share button on every profile: copy link, WhatsApp, Facebook, email. Shared link requires login to see contact details.
+
+- Back button: prominent, visible, links to /services
+
+# 15. Business Page (Premium)
+
+Premium feature available via feature entitlements system (default: annual plan + business accounts).
+
+- URL: [platform]/business/[custom-slug] (professional chooses, 12-month subscribers only, admin configurable)
+
+- All Standard Profile features PLUS:
+
+- Cover photo / banner
+
+- Logo (separate from profile photo)
+
+- About section (rich text for Business Page: bold, italic, lists, links. Plain text for Standard Profile)
+
+- Team members (name, photo, role — no mini-profiles yet, infrastructure prepared)
+
+- Portfolio gallery with before/after photos
+
+- Services catalog with prices and durations
+
+- Certifications / licenses
+
+- All fields OPTIONAL except business name. BUT full booking mode requires services catalog (min 1 service with price + duration).
+
+- Prominent “Book Now” button that adapts to booking mode
+
+# 16. Portfolio Gallery
+
+| **Setting** | **Value** |
+| --- | --- |
+| Max photos per professional | 20 (admin configurable) |
+| Max file size | 5MB per photo |
+| Formats | JPG, PNG, WebP |
+| Before/After toggle | Optional — shows 2 photos side by side |
+| Captions | Optional, max 100 characters |
+| Reorder | Drag and drop in dashboard |
+| Lightbox | Click to view full-screen with navigation |
+| Compression | Server-side: uploaded 5MB → stored ~500KB-1MB + thumbnail ~100KB |
+
+# 17. Services Catalog
+
+Required ONLY for full booking mode. Optional for all others.
+
+- Each service has: name (EL + EN), duration (30min increments, 30min to 8 hours), price (€0 to unlimited, €0 = free e.g. “Δωρεάν εκτίμηση”)
+
+- Customer selects multiple services → system sums duration + price
+
+- Calendar blocks appropriate number of slots based on total duration
+
+- Professional manages services in their dashboard
+
+# 18. Profile Editing & Category Change
+
+Professional can edit all profile fields from their dashboard. Most changes apply instantly.
+
+- Category change requires admin approval (affects pricing tier)
+
+- Same-tier category additions: allowed (max 3 categories, 2nd at 30% off, 3rd free)
+
+- Cross-tier category addition: prompts upgrade to higher tier
+
+- Max categories (3) configurable by admin, assignable to groups
+
+- Admin notified in Action Center for category change requests
+
+# 19. Profile Preview
+
+- Dashboard → Profile → “Προεπισκόπηση προφίλ →”
+
+- Opens profile as a customer would see it
+
+- Shows/hides elements based on profile completion
+
+# 20. Professional URL Structure
+
+- Standard: [platform]/professional/[name-slug] (auto-generated, e.g., nikos-papadopoulos)
+
+- Duplicate names: append number (nikos-papadopoulos-2)
+
+- Business: [platform]/business/[custom-slug] (chosen by professional, 12-month subscribers only)
+
+- Custom slug assignable to groups via feature entitlements
+
+# 21. Profile Completion Requirements
+
+Configurable by admin. Each field can be toggled as required or optional.
+
+- Until required fields are complete, professional is NOT visible in search results
+
+- Dashboard shows completion banner with percentage
+
+- Reminder emails at 24h, 48h, 72h, 7 days if incomplete
+
+# Part V — Booking System
+
+# 22. Three Booking Modes
+
+| **Mode** | **Who uses it** | **Customer sees** | **Business Page required?** |
+| --- | --- | --- | --- |
+| Contact Only | Tech-shy, specialists needing site visits | Phone number + email | No |
+| Date Booking | Tradespeople, general services | Calendar with available dates, picks a day, adds description | No |
+| Full Calendar | Beauty, any professional wanting it | Service selector → date → time slot → price calculated | Yes |
+
+Professional chooses their mode during registration. Can change anytime from dashboard. Full Calendar requires at least 1 service in catalog with price + duration.
+
+# 23. Booking Calendar (Full Mode)
+
+**23.1 Calendar display**
+
+- Shows current month with navigation arrows
+
+- Maximum 3 months into future. At limit: “Δεν μπορείτε να κλείσετε περισσότερο από 3 μήνες μπροστά”
+
+- Past dates grayed, today clickable if slots remain
+
+- Non-working days: strikethrough + “Μη εργάσιμη”
+
+- Fully booked days: muted + “Πλήρες”
+
+- Legend: Διαθέσιμος, Κρατημένο, Μη εργάσιμη
+
+**23.2 Time slots**
+
+- Generated from availability_slots table
+
+- Slot duration based on selected services (minimum 30 minutes)
+
+- Booked slots shown with strikethrough
+
+- For today: past time slots hidden
+
+- Customer clicks slot → highlights → confirmation area appears
+
+**23.3 Booking confirmation**
+
+- Shows: date, time, services selected, total duration, total price, professional name
+
+- Customer fills: name, phone, description
+
+- Email pre-filled from profile (editable)
+
+- Pop-up after submission: “Booking submitted. Professional must confirm. You will receive an email.”
+
+- Pop-up message also saved as inbox notification
+
+- Booking created with status = pending
+
+# 24. Booking Lifecycle & State Machine
+
+| **Status** | **Meaning** | **Next state** | **Triggered by** |
+| --- | --- | --- | --- |
+| pending | Waiting for professional | confirmed / declined / cancelled | Customer submits booking |
+| confirmed | Professional accepted | completed / cancelled / no_show | Professional clicks Accept |
+| completed | Work done | Terminal (triggers review prompt) | Auto or professional marks |
+| declined | Professional rejected | Terminal (no review allowed) | Professional + justification |
+| cancelled | Either party cancelled | Terminal | Customer or professional |
+| no_show | Professional didn’t show | Terminal (strike recorded) | Customer reports via prompt |
+
+Professional decline and cancellation REQUIRE a justification text. Customer cancellation does not. Customer CANNOT leave a review for declined or cancelled bookings.
+
+Auto-completion: pg_cron runs hourly. Finds confirmed bookings where booking_date + booking_time < NOW(). Changes status to completed. Schedules review prompt email for 2 hours later.
+
+Cancellation policy: Free cancellation at launch. No penalties. Future (Month 6+): 24-hour deadline. Future (Month 12+): financial penalties via Viva Wallet.
+
+# 25. No-Show Detection
+
+After confirmed booking time + 2 hours, if not marked complete, customer receives:
+
+- “Ολοκληρώθηκε η εργασία;” — [Ναι] / [Δεν εμφανίστηκε]
+
+- If “Didn’t show up”: booking marked as no_show, professional gets a strike
+
+- Admin notified after X no-shows (configurable, appears in Action Center)
+
+- No-show threshold and notifications assignable to custom groups
+
+# 26. Professional Response Deadline
+
+- Professional has 48 hours (admin configurable) to accept/decline a pending booking
+
+- After deadline: booking auto-declined with reason “Ο επαγγελματίας δεν απάντησε εγκαίρως”
+
+- Customer notified. Professional’s response rate drops (affects ranking when enabled)
+
+# 27. Book for Someone Else
+
+During booking, optional toggle:
+
+- “Η κράτηση είναι για: ○ Εμένα ○ Κάποιον άλλο”
+
+- If someone else: show fields for name, phone, email (optional), address
+
+- Booking linked to customer’s account but contact details point to the other person
+
+# 28. National Holidays
+
+- Professional decides — holidays are regular days unless they block them
+
+- Calendar shows small note on holiday dates: “Αργία — επιβεβαιώστε τη διαθεσιμότητα”
+
+# 29. Race Condition Handling
+
+Two customers book the same slot simultaneously. Both bookings created as pending. Professional sees both, accepts one, declines the other with system message. Simple and reliable — professional is the decision-maker.
+
+# 30. Timezone Handling
+
+All times stored in Greek local time (Europe/Athens). No UTC conversion. Bookings display in the timezone the professional set them. Daylight saving handled automatically.
+
+# Part VI — Customer Features
+
+# 31. My Bookings Page (/my-bookings)
+
+Accessible from Navbar dropdown. Two sections:
+
+- Active (pending + confirmed) — sorted by date, nearest first
+
+- History (completed + declined + cancelled + no_show) — sorted by date, most recent first
+
+| **Status** | **Customer can do** | **Shows on card** |
+| --- | --- | --- |
+| pending | Cancel | Cancel button + “Waiting for professional” |
+| confirmed | Cancel | Cancel button + date/time + professional phone |
+| completed | Leave review (if not already) | Leave Review button OR “Review submitted” |
+| declined | Nothing | Declined badge + justification |
+| cancelled | Nothing | Cancelled badge + who cancelled |
+| no_show | Nothing | No-show badge |
+
+- Customer can book same professional twice on same day (only for time-slot mode, not date-only)
+
+# 32. Favorites
+
+- Heart/bookmark icon on professional cards in search results and profile pages
+
+- Saved to “Τα Αγαπημένα μου” page accessible from navbar dropdown
+
+- Profile card shows WITHOUT phone number — must click through to profile to see phone
+
+- Professional sees aggregate in dashboard: “34 χρήστες σας έχουν στα αγαπημένα”
+
+# 33. Multi-Address Support
+
+- Customer profile allows saving multiple addresses (no limit)
+
+- Labels: Σπίτι, Εξοχικό, Γραφείο, or custom
+
+- When searching, can switch between saved addresses
+
+- Default address used for distance calculations
+
+# 34. Recently Viewed
+
+- Appears on homepage below hero search ONLY after viewing 3+ professional profiles
+
+- Also appears in navbar dropdown after threshold
+
+- Shows last 10 professionals viewed
+
+- Stored in browser localStorage (no database cost)
+
+- Admin configurable: ON/OFF, minimum views threshold, max results
+
+# 35. Share Button
+
+- On every professional profile: copy link, WhatsApp, Facebook, email
+
+- Shared link is the professional’s public profile URL
+
+- Contact details (phone) hidden until the visitor registers/logs in
+
+- Free growth hack: every share is a registration prompt
+
+# 36. Help & FAQ Page (/help)
+
+- FAQ section with most common questions
+
+- Contact form (sends email to info@[platform].gr)
+
+- Email address displayed
+
+- Response time: “Απαντάμε εντός 24 ωρών”
+
+# Part VII — Review System
+
+# 37. Review Types & Weighting
+
+| **Type** | **How created** | **Weight** | **Badge** | **Launch?** |
+| --- | --- | --- | --- | --- |
+| Επαληθευμένη κράτηση | Completed booking on platform | 2x | ✓ green | Yes |
+| Πρόσκληση επαγγελματία | Via invitation link | 1x | 🔗 amber | Yes |
+| Κριτική χρήστη | Anyone logged in (if enabled) | 0.5x | 👤 gray | Disabled |
+
+Weights are admin configurable. “Anyone can review” disabled at launch, can be enabled via admin toggle. Display: verified reviews shown first, then invitations, then user reviews. All types count toward average rating with their respective weight.
+
+- Stars only (no text) allowed — displayed separately as “Βαθμολογίες χωρίς σχόλιο” with counts per star level
+
+- Text reviews: minimum 20 characters, maximum 1000 characters
+
+- Photo uploads: 1-5 per review, max 5MB each, JPG/PNG/WebP
+
+- One review per customer per professional per completed booking
+
+- Minimum 1 hour wait after booking completes before review can be submitted
+
+- Professional does NOT see reviewer identity before publication
+
+- After publication: reviewer’s display name shown (not real name)
+
+# 38. Review Invitation Links
+
+- Professional generates unique link from dashboard
+
+- Shares with existing customer (WhatsApp, email, in person)
+
+- Customer clicks link → must sign in → review form → submits
+
+- Review labeled as “Πρόσκληση επαγγελματία”
+
+- Link has usage limit (default 10, admin configurable) and expiry (30 days)
+
+- Maximum links per professional per month: 30 (admin configurable)
+
+- Available to all plan types by default (configurable via feature entitlements)
+
+- Contact-only professionals CAN use invitation links (their only way to get reviews)
+
+# 39. Review Management
+
+**39.1 Edit review**
+
+- Customer can change rating, text, and photos at any time
+
+- No time limit on editing
+
+- Professional’s average rating recalculated after edit
+
+- edited_at timestamp recorded
+
+**39.2 Delete review**
+
+- Customer can delete their own review at any time
+
+- Confirmation dialog required
+
+- Soft delete (deleted_at timestamp, not physically removed)
+
+- Professional’s rating and review_count recalculated
+
+- Admin can see deleted reviews for dispute resolution
+
+**39.3 Admin-created reviews**
+
+- Admin can create reviews on behalf of customers (audit logged)
+
+- Two modes: anonymous (“Πελάτης [Platform]”) or linked to specific user (search by email, name, phone, last name)
+
+- Labeled as “Πρόσκληση επαγγελματία” type
+
+- Admin can assign review creation right to other groups
+
+# 40. My Reviews Page (/my-reviews)
+
+- Accessible from navbar dropdown
+
+- Shows all reviews the customer has written
+
+- Each card: professional name, category, rating, text, date, photos
+
+- Actions: Edit button, Delete button (with confirmation)
+
+# 41. Word Filter
+
+Layer 1 (launch): Soft warning. When customer types potentially offensive words, yellow warning shown before submit. They can still submit. Warning text: “Η κριτική σας μπορεί να περιέχει ακατάλληλο περιεχόμενο.”
+
+Layer 2 (Month 3+): Auto-flag for moderator review.
+
+Layer 3 (Month 12+): AI moderation via Claude API.
+
+- Word lists editable from admin panel (Greek + English, separate lists)
+
+- Admin can switch between modes: Warning / Auto-flag / Block
+
+# 42. Report System
+
+- Report button visible ONLY to customers who had a booking with that professional (Option B)
+
+- Report form: dropdown reason (didn’t show, rude, overcharged, dangerous, fake, other) + description text area
+
+- Reports also available for reviews (report offensive content)
+
+- Reports appear in admin Action Center
+
+- Admin/moderator can: hide review, delete review (separate options)
+
+- Hidden review: shows “Αυτή η κριτική αφαιρέθηκε” publicly. Rating excluded from average.
+
+- Deleted review: completely invisible. Rating excluded from average.
+
+- Professional with 3+ reports: auto-flagged for admin review (threshold configurable)
+
+# Part VIII — Notification & Email
+
+# 43. Notification & Inbox System
+
+**43.1 Bell icon in Navbar**
+
+- Shows next to user avatar
+
+- Red badge with unread count
+
+- Click opens dropdown: 5 most recent notifications
+
+- Each notification: icon, message, relative time, blue dot if unread
+
+- Click notification: marks as read, navigates to relevant page
+
+- “Δείτε όλα” link at bottom → /inbox
+
+**43.2 Inbox page (/inbox)**
+
+- Full list, newest first
+
+- “Μαρκάρισμα όλων” button
+
+- Notifications kept forever (admin configurable retention, assignable to groups)
+
+- Default: archive from UI after 90 days, keep in DB forever
+
+- “Δείτε αρχειοθετημένες” button loads older notifications
+
+**43.3 Notification triggers**
+
+| **Event** | **To Customer** | **To Professional** |
+| --- | --- | --- |
+| Booking created | Submitted, awaiting confirmation | New booking from [name] |
+| Professional accepts | Confirmed by [name] | — |
+| Professional declines | Declined. Reason: [text] | — |
+| Customer cancels | — | [name] cancelled |
+| Professional cancels | Cancelled. Reason: [text] | — |
+| Booking completed | How was it? Leave a review | — |
+| Review received | — | New [stars]★ review from [name] |
+| No-show prompt | Did the work happen? | — |
+| Response deadline | — | Respond within [X] hours |
+
+# 44. Email Templates
+
+9 email templates. Each corresponds to a notification trigger. Email contains the same message as notification PLUS additional details. Sent via Resend (mock mode until domain registered). All emails include unsubscribe link for marketing emails. Transactional emails (booking-related) cannot be unsubscribed.
+
+- Email 1: Booking submitted (to customer) — date, time, professional, note about confirmation required
+
+- Email 2: New booking (to professional) — customer details, description, CTA to dashboard
+
+- Email 3: Booking confirmed (to customer) — date, time, professional phone, cancel option
+
+- Email 4: Booking declined (to customer) — reason, suggestion to search again
+
+- Email 5: Cancelled by customer (to professional) — name, date, slot reopened
+
+- Email 6: Cancelled by professional (to customer) — name, reason, note about responsibility
+
+- Email 7: Review prompt (to customer) — sent 2 hours after booking time, CTA to review form
+
+- Email 8: Welcome (to new customer) — intro, how to search, how to book
+
+- Email 9: Welcome (to new professional) — how to set up profile, how rankings work
+
+# 45. Email Unsubscribe
+
+- Every marketing email has unsubscribe link
+
+- Clicking shows confirmation page with exit survey
+
+- Survey: Too many emails / Not interesting / Found what I needed / Other
+
+- Data stored in email_unsubscribes table for admin reporting
+
+- Transactional emails (booking confirmations) cannot be unsubscribed
+
+# 46. Email Deliverability
+
+- SPF record — proves emails from our server
+
+- DKIM record — proves emails not tampered
+
+- DMARC record — tells receivers what to do with failures
+
+- Set up as DNS records at Cloudflare when domain registered
+
+- Without these, all emails go to spam
+
+# Part IX — Subscription & Payments
+
+# 47. Subscription Tiers & Pricing
+
+| **Solo Professional** | **Annual** | **Semi-Annual** | **Monthly** |
+| --- | --- | --- | --- |
+| Free (testing/promo) | €0 | €0 | €0 |
+| Light (6 categories) | €10/mo | €15/mo | €20/mo |
+| Trades & Beauty (29 categories) | €15/mo | €20/mo | €25/mo |
+| Specialists (13 categories) | €25/mo | €35/mo | €45/mo |
+
+Business (2+ employees): ~3x solo rates. Multi-category: max 3 categories, same-tier only. 2nd at 30% off, 3rd free. Cross-tier addition requires tier upgrade. All pricing admin configurable.
+
+Locked pricing: “Τιμή Εκκίνησης 2026” locked for life while subscription active. First 50 = Founding Members.
+
+# 48. Payment Methods
+
+Payment page shows all methods with QR codes:
+
+- IRIS (QR code + phone number + reference code embedded) — Launch
+
+- Bank Transfer (QR code + IBAN + reference code) — Launch
+
+- PayPal (instant verification via webhook) — Launch
+
+- Viva Wallet (card payments, auto-verify) — Month 3-6
+
+- Copy buttons for IBAN and reference code
+
+# 49. Payment Reference Codes
+
+- Unique code generated per registration: MAS-2026-0047
+
+- Displayed on payment page with instruction to include in payment description
+
+- Embedded in QR codes automatically
+
+- Admin matches incoming payments by reference code
+
+- Professional sees their code and payment status in dashboard
+
+- All payment history stored permanently (tax/accounting requirement)
+
+# 50. Payment Strategy (Admin Configurable)
+
+Admin Panel → Settings → Payment Strategy. All settings assignable to custom groups.
+
+- Auto-activate without payment: ON/OFF (default: ON — trust-first)
+
+- Days until admin alert: configurable (default: 3 days)
+
+- Alert channels: pop-up + inbox + email (each toggleable)
+
+- Auto-deactivate: ON/OFF, days after alert (default: 7 days)
+
+- Auto-deactivate email to professional: ON/OFF with editable text
+
+- PayPal payments auto-verified via webhook — no admin action needed
+
+# 51. Subscription Renewal & Stacking
+
+- Professional directed to payment page with all available methods
+
+- Subscription stacking: 10 months remaining + 12 months new = 22 months
+
+- No lost time when renewing early
+
+- Future: auto-renewal via Viva Wallet card on file
+
+# 52. Subscription Cancellation
+
+- No refund policy at launch
+
+- Profile stays active until paid period ends
+
+- Professional can use vacation mode during remaining period
+
+- Reviews stay on platform under deactivated profile
+
+- Can re-subscribe later but at NEW rate (locked price lost unless Founding Member)
+
+- Shutdown clause in Subscription Agreement: 30-day notice, pro-rata refund subject to available funds
+
+# 53. Expiry Reminders
+
+- 20 days before: first reminder email + notification
+
+- 12 days before: second reminder
+
+- 7 days before: third reminder
+
+- 3 days before: fourth reminder
+
+- 1 day before: final reminder — “TERMINAL NOTIFICATION”
+
+- Grace period: 7 days after expiry (profile stays visible with warning)
+
+- After grace period: profile hidden from search
+
+- Admin configurable: each reminder toggleable, grace period length
+
+# 54. Invoices & Receipts
+
+- Auto-generated PDF receipt for every payment
+
+- Includes: company details, professional details, AFM, amount, VAT 24%, reference code, period
+
+- Professional downloads from dashboard: individual PDF or ZIP of all
+
+- Admin downloads: filtered by date range, CSV export, ZIP of PDFs, summary PDF
+
+- Required for tax compliance — accountant uses CSV export
+
+# 55. Προβολή Plus
+
+Built at launch, activated later. €10/month add-on (admin configurable price).
+
+- ⭐ “Προτεινόμενος” badge on profile card
+
+- 📌 Pinned to top of search results in their category/area
+
+- 🔵 Highlighted card in search results
+
+- 📊 Appears in “Προτεινόμενοι” section on homepage
+
+- Max 3 promoted per area (prevents flooding, admin configurable)
+
+- Available via feature entitlements system
+
+# Part X — Professional Account Management
+
+# 56. Vacation Mode
+
+- Professional’s profile hidden from search during vacation
+
+- Existing confirmed bookings must be completed or cancelled before activating
+
+- Rank frozen (no drop during absence)
+
+- Reviews remain visible
+
+- Subscription still active (still paying)
+
+- Auto-reactivate on end date
+
+- Profile shows return date publicly: “Επιστρέφει στις 28/7”
+
+- Maximum 40 days/year (admin configurable)
+
+- Can be enabled/disabled globally by admin
+
+- Availability controlled per: plan type, group, individual user (feature entitlements)
+
+- Default: annual plan only
+
+- Professional can be on vacation mode and still qualify for referral rewards
+
+# 57. Professional Leaving Platform
+
+- Dashboard → Settings → Διαγραφή Λογαριασμού
+
+- Can delete even with pending bookings — all auto-cancelled with notification to customers
+
+- Reviews anonymized to “Πρώην επαγγελματίας”
+
+- Profile soft-deleted
+
+- Can re-register later but starts fresh (new profile, no reviews, new subscription)
+
+- No refund for remaining subscription
+
+# 58. Referral Program
+
+- Professional A shares referral code/link with Professional B
+
+- B registers using the code and pays for 12-month subscription
+
+- After B completes 6 months of active paid subscription: A receives 1 free month
+
+- Both must be active subscribers at reward time (vacation mode OK)
+
+- Email to A when referral used: conditions explained clearly
+
+- Dashboard → Referral tab: shows code, link, status of each referral
+
+- Admin configurable: ON/OFF, wait months, reward amount, minimum plan for referred, max referrals per user
+
+- Available via feature entitlements system
+
+# 59. Ranking Algorithm
+
+Built at launch but DISABLED. Admin enables when sufficient data exists.
+
+| **Factor** | **Weight** | **How calculated** |
+| --- | --- | --- |
+| Review score | 35% | Weighted average (verified 2x, invitation 1x, user 0.5x) |
+| Review count | 25% | Total active reviews |
+| Response rate | 20% | % responded within deadline |
+| Profile completeness | 10% | % of optional fields filled |
+| Booking completion rate | 10% | Completed / total confirmed |
+
+- Response rate tiers: 95%+ = “Άμεση απόκριση” badge, 60-79% = warning, below 40% = auto-hide
+
+- All weights admin configurable (must total 100%)
+
+- Admin can assign ranking configuration to custom groups
+
+# Part XI — Admin Panel
+
+# 60. Action Center
+
+Widget on admin dashboard showing everything needing attention. Real-time updates via Supabase Realtime (zero cost). Badge count on Dashboard tab.
+
+- 💳 Pending payments (overdue count)
+
+- ⚠️ Reports (unresolved count)
+
+- 📝 “Other” category requests
+
+- 🆕 New registrations pending activation
+
+- 🔄 Category change requests
+
+- Each item clickable → navigates to relevant section
+
+- Access assignable to custom groups
+
+# 61. Category Management
+
+- Full CRUD: add, edit, delete, toggle active/inactive
+
+- Cannot delete categories with active professionals (must deactivate instead)
+
+- Delete requires confirmation dialog
+
+- Tier assignment determines pricing
+
+- Free tier available for testing/promotions
+
+- Categories with 0 professionals auto-hidden from customer-facing pages
+
+# 62. Roles & Permissions
+
+- Admin creates custom role groups with specific permissions from the full permission list
+
+- Assigns users to groups
+
+- 15 permission types covering all platform functions
+
+- Each permission is granular: view/edit/delete separated
+
+- New permission: category.review for “Other” category requests
+
+- New permission: payment.verify for payment confirmation
+
+- New permission: payment.strategy for payment settings
+
+- All admin settings include “Assign to groups” option
+
+- Information icon (i) on every admin setting explaining what it does
+
+# 63. Platform Settings
+
+All configurable fields in one centralized admin settings page. Every setting assignable to custom groups.
+
+- Payment Strategy: auto-activate, alert days, auto-deactivate days
+
+- Vacation Mode: ON/OFF, max days, plan/group/user availability
+
+- Review Settings: types enabled, weights, invitation limits, min account age for user reviews
+
+- Word Filter: ON/OFF, mode (warning/auto-flag/block), word lists (EL/EN)
+
+- Rate Limits: all limits configurable
+
+- Profile Requirements: which fields required for search visibility
+
+- Ranking Algorithm: weights, thresholds, ON/OFF
+
+- Notification Retention: archive days
+
+- Onboarding Reminders: timing for incomplete profile emails
+
+- Maintenance Mode: ON/OFF with custom message
+
+- Response Deadline: hours for professional to respond
+
+- No-Show Threshold: number of no-shows before admin alert
+
+- Referral Program: ON/OFF, wait months, reward, limits
+
+- Recently Viewed: ON/OFF, threshold, max results
+
+- Προβολή Plus: ON/OFF, price, max per area
+
+# 64. User Management
+
+- Search users by: email, name, phone, last name
+
+- Admin can edit professional profiles (for non-tech-savvy professionals who call for help)
+
+- Admin can invite professional by email → professional receives link → registers themselves
+
+- Ban user: cannot log in, cannot create new account with same email, pending bookings cancelled, reviews hidden
+
+- Unban: admin can reverse ban
+
+- Impersonate: admin can view platform as any user or any role group (full audit logging)
+
+- All user management actions logged in audit trail
+
+# 65. Announcement Bar
+
+- Admin creates/edits announcements from settings
+
+- Fields: text (EL + EN), link URL, background color, active toggle
+
+- One active announcement at a time
+
+- View count tracked per announcement
+
+- Schedule start/end dates
+
+- Announcement history preserved
+
+- Dismissible by user (X button with slide-up animation)
+
+# 66. Reports & Data Export
+
+- Export professionals list as CSV
+
+- Export bookings as CSV (filterable by date range)
+
+- Export reviews as CSV
+
+- Export invoices as: CSV, ZIP of PDFs, summary PDF (filterable by date range)
+
+- Export payment history
+
+- All exports accessible from admin panel
+
+- CRM campaign reports available via Brevo dashboard
+
+# Part XII — CRM & Marketing
+
+# 67. CRM Integration (Brevo)
+
+- Supabase is source of truth. Brevo receives daily sync (not real-time).
+
+- Sync tags: user type, category used, location, last booking date, total bookings, marketing consent
+
+- Brevo used for: campaigns, newsletters, renewal reminders, third-party advertising
+
+- Brevo NOT used for: transactional emails (those go through Resend)
+
+- If sync fails, no platform impact — retries next day
+
+# 68. GDPR Consent
+
+**68.1 Registration consent**
+
+- Checkbox (optional): “Θέλω να λαμβάνω ενημερώσεις, προσφορές και διαφημίσεις από το [Platform] και συνεργαζόμενες επιχειρήσεις”
+
+- The phrase “συνεργαζόμενες επιχειρήσεις” legally covers third-party advertising and future projects
+
+**68.2 Notification preferences (in profile)**
+
+- Email booking notifications: ON (cannot disable — transactional)
+
+- Inbox booking notifications: ON (cannot disable)
+
+- Email ads & promotions: ON/OFF
+
+- Inbox ads & promotions: ON/OFF
+
+# 69. Third-Party Advertising
+
+Businesses pay you to email your consented users. You send the email through Brevo — the business never sees the email list. Brevo provides campaign reports (sent, delivered, opened, clicked) as proof.
+
+- Tier 1: Targeted segment (e.g., 340 nail customers in Thessaloniki) — €50-100
+
+- Tier 2: Broadcast (all consented users) — €200-500
+
+- Tier 3: Featured in newsletter — €100-300/week
+
+- Same consent covers your future projects (e.g., PetHero.gr launch email)
+
+# 70. Customer Segmentation
+
+Booking history stored permanently. Enables targeting:
+
+- By category used (all nail customers, all plumbing customers)
+
+- By location (all Thessaloniki users, all Thermi users)
+
+- By recency (active in last 30/60/90 days)
+
+- By frequency (1 booking vs 10 bookings)
+
+- Combined segments for precision targeting
+
+# Part XIII — Technical
+
+# 71. Database Schema
+
+All tables listed with key fields. Full column definitions in the Architecture Document.
+
+- professionals — profiles with booking_mode (contact/date/full)
+
+- customers — user profiles with multi-address support
+
+- bookings — with decline_reason, cancel_reason, customer_name/phone/email, no_show status
+
+- reviews — with type (verified/founding/user), edited_at, weight
+
+- review_photos — up to 5 per review
+
+- review_invitations — unique codes with usage limits and expiry
+
+- categories — with tier including “free” option
+
+- subscriptions — with payment_reference, payment_status, stacking support
+
+- availability_slots — professional’s working hours + blocked dates
+
+- notifications — user notifications with read/unread status
+
+- scheduled_emails — email queue with send_at timestamps
+
+- audit_log — every admin/moderator action
+
+- roles + role_permissions + user_roles — custom group system
+
+- announcements — with schedule, view count
+
+- platform_settings — key-value store for all admin configurable settings
+
+- platform_features — feature entitlements (plan/group/user access)
+
+- professional_services — services catalog with prices and durations
+
+- business_pages — premium page with slug, cover, logo, about
+
+- team_members — business page team
+
+- portfolio_photos — gallery with before/after
+
+- customer_addresses — multi-address support
+
+- favorites — customer saved professionals
+
+- referrals — referral tracking with status
+
+- reports — user reports on professionals and reviews
+
+- email_unsubscribes — with reason for admin reporting
+
+- invoices — generated PDF receipts
+
+# 72. Rate Limiting
+
+| **Action** | **Limit** | **Reset** |
+| --- | --- | --- |
+| Booking attempts | 10/hour/user | Every hour |
+| Review submissions | 3/day/user | Midnight |
+| Registration attempts | 3/hour/IP | Every hour |
+| Login attempts | 5/15min/IP | 15 minutes (3 lockouts = 1 hour) |
+| Phone reveals | 20/day/user | Midnight |
+| Invitation links | 30/month/professional | 1st of month |
+| Report submissions | 5/day/user | Midnight |
+
+All limits admin configurable.
+
+# 73. Image Storage & Compression
+
+| **Type** | **Max upload** | **Stored as** |
+| --- | --- | --- |
+| Profile photo | 5MB | 400x400 (~200KB) + thumbnail |
+| Portfolio photos | 5MB each, max 20 | 1200px wide (~500KB-1MB) + thumbnail |
+| Review photos | 5MB each, max 5 | 1200px wide + thumbnail |
+| Business logo | 3MB | 400x400 |
+| Cover photo | 5MB | 1200px wide |
+
+Supabase image transforms handle compression automatically. Formats: JPG, PNG, WebP. SVG for logos only. Admin monitors storage usage in System Health (admin panel).
+
+# 74. Analytics
+
+- Google Analytics or Plausible (privacy-friendly alternative)
+
+- Track: page views, unique visitors, search queries, conversion funnel (search → profile → booking), bounce rate, device split, geographic distribution
+
+- Data informs where to recruit professionals (“200 people searched for cleaners in Thermi”)
+
+# 75. Error Monitoring (Sentry)
+
+- Captures: JS errors, API failures, Supabase errors, failed emails, auth failures
+
+- Admin email alert when: error rate spikes, same error 5+ times/hour, critical path fails
+
+- Free tier: 5,000 errors/month
+
+# 76. Staging Environment
+
+- master branch → production ([platform].gr)
+
+- develop branch → staging (preview URL auto-generated by Vercel)
+
+- Test changes on staging before merging to production
+
+- Zero extra cost — Vercel auto-creates preview deployments
+
+# 77. Browser Support
+
+- Chrome 90+ (desktop + mobile)
+
+- Safari 14+ (desktop + iOS)
+
+- Firefox 90+
+
+- Edge 90+
+
+- Samsung Internet 15+
+
+- Internet Explorer: NOT supported
+
+# 78. Accessibility
+
+- All images have alt text
+
+- All form fields have labels
+
+- Keyboard navigation works (tab through everything)
+
+- Screen reader compatible (semantic HTML)
+
+- Color contrast meets WCAG AA standard
+
+- Focus indicators visible on interactive elements
+
+- EU European Accessibility Act 2025 compliance
+
+# 79. Multi-Language
+
+- Launch: Greek (primary) + English
+
+- Month 3+: Russian
+
+- Month 6+: German, Bulgarian, Albanian
+
+- UI elements translated. Professional content stays in original language.
+
+- Language selection persisted in user preferences
+
+- Proper i18n library (next-intl) for scalable translation management
+
+# 80. Maintenance Mode
+
+- Admin toggle: ON/OFF
+
+- Custom message field (editable)
+
+- All pages show maintenance page when enabled
+
+- Static HTML — works even if the application is down
+
+# 81. Custom 404 Page
+
+When someone visits a broken link:
+
+- “Ωχ! Η σελίδα δεν βρέθηκε.”
+
+- Links to: Search, Homepage, Help
+
+- Keeps user on platform instead of browser back button
+
+# Part XIV — Legal
+
+# 82. Terms of Service
+
+Covers: account responsibilities, professional subscription terms, booking rules, cancellation policy, review guidelines, content policy, payment terms, intellectual property, limitation of liability, dispute resolution, account termination, modifications. Accepted during registration.
+
+# 83. Privacy Policy (GDPR)
+
+Covers: data collected (name, email, phone, location, booking history), purpose (service delivery, reviews, marketing with consent), storage (Supabase, EU servers Frankfurt), third-party sharing (Brevo, Google, partner businesses WITH consent), user rights (access, edit, delete, export), cookies, marketing consent, data retention, children’s policy (no under-18), contact for inquiries.
+
+# 84. Subscription Agreement
+
+Separate contract between Lazy Consultant IKE and the professional. Covers: subscription terms, payment obligations, no-refund policy, platform responsibilities and limitations, professional obligations, intellectual property (reviews belong to platform), termination conditions, shutdown clause (30-day notice, pro-rata refund subject to available funds), governing law (Greek law).
+
+# 85. Cookie Consent Banner
+
+- GDPR mandatory for EU users
+
+- Options: Accept All, Essential Only, Settings
+
+- Essential cookies: session, auth
+
+- Analytics cookies: if using Google Analytics
+
+- Third-party cookies: Google OAuth
+
+- User preference saved
+
+# 86. Data Export (GDPR Right)
+
+- Profile → Settings → Privacy → “Λήψη των δεδομένων μου”
+
+- Downloads ZIP: profile.json, bookings.json, reviews.json, payments.json
+
+- Available to all users (customer and professional)
+
+- GDPR requires availability within 30 days of request — button makes it instant
+
+# 87. Customer Account Deletion
+
+- Customer can delete own account from Profile → Settings
+
+- All personal data deleted (GDPR compliance)
+
+- Reviews deleted, professional ratings recalculated
+
+- Booking history anonymized but preserved for professional records
+
+- Favorites, notifications deleted
+
+- Completed within 30 days (GDPR requirement) — instant via button
+
+# 88. User Ban System
+
+- Admin can ban any user from admin panel
+
+- Banned user: cannot log in, cannot create new account with same email
+
+- All pending bookings auto-cancelled
+
+- Reviews hidden (not deleted — admin can review)
+
+- Reason logged in audit trail
+
+- Admin can unban at any time
+
+- Ban right assignable to custom groups
+
+[Platform] — Complete System PRD v1.0
+
+88 Sections • Every User Journey • Every Edge Case • Every Admin Setting
+
+Lazy Consultant — April 2026
+
+Page
