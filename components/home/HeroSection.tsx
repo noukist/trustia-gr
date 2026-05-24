@@ -12,7 +12,8 @@
 //   - Two decorative semi-transparent circles (no external images)
 //   - Centered content block: badge → headline → subtitle → search
 //   - Search form: white elevated card with grouped category <select>
-//     and location text input → /services?category=X&location=Y
+//     and LocationAutocomplete (Google Places) input
+//     → /services?category=X&placeId=Y&location=Z&lat=N&lng=M
 //   - Trust strip below the form
 // =============================================================
 
@@ -23,6 +24,9 @@ import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { CATEGORIES } from "@/lib/constants";
 import Button from "@/components/ui/Button";
+import LocationAutocomplete, {
+  type LocationResult,
+} from "@/components/ui/LocationAutocomplete";
 
 // Pre-split by tier so JSX stays clean
 const CAT_LIGHT       = CATEGORIES.filter((c) => c.tier === "light");
@@ -34,15 +38,26 @@ const CHEVRON_BG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000
 
 export default function HeroSection() {
   const router = useRouter();
-  const [category, setCategory] = useState<string>("");
-  const [location, setLocation]  = useState<string>("");
+  const [category, setCategory]               = useState<string>("");
+  const [selectedLocation, setSelectedLocation] = useState<LocationResult | null>(null);
 
-  /** Push to /services with any chosen filters */
+  /**
+   * Push to /services with all chosen filters.
+   * When a Google Places location is selected we send:
+   *   placeId      → for precise DB/radius matching (PRD §74)
+   *   location     → human-readable display name for the search bar
+   *   lat / lng    → for future map view and distance sorting
+   */
   function handleSearch(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const params = new URLSearchParams();
-    if (category)        params.set("category", category);
-    if (location.trim()) params.set("location",  location.trim());
+    if (category) params.set("category", category);
+    if (selectedLocation) {
+      params.set("placeId",  selectedLocation.placeId);
+      params.set("location", selectedLocation.displayName);
+      params.set("lat",      String(selectedLocation.lat));
+      params.set("lng",      String(selectedLocation.lng));
+    }
     router.push(`/services?${params.toString()}`);
   }
 
@@ -216,26 +231,10 @@ export default function HeroSection() {
             }}
           />
 
-          {/* Location text input */}
-          <input
-            type="text"
+          {/* Location autocomplete — Google Places-powered, Greece-restricted */}
+          <LocationAutocomplete
             placeholder="π.χ. Θεσσαλονίκη"
-            value={location}
-            onChange={(e) => setLocation(e.target.value)}
-            aria-label="Τοποθεσία"
-            style={{
-              flex: "1 1 150px",
-              border: "1.5px solid var(--color-border)",
-              borderRadius: "10px",
-              padding: "0.75rem 1rem",
-              fontSize: "0.9375rem",
-              color: "var(--color-text)",
-              outline: "none",
-              backgroundColor: "#fff",
-              transition: "border-color 0.15s",
-            }}
-            onFocus={(e)  => { e.currentTarget.style.borderColor = "var(--color-primary)"; }}
-            onBlur={(e)   => { e.currentTarget.style.borderColor = "var(--color-border)"; }}
+            onSelect={setSelectedLocation}
           />
 
           {/* Submit button */}
