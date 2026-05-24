@@ -106,13 +106,16 @@ export const TIERS: Record<string, TierPricing> = {
 // The emoji is temporary — we'll replace with Lucide icons later
 // -------------------------------------------------------------
 export const CATEGORIES: Category[] = [
-  // ── LIGHT SERVICES (6 categories) ──────────────────────────
-  { id: "house-cleaning", nameEl: "Καθαρισμός Σπιτιού", nameEn: "House Cleaning", icon: "Sparkles", emoji: "🧹", tier: "light" },
-  { id: "office-cleaning", nameEl: "Καθαρισμός Γραφείων", nameEn: "Office Cleaning", icon: "Building2", emoji: "🏢", tier: "light" },
-  { id: "ironing", nameEl: "Σιδέρωμα", nameEn: "Ironing", icon: "Shirt", emoji: "👔", tier: "light" },
-  { id: "gardening", nameEl: "Κηπουρική", nameEn: "Gardening", icon: "Flower2", emoji: "🌿", tier: "light" },
-  { id: "pet-sitting", nameEl: "Φύλαξη Κατοικιδίων", nameEn: "Pet Sitting", icon: "Dog", emoji: "🐕", tier: "light" },
-  { id: "small-moving", nameEl: "Μικρομεταφορές", nameEn: "Small Moving", icon: "Package", emoji: "📦", tier: "light" },
+  // ── LIGHT SERVICES (9 categories) ──────────────────────────
+  { id: "house-cleaning", nameEl: "Καθαρισμός Σπιτιού",     nameEn: "House Cleaning",  icon: "Sparkles",      emoji: "🧹", tier: "light" },
+  { id: "office-cleaning", nameEl: "Καθαρισμός Γραφείων",   nameEn: "Office Cleaning", icon: "Building2",     emoji: "🏢", tier: "light" },
+  { id: "ironing",         nameEl: "Σιδέρωμα",              nameEn: "Ironing",         icon: "Shirt",         emoji: "👔", tier: "light" },
+  { id: "gardening",       nameEl: "Κηπουρική",             nameEn: "Gardening",       icon: "Flower2",       emoji: "🌿", tier: "light" },
+  { id: "pet-sitting",     nameEl: "Φύλαξη Κατοικιδίων",   nameEn: "Pet Sitting",     icon: "Dog",           emoji: "🐕", tier: "light" },
+  { id: "small-moving",    nameEl: "Μικρομεταφορές",        nameEn: "Small Moving",    icon: "Package",       emoji: "📦", tier: "light" },
+  { id: "babysitting",     nameEl: "Φύλαξη Παιδιών",       nameEn: "Babysitting",     icon: "Baby",          emoji: "👶", tier: "light" },
+  { id: "elderly-care",    nameEl: "Φροντίδα Ηλικιωμένων", nameEn: "Elderly Care",    icon: "HeartHandshake", emoji: "🤝", tier: "light" },
+  { id: "tutoring",        nameEl: "Ιδιαίτερα Μαθήματα",   nameEn: "Tutoring",        icon: "GraduationCap", emoji: "🎓", tier: "light" },
 
   // ── TRADES & BEAUTY (29 categories) ────────────────────────
   { id: "plumber", nameEl: "Υδραυλικός", nameEn: "Plumber", icon: "Wrench", emoji: "🔧", tier: "trades" },
