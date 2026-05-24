@@ -30,10 +30,11 @@ import {
   CreditCard, Clock, Building2,
 } from "lucide-react";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient }  from "@/lib/supabase/server";
 import { CATEGORIES, PLAN_OPTIONS } from "@/lib/constants";
-import DashboardNav   from "@/components/dashboard/DashboardNav";
-import Button         from "@/components/ui/Button";
+import DashboardNav    from "@/components/dashboard/DashboardNav";
+import Button          from "@/components/ui/Button";
+import ProfileEditor   from "@/components/dashboard/ProfileEditor";
 
 export const metadata: Metadata = {
   title: "Dashboard | Trustia.gr",
@@ -49,10 +50,14 @@ interface DbProfessional {
   slug:            string | null;
   first_name:      string;
   last_name:       string;
+  phone:           string;
+  email:           string;
   avatar_url:      string | null;
   category_id:     string;
   tier:            "light" | "trades" | "specialists";
   city:            string | null;
+  lat:             number | null;
+  lng:             number | null;
   bio:             string | null;
   price_text:      string | null;
   booking_mode:    "contact" | "date" | "full";
@@ -1002,9 +1007,9 @@ export default async function DashboardPage({
   const { data: proRaw } = await supabase
     .from("professionals")
     .select(
-      "id, slug, first_name, last_name, avatar_url, category_id, tier, " +
-      "city, bio, price_text, booking_mode, rating, review_count, " +
-      "profile_complete, status, created_at",
+      "id, slug, first_name, last_name, phone, email, avatar_url, " +
+      "category_id, tier, city, lat, lng, bio, price_text, booking_mode, " +
+      "rating, review_count, profile_complete, status, created_at",
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -1030,6 +1035,11 @@ export default async function DashboardPage({
 
   // ── Derived values ────────────────────────────────────────
   const proInitials = initials(pro.first_name, pro.last_name);
+
+  // Detect OAuth accounts so ProfileEditor can disable the email field.
+  // Supabase sets app_metadata.provider to "google" or "facebook" for OAuth.
+  const provider      = (user.app_metadata?.provider as string | undefined) ?? "";
+  const isOAuthAccount = provider === "google" || provider === "facebook";
 
   // ── Tab titles for <title> tag ────────────────────────────
   const TAB_TITLES: Record<string, string> = {
@@ -1085,7 +1095,27 @@ export default async function DashboardPage({
         {tab === "subscription" ? (
           <SubscriptionTab pro={pro} sub={sub} />
         ) : tab === "profile" ? (
-          <PlaceholderTab label="Επεξεργασία Προφίλ" />
+          <ProfileEditor
+            professionalId={pro.id}
+            userId={user.id}
+            initialData={{
+              first_name:      pro.first_name,
+              last_name:       pro.last_name,
+              phone:           pro.phone,
+              email:           pro.email,
+              avatar_url:      pro.avatar_url,
+              category_id:     pro.category_id,
+              tier:            pro.tier,
+              city:            pro.city,
+              lat:             pro.lat,
+              lng:             pro.lng,
+              bio:             pro.bio,
+              price_text:      pro.price_text,
+              booking_mode:    pro.booking_mode,
+              profile_complete: pro.profile_complete,
+            }}
+            isOAuthAccount={isOAuthAccount}
+          />
         ) : tab === "bookings" ? (
           <PlaceholderTab label="Κρατήσεις" />
         ) : tab === "reviews" ? (
