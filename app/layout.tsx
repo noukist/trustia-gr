@@ -9,11 +9,14 @@
 // - Set the HTML lang attribute to "el" (Greek)
 // - Export Next.js Metadata for SEO / Open Graph
 // - Import global CSS (Tailwind + CSS variables)
+// - Render Navbar (top) and Footer (bottom) around every page
 // =============================================================
 
 import type { Metadata } from "next";
 import { DM_Sans } from "next/font/google";
 import "./globals.css";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 
 // Load DM Sans — latin-ext covers the extended Unicode range used by DM Sans.
 // Note: next/font/google for DM Sans does not expose a "greek" subset key,
@@ -83,7 +86,16 @@ export default function RootLayout({
         dmSans.className applies the font-family directly.
         antialiased is a Tailwind utility class for smoother font rendering.
       */}
-      <body className={`${dmSans.className} antialiased`}>{children}</body>
+      <body className={`${dmSans.className} antialiased`}>
+        {/* Sticky navigation — appears above every page */}
+        <Navbar />
+
+        {/* Page content — min-height keeps the footer pushed to the bottom */}
+        <main style={{ minHeight: "calc(100vh - 64px)" }}>{children}</main>
+
+        {/* Site-wide footer */}
+        <Footer />
+      </body>
     </html>
   );
 }
