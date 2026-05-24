@@ -16,8 +16,8 @@
 //   Section 3   — Feature entitlements (vacation, portfolio, invitations)
 // =============================================================
 
-import Link from "next/link";
 import { ArrowRight, Check } from "lucide-react";
+import Button from "@/components/ui/Button";
 
 // ---------------------------------------------------------------
 // Feature highlights shown as pill badges
@@ -177,30 +177,24 @@ export default function ProCTA() {
             textAlign: "center",
           }}
         >
-          {/* Gold CTA button */}
-          <Link
+          {/* Gold CTA button
+              NOTE: ArrowRight is inlined as children (not the `icon` prop)
+              because ProCTA is a Server Component and React cannot serialize
+              a function reference across the server→client boundary. Passing
+              JSX *elements* (children) is always safe. */}
+          <Button
+            variant="secondary"
+            size="lg"
             href="/register"
             style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              padding: "0.875rem 2rem",
-              backgroundColor: "var(--color-accent)",
-              color: "#1a1a1a",
-              border: "none",
-              borderRadius: "12px",
-              fontSize: "1.0625rem",
               fontWeight: 800,
-              textDecoration: "none",
               letterSpacing: "-0.01em",
-              whiteSpace: "nowrap",
               boxShadow: "0 4px 24px rgba(212, 160, 57, 0.4)",
-              transition: "background-color 0.15s, transform 0.15s, box-shadow 0.15s",
             }}
           >
             Ξεκίνα Δωρεάν
-            <ArrowRight size={20} strokeWidth={2.5} />
-          </Link>
+            <ArrowRight size={20} strokeWidth={2.5} aria-hidden="true" />
+          </Button>
 
           {/* Reassurance note */}
           <p

@@ -22,6 +22,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { CATEGORIES } from "@/lib/constants";
+import Button from "@/components/ui/Button";
 
 // Pre-split by tier so JSX stays clean
 const CAT_LIGHT       = CATEGORIES.filter((c) => c.tier === "light");
@@ -238,30 +239,15 @@ export default function HeroSection() {
           />
 
           {/* Submit button */}
-          <button
+          <Button
             type="submit"
-            style={{
-              flex: "0 0 auto",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "0.5rem",
-              padding: "0.75rem 1.5rem",
-              backgroundColor: "var(--color-primary)",
-              color: "#ffffff",
-              border: "none",
-              borderRadius: "10px",
-              fontSize: "0.9375rem",
-              fontWeight: 700,
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              transition: "background-color 0.15s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--color-primary-dark)"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "var(--color-primary)"; }}
+            variant="primary"
+            size="md"
+            icon={Search}
+            style={{ flex: "0 0 auto" }}
           >
-            <Search size={18} />
             Αναζήτηση
-          </button>
+          </Button>
         </form>
 
         {/* ── Trust strip ── */}

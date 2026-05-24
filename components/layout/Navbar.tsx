@@ -20,9 +20,11 @@
 
 "use client";
 
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
 import { Menu, X, LogIn } from "lucide-react";
+import Logo   from "@/components/ui/Logo";
+import Button from "@/components/ui/Button";
 
 // ---------------------------------------------------------------
 // Navigation links — edit here to add/remove nav items
@@ -86,24 +88,9 @@ export default function Navbar() {
           }}
         >
           {/* ── Logo ── */}
-          <Link
-            href="/"
-            aria-label="Trustia.gr — Αρχική"
-            style={{ textDecoration: "none", flexShrink: 0 }}
-          >
-            <span
-              style={{
-                fontSize: "1.375rem",
-                fontWeight: 800,
-                letterSpacing: "-0.03em",
-                lineHeight: 1,
-                color: "var(--color-primary)",
-              }}
-            >
-              TRUSTIA
-              <span style={{ color: "var(--color-accent)" }}>.GR</span>
-            </span>
-          </Link>
+          <div style={{ flexShrink: 0 }}>
+            <Logo size="md" linkToHome />
+          </div>
 
           {/* ── Desktop nav links (hidden on mobile) ── */}
           <nav
@@ -123,7 +110,14 @@ export default function Navbar() {
             className="hidden md:flex"
             style={{ alignItems: "center", flexShrink: 0 }}
           >
-            <LoginButton />
+            <Button
+              variant="outline"
+              size="sm"
+              href="/login"
+              icon={LogIn}
+            >
+              Σύνδεση
+            </Button>
           </div>
 
           {/* ── Mobile hamburger button (hidden on desktop) ── */}
@@ -199,24 +193,7 @@ export default function Navbar() {
             borderBottom: "1px solid var(--color-border)",
           }}
         >
-          <Link
-            href="/"
-            onClick={closeDrawer}
-            style={{ textDecoration: "none" }}
-            aria-label="Trustia.gr — Αρχική"
-          >
-            <span
-              style={{
-                fontSize: "1.15rem",
-                fontWeight: 800,
-                letterSpacing: "-0.03em",
-                color: "var(--color-primary)",
-              }}
-            >
-              TRUSTIA
-              <span style={{ color: "var(--color-accent)" }}>.GR</span>
-            </span>
-          </Link>
+          <Logo size="sm" linkToHome onClick={closeDrawer} />
 
           <button
             aria-label="Κλείσιμο μενού"
@@ -275,34 +252,16 @@ export default function Navbar() {
             borderTop: "1px solid var(--color-border)",
           }}
         >
-          <Link
+          <Button
+            variant="outline"
+            size="md"
             href="/login"
-            onClick={closeDrawer}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.5rem",
-              padding: "0.75rem",
-              border: "1.5px solid var(--color-primary)",
-              borderRadius: "10px",
-              color: "var(--color-primary)",
-              textDecoration: "none",
-              fontSize: "0.9375rem",
-              fontWeight: 600,
-              backgroundColor: "transparent",
-              transition: "background-color 0.15s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = "var(--color-primary-bg)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = "transparent";
-            }}
+            icon={LogIn}
+            fullWidth
+            onClick={closeDrawer as React.MouseEventHandler<HTMLButtonElement>}
           >
-            <LogIn size={18} />
             Σύνδεση
-          </Link>
+          </Button>
         </div>
       </div>
     </>
@@ -344,35 +303,3 @@ function NavLink({
   );
 }
 
-/** Desktop Σύνδεση button */
-function LoginButton() {
-  return (
-    <Link
-      href="/login"
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: "0.375rem",
-        padding: "0.5rem 1.125rem",
-        borderRadius: "8px",
-        border: "1.5px solid var(--color-primary)",
-        color: "var(--color-primary)",
-        backgroundColor: "transparent",
-        fontSize: "0.9rem",
-        fontWeight: 600,
-        textDecoration: "none",
-        whiteSpace: "nowrap",
-        transition: "background-color 0.15s ease",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = "var(--color-primary-bg)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = "transparent";
-      }}
-    >
-      <LogIn size={15} />
-      Σύνδεση
-    </Link>
-  );
-}
