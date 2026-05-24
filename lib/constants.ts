@@ -464,6 +464,59 @@ export function getAllAreas(): { id: string; name: string; fullPath: string; reg
 }
 
 // -------------------------------------------------------------
+// SUBSCRIPTION PLANS — Billing period options (PRD Section 49)
+//
+// These are the "Τιμή Γνωριμίας" (Founding / Introductory) prices.
+// First 50 professionals lock this rate forever.
+//
+// DB mapping (billing_plan enum):
+//   "3mo"  → "monthly"   (shortest commitment)
+//   "6mo"  → "semi"      (semi-annual)
+//   "12mo" → "annual"    (recommended — locks founding price)
+// -------------------------------------------------------------
+export interface PlanOption {
+  /** Matches the billing_plan DB enum value */
+  id:        "monthly" | "semi" | "annual";
+  /** Duration label in Greek */
+  labelEl:   string;
+  /** Number of months in this billing period */
+  months:    number;
+  /** Total amount charged for the full period, keyed by tier */
+  total:     Record<"light" | "trades" | "specialists", number>;
+  /** Per-month equivalent for display (total / months, rounded) */
+  perMonth:  Record<"light" | "trades" | "specialists", number>;
+}
+
+/**
+ * The three billing-period choices shown during professional registration.
+ * Prices sourced from PRD Section 49 — Τιμή Γνωριμίας.
+ * Import this wherever pricing is displayed instead of hardcoding numbers.
+ */
+export const PLAN_OPTIONS: PlanOption[] = [
+  {
+    id:       "monthly",
+    labelEl:  "3 Μήνες",
+    months:   3,
+    total:    { light: 12,   trades: 30,   specialists: 54    },
+    perMonth: { light: 4,    trades: 10,   specialists: 18    },
+  },
+  {
+    id:       "semi",
+    labelEl:  "6 Μήνες",
+    months:   6,
+    total:    { light: 20,   trades: 50,   specialists: 90    },
+    perMonth: { light: 3.33, trades: 8.33, specialists: 15    },
+  },
+  {
+    id:       "annual",
+    labelEl:  "12 Μήνες",
+    months:   12,
+    total:    { light: 33,   trades: 84,   specialists: 150   },
+    perMonth: { light: 2.75, trades: 7,    specialists: 12.50 },
+  },
+];
+
+// -------------------------------------------------------------
 // HELPER — Get all categories for a specific tier
 // Used on the pricing page: professional clicks their category,
 // we look up the tier and show only that tier's prices
