@@ -1,70 +1,93 @@
 /* =============================================================
-   globals.css — Global styles for Mastori.gr
+   globals.css — Global styles for Trustia.gr
    =============================================================
-   This file sets up:
-   1. Tailwind CSS imports (required for Tailwind to work)
-   2. Brand color variables (used throughout the site)
-   3. Base styles for the body and html elements
+   Tailwind CSS 4 uses a CSS-first configuration model.
+   All theme tokens live here as CSS custom properties.
+   To change the brand palette, update the :root variables below.
    ============================================================= */
 
-/* Import Tailwind's three layers */
+/* Tailwind CSS 4 — single import replaces the old @tailwind directives */
 @import "tailwindcss";
 
 /* ------------------------------------------------------------- 
-   BRAND COLORS — CSS Custom Properties
-   These are the exact colors from our business plan.
-   We define them here so every component can use them
-   consistently via var(--color-primary) etc.
+   FONT — DM Sans (Greek + Latin, loaded via next/font/google)
+   The --font-dm-sans variable is injected by Next.js at runtime
+   and applied to <html> via the className from next/font.
+   ------------------------------------------------------------- */
+@theme {
+  --font-sans: var(--font-dm-sans, "DM Sans", ui-sans-serif, system-ui, sans-serif);
+}
+
+/* ------------------------------------------------------------- 
+   BRAND COLOR SYSTEM
+   
+   Change any value here and it propagates everywhere.
+   
+   Primary  → #2A8F8F  Teal  — headings, nav, trust elements
+   Accent   → #D4A039  Gold  — CTA buttons, highlights, badges
    ------------------------------------------------------------- */
 :root {
-  /* Primary navy blue — used for headings, nav, trust elements */
-  --color-primary: #1B4F72;
-  /* Lighter navy — used for hover states */
-  --color-primary-light: #2E86C1;
-  /* Gold accent — used for CTA buttons, highlights, urgency */
-  --color-accent: #D4AC0D;
-  /* Lighter gold — used for hover on accent buttons */
-  --color-accent-light: #F4D03F;
-  /* Green — used for "verified" badges and success states */
-  --color-success: #27AE60;
-  /* Red — used for errors and warnings */
-  --color-danger: #C0392B;
-  /* Gray — used for secondary text and borders */
-  --color-gray: #666666;
-  /* Light backgrounds for alternating table rows and cards */
-  --color-bg-light: #F9FAFB;
-  --color-bg-blue: #EBF5FB;
-  --color-bg-amber: #FDEBD0;
-  --color-bg-green: #EAFAF1;
+  /* ── Primary (Teal) ── */
+  --color-primary:       #2A8F8F;   /* main brand teal */
+  --color-primary-light: #3AAFAF;   /* hover / lighter shade */
+  --color-primary-dark:  #1A6E6E;   /* active / darker shade */
+  --color-primary-bg:    #EBF7F7;   /* subtle teal background tint */
+
+  /* ── Accent (Gold) ── */
+  --color-accent:        #D4A039;   /* main brand gold */
+  --color-accent-light:  #E8B84E;   /* hover / lighter shade */
+  --color-accent-dark:   #B8882A;   /* active / darker shade */
+  --color-accent-bg:     #FDF6E3;   /* subtle gold background tint */
+
+  /* ── Semantic ── */
+  --color-success:       #27AE60;   /* verified badges, success states */
+  --color-warning:       #F39C12;   /* invitation badges, warnings */
+  --color-danger:        #E74C3C;   /* errors, destructive actions */
+
+  /* ── Neutrals ── */
+  --color-text:          #1F2937;   /* primary text */
+  --color-text-muted:    #6B7280;   /* secondary / helper text */
+  --color-border:        #E5E7EB;   /* dividers, card borders */
+  --color-bg:            #FFFFFF;   /* page background */
+  --color-bg-light:      #F9FAFB;   /* alternate section backgrounds */
+  --color-bg-dark:       #111827;   /* footer, dark sections */
 }
 
 /* ------------------------------------------------------------- 
-   BASE STYLES — Applied to the entire page
-   ------------------------------------------------------------- */
-body {
-  /* Clean white background */
-  background: #FFFFFF;
-  /* Dark text for readability */
-  color: #333333;
-  /* Remove default margin */
-  margin: 0;
-  /* Smooth font rendering on Mac */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-/* ------------------------------------------------------------- 
-   SMOOTH SCROLLING — When clicking anchor links
+   BASE STYLES
    ------------------------------------------------------------- */
 html {
   scroll-behavior: smooth;
 }
 
-/* ------------------------------------------------------------- 
-   SELECTION COLOR — When user highlights text
-   Uses our brand blue with white text
-   ------------------------------------------------------------- */
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  margin: 0;
+  /* Smooth font rendering */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Text selection uses brand teal */
 ::selection {
-  background-color: #1B4F72;
-  color: white;
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+/* ------------------------------------------------------------- 
+   UTILITY HELPERS  (extend via Tailwind @utility if needed)
+   ------------------------------------------------------------- */
+
+/* Visually hide elements but keep them accessible to screen readers */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
