@@ -336,7 +336,7 @@ function ComparisonSection() {
     {
       label:      "Nail tech €1.500/μήνα",
       them:       "Πληρώνει €225–300/μήνα",
-      us:         "Πληρώνει €2.75/μήνα",
+      us:         "Πληρώνει €7/μήνα",
       usGood:     true,
     },
     {
