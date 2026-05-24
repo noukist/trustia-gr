@@ -29,13 +29,14 @@
 import React from "react";
 import Link  from "next/link";
 import type { Metadata } from "next";
-import { UserCircle2, Star, MapPin, Phone, Calendar, CalendarDays, Mail } from "lucide-react";
+import { UserCircle2, Star, MapPin, Phone, Calendar, CalendarDays } from "lucide-react";
 
 import { createClient }  from "@/lib/supabase/server";
 import { CATEGORIES }    from "@/lib/constants";
 import FiltersBar        from "@/components/services/FiltersBar";
 import SortSelect        from "@/components/services/SortSelect";
 import Button            from "@/components/ui/Button";
+import EmailCaptureForm  from "@/components/services/EmailCaptureForm";
 
 // ── Types ──────────────────────────────────────────────────────
 
@@ -435,7 +436,8 @@ function ZeroResults({
         </div>
       )}
 
-      {/* Email capture (PRD §9) */}
+      {/* Email capture (PRD §9) — extracted to a Client Component
+          so the parent Server Component doesn't have event handlers */}
       <div
         style={{
           backgroundColor: "var(--color-primary-bg)",
@@ -467,29 +469,7 @@ function ZeroResults({
           Θα σας στείλουμε email μόλις εγγραφεί {categoryName}
           {location ? ` στο ${location}` : ""}.
         </p>
-        <form
-          style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}
-          onSubmit={(e) => e.preventDefault()}
-        >
-          <input
-            type="email"
-            placeholder="email@example.com"
-            aria-label="Το email σας"
-            style={{
-              flex:         "1 1 180px",
-              padding:      "0.5rem 0.875rem",
-              border:       "1.5px solid var(--color-border)",
-              borderRadius: "8px",
-              fontSize:     "0.875rem",
-              fontFamily:   "inherit",
-              outline:      "none",
-            }}
-          />
-          <Button variant="primary" size="sm">
-            <Mail size={14} aria-hidden="true" />
-            Ειδοποίηση
-          </Button>
-        </form>
+        <EmailCaptureForm categoryName={categoryName} location={location} />
       </div>
 
       {/* Pro recruitment CTA */}

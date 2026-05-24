@@ -74,18 +74,17 @@ const LINK_COLUMNS = [
     id: "trustia",
     heading: "Trustia.gr",
     links: [
-      { label: "Σχετικά με εμάς",  href: "/about" },
       { label: "Πώς λειτουργεί",   href: "/how-it-works" },
+      { label: "Υπηρεσίες",        href: "/services" },
       { label: "Επικοινωνία",      href: "/contact" },
-      { label: "Blog",             href: "/blog" },
     ],
   },
   {
     id: "professionals",
     heading: "Επαγγελματίες",
     links: [
-      { label: "Εγγραφή",         href: "/register" },
-      { label: "Τιμολόγηση",      href: "/pricing" },
+      { label: "Εγγραφή",         href: "/register/professional" },
+      { label: "Τιμολόγηση",      href: "/professionals#pricing" },
       { label: "Σύνδεση",         href: "/login" },
     ],
   },

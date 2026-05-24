@@ -185,7 +185,7 @@ export default function ProCTA() {
           <Button
             variant="secondary"
             size="lg"
-            href="/register"
+            href="/register/professional"
             style={{
               fontWeight: 800,
               letterSpacing: "-0.01em",

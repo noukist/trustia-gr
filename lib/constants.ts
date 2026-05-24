@@ -1,5 +1,5 @@
 // =============================================================
-// constants.ts — All static data for Mastori.gr
+// constants.ts — All static data for Trustia.gr
 // =============================================================
 // This file contains every category, city, area, and text string
 // used across the website. Keeping them here means:
@@ -13,12 +13,12 @@
 // These match our Tailwind config and business plan
 // -------------------------------------------------------------
 export const BRAND = {
-  name: "MASTORI.GR",
+  name: "TRUSTIA.GR",
   taglineEl: "Βρες τον ειδικό για κάθε ανάγκη",
   taglineEn: "Find the expert you need",
   missionEl: "Δίκαιη πρόσβαση. Δίκαιη τιμή. 100% στον επαγγελματία.",
   missionEn: "Fair access. Fair price. 100% to the professional.",
-  email: "info@mastori.gr",
+  email: "info@trustia.gr",
   location: "Θεσσαλονίκη, Ελλάδα",
 } as const;
 
@@ -45,64 +45,14 @@ export interface Category {
   tier: "light" | "trades" | "specialists";
 }
 
-/** Pricing for each tier — what the professional pays */
-export interface TierPricing {
-  /** Display name in Greek */
-  labelEl: string;
-  /** Display name in English */
-  labelEn: string;
-  /** Monthly price on annual plan (cheapest) */
-  annualMonthly: number;
-  /** Monthly price on semi-annual plan */
-  semiMonthly: number;
-  /** Monthly price on monthly plan (most expensive) */
-  monthly: number;
-  /** Business pricing (2+ employees) — annual monthly */
-  businessAnnual: number;
-  /** Business semi-annual */
-  businessSemi: number;
-  /** Business monthly */
-  businessMonthly: number;
-}
-
-// The three pricing tiers with all amounts from our business plan
-export const TIERS: Record<string, TierPricing> = {
-  light: {
-    labelEl: "Καθαρισμός & Ελαφριές Υπηρεσίες",
-    labelEn: "Cleaning & Light Services",
-    annualMonthly: 10,
-    semiMonthly: 15,
-    monthly: 20,
-    businessAnnual: 25,
-    businessSemi: 35,
-    businessMonthly: 45,
-  },
-  trades: {
-    labelEl: "Τεχνικά & Υπηρεσίες Ομορφιάς",
-    labelEn: "Trades & Beauty Services",
-    annualMonthly: 15,
-    semiMonthly: 20,
-    monthly: 25,
-    businessAnnual: 45,
-    businessSemi: 60,
-    businessMonthly: 75,
-  },
-  specialists: {
-    labelEl: "Ειδικοί & Εργολάβοι",
-    labelEn: "Specialists & Contractors",
-    annualMonthly: 25,
-    semiMonthly: 35,
-    monthly: 45,
-    businessAnnual: 75,
-    businessSemi: 100,
-    businessMonthly: 130,
-  },
-};
+// NOTE: The old TierPricing / TIERS object has been removed.
+// Use PLAN_OPTIONS (below) as the single source of truth for pricing.
+// PLAN_OPTIONS reflects the correct "Τιμή Γνωριμίας" figures from PRD §49.
 
 // -------------------------------------------------------------
-// CATEGORIES — All 48 service categories
+// CATEGORIES — All 51 service categories
 // Each category is assigned to a tier which determines its price
-// The ID is used in URLs: mastori.gr/services/plumber
+// The ID is used in URLs: trustia.gr/services/plumber
 // The emoji is temporary — we'll replace with Lucide icons later
 // -------------------------------------------------------------
 export const CATEGORIES: Category[] = [
@@ -527,18 +477,19 @@ export function getCategoriesByTier(tier: "light" | "trades" | "specialists"): C
 
 // -------------------------------------------------------------
 // HELPER — Find a category by its URL-friendly ID
-// Used when navigating to mastori.gr/services/plumber
+// Used when navigating to trustia.gr/services/plumber
 // Returns the full category object with name, tier, etc.
 // -------------------------------------------------------------
 export function getCategoryById(id: string): Category | undefined {
   return CATEGORIES.find((cat) => cat.id === id);
 }
 // -------------------------------------------------------------
-// DEMO PROFESSIONALS — Fake data for development
-// These will be replaced by real Supabase data later.
-// Each professional has all the fields our database will store.
-// We use these to build and test the UI before the DB exists.
+// LEGACY DEMO DATA — removed.
+// All professional data now comes from Supabase (professionals table).
+// DEMO_PROFESSIONALS and DEMO_REVIEWS have been deleted.
 // -------------------------------------------------------------
+
+/** @deprecated — kept only to avoid breaking any stale imports */
 export interface Professional {
   /** Unique ID (will come from Supabase later) */
   id: string;
@@ -570,7 +521,7 @@ export interface Professional {
   rank: number;
   /** Short bio / description */
   bio: string;
-  /** Year they joined Mastori.gr */
+  /** Year they joined Trustia.gr */
   memberSince: string;
   /** Emoji avatar (will be replaced by real photos) */
   avatar: string;
@@ -578,6 +529,7 @@ export interface Professional {
   phone: string;
 }
 
+/** @deprecated */
 export const DEMO_PROFESSIONALS: Professional[] = [
   {
     id: "pro-1",

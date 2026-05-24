@@ -49,7 +49,7 @@ interface DashboardNavProps {
 // ── Nav items ─────────────────────────────────────────────────
 const NAV_ITEMS: NavItem[] = [
   { id: "overview",      labelEl: "Επισκόπηση",  shortEl: "Αρχική",    icon: LayoutDashboard, placeholder: false },
-  { id: "profile",       labelEl: "Προφίλ",       shortEl: "Προφίλ",    icon: User,            placeholder: true  },
+  { id: "profile",       labelEl: "Προφίλ",       shortEl: "Προφίλ",    icon: User,            placeholder: false },
   { id: "bookings",      labelEl: "Κρατήσεις",   shortEl: "Κρατήσεις", icon: Calendar,        placeholder: true  },
   { id: "reviews",       labelEl: "Κριτικές",    shortEl: "Κριτικές",  icon: Star,            placeholder: true  },
   { id: "subscription",  labelEl: "Συνδρομή",    shortEl: "Συνδρομή",  icon: CreditCard,      placeholder: false },
