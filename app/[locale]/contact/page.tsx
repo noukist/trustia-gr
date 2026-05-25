@@ -1,6 +1,6 @@
 // app/[locale]/contact/page.tsx — Επικοινωνία / Contact
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Mail, MapPin, Clock } from "lucide-react";
 import { setRequestLocale } from "next-intl/server";
 
@@ -11,7 +11,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   return {
-    title: locale === "en" ? "Contact | Trustia.gr" : "Επικοινωνία | Trustia.gr",
+    title: locale === "en" ? "Contact" : "Επικοινωνία",
     description: locale === "en"
       ? "Contact the Trustia.gr team"
       : "Επικοινωνήστε με την ομάδα του Trustia.gr",

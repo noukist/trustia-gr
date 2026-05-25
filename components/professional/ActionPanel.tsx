@@ -31,6 +31,7 @@
 
 import { useState }         from "react";
 import { Phone, Calendar, Copy, Check, X } from "lucide-react";
+import { useTranslations }   from "next-intl";
 import { createClient }      from "@/lib/supabase/client";
 import LoginPromptModal      from "@/components/ui/LoginPromptModal";
 
@@ -50,6 +51,8 @@ function BookingPlaceholder({
   mode:    "date" | "full";
   onClose: () => void;
 }) {
+  const t  = useTranslations("profile");
+  const tc = useTranslations("common");
   return (
     <div
       onClick={onClose}
@@ -80,7 +83,7 @@ function BookingPlaceholder({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Κλείσιμο"
+          aria-label={tc("close")}
           style={{
             position:  "absolute",
             top:       "1rem",
@@ -107,8 +110,7 @@ function BookingPlaceholder({
             margin:       "0.75rem 0 0.5rem",
           }}
         >
-          Κράτηση{" "}
-          {mode === "full" ? "— Πλήρες Ημερολόγιο" : "Ημερομηνίας"}
+          {mode === "full" ? t("bookingFullTitle") : t("bookingDateTitle")}
         </h2>
         <p
           style={{
@@ -117,9 +119,9 @@ function BookingPlaceholder({
             lineHeight: 1.6,
           }}
         >
-          Το σύστημα κράτησης ανοίγει σύντομα.
+          {t("bookingComingSoon1")}
           <br />
-          Επικοινωνήστε απευθείας μέσω τηλεφώνου.
+          {t("bookingComingSoon2")}
         </p>
       </div>
     </div>
@@ -133,6 +135,8 @@ export default function ActionPanel({
   bookingEnabled,
   proName,
 }: ActionPanelProps) {
+  const t = useTranslations("profile");
+
   // "idle" | "revealed" = phone state
   const [phoneState,    setPhoneState]   = useState<"idle" | "revealed">("idle");
   const [copied,        setCopied]       = useState(false);
@@ -244,10 +248,10 @@ export default function ActionPanel({
             type="button"
             onClick={copyPhone}
             style={ghostBtn}
-            title="Αντιγραφή αριθμού"
+            title={t("copyNumber")}
           >
             {copied ? <Check size={15} style={{ color: "#27AE60" }} /> : <Copy size={15} />}
-            {copied ? "Αντιγράφηκε" : "Αντιγραφή"}
+            {copied ? t("copied") : t("copyAction")}
           </button>
         </div>
 
@@ -260,13 +264,13 @@ export default function ActionPanel({
           }}
         >
           <Phone size={17} />
-          Κλήση
+          {t("callAction")}
         </a>
       </div>
     ) : (
       <button type="button" onClick={handlePhoneClick} style={primaryBtn}>
         <Phone size={17} />
-        Εμφάνιση τηλεφώνου
+        {t("actionCall")}
       </button>
     );
 
@@ -285,7 +289,7 @@ export default function ActionPanel({
       }}
     >
       <Calendar size={17} />
-      {bookingMode === "full" ? "Κράτηση Online" : "Επιλογή Ημερομηνίας"}
+      {bookingMode === "full" ? t("bookOnline") : t("actionBookDate")}
     </button>
   ) : null;
 
@@ -312,7 +316,7 @@ export default function ActionPanel({
           margin:       0,
         }}
       >
-        Επικοινωνία με τον {proName.split(" ")[0]}
+        {t("contactWith", { firstName: proName.split(" ")[0] })}
       </p>
 
       {phoneContent}
@@ -326,7 +330,7 @@ export default function ActionPanel({
           margin:    0,
         }}
       >
-        Χωρίς προμήθεια — 100% πηγαίνει στον επαγγελματία
+        {t("zeroCommission")}
       </p>
     </div>
   );
@@ -392,7 +396,7 @@ export default function ActionPanel({
             style={{ ...primaryBtn, flex: 1, padding: "0.75rem" }}
           >
             <Phone size={16} />
-            Τηλέφωνο
+            {t("phoneBtn")}
           </button>
           {bookingContent && (
             <button
@@ -440,13 +444,13 @@ export default function ActionPanel({
       {/* ── Modals ── */}
       {modal === "login-phone" && (
         <LoginPromptModal
-          message="Συνδεθείτε για να δείτε τα στοιχεία επικοινωνίας του επαγγελματία."
+          message={t("loginToSeePhone")}
           onClose={() => setModal(null)}
         />
       )}
       {modal === "login-booking" && (
         <LoginPromptModal
-          message="Συνδεθείτε για να κάνετε κράτηση."
+          message={t("loginToBook")}
           onClose={() => setModal(null)}
         />
       )}

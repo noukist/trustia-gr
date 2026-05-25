@@ -442,7 +442,39 @@ export default async function ProfessionalProfilePage({
       ? today >= new Date(pro.vacation_start) && today <= new Date(pro.vacation_end)
       : false;
 
-  // ── 4. Render ────────────────────────────────────────────
+  // ── 4. Build JSON-LD structured data ────────────────────
+  // Schema.org LocalBusiness / Person markup for rich search results.
+  // Helps Google show the professional in local search with rating stars.
+  const jsonLd = {
+    "@context":    "https://schema.org",
+    "@type":       "LocalBusiness",
+    name:          name,
+    description:   pro.bio ?? `${catDispName} ${locale === "en" ? "in" : "στο"} ${pro.city ?? "Greece"}`,
+    url:           `https://trustia.gr/${locale === "en" ? "en/" : ""}professional/${pro.slug}`,
+    telephone:     pro.phone,
+    address: pro.city
+      ? {
+          "@type":           "PostalAddress",
+          addressLocality:   pro.city,
+          addressCountry:    "GR",
+        }
+      : undefined,
+    ...(pro.avatar_url ? { image: pro.avatar_url } : {}),
+    ...(pro.review_count > 0
+      ? {
+          aggregateRating: {
+            "@type":       "AggregateRating",
+            ratingValue:   pro.rating.toFixed(1),
+            reviewCount:   pro.review_count,
+            bestRating:    "5",
+            worstRating:   "1",
+          },
+        }
+      : {}),
+    priceRange: pro.price_text ?? undefined,
+  };
+
+  // ── 5. Render ────────────────────────────────────────────
   return (
     <div
       style={{
@@ -452,6 +484,11 @@ export default async function ProfessionalProfilePage({
         paddingBottom:   "80px",
       }}
     >
+      {/* ── JSON-LD structured data ── */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {/* ── Topbar: Back + Share ── */}
       <div
         style={{

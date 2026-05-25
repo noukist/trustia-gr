@@ -30,9 +30,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link                            from "next/link";
-import { usePathname }                 from "next/navigation";
+import { Link, usePathname }           from "@/i18n/navigation";
 import { X, Mail, LogIn }              from "lucide-react";
+import { useTranslations }             from "next-intl";
 import { signInWithGoogle, signInWithFacebook } from "@/lib/auth/helpers";
 
 // ── Props ──────────────────────────────────────────────────────
@@ -44,9 +44,11 @@ interface LoginPromptModalProps {
 
 // ── Component ──────────────────────────────────────────────────
 export default function LoginPromptModal({
-  message = "Συνδεθείτε για να δείτε τα στοιχεία επικοινωνίας.",
+  message,
   onClose,
 }: LoginPromptModalProps) {
+  const t        = useTranslations("auth");
+  const tc       = useTranslations("common");
   const pathname = usePathname();
 
   // Track loading state for each OAuth provider to give visual feedback
@@ -129,7 +131,7 @@ export default function LoginPromptModal({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Κλείσιμο"
+          aria-label={tc("close")}
           style={{
             position:        "absolute",
             top:             "1rem",
@@ -173,7 +175,7 @@ export default function LoginPromptModal({
             lineHeight:   1.3,
           }}
         >
-          Απαιτείται Σύνδεση
+          {t("loginRequired")}
         </h2>
 
         <p
@@ -236,7 +238,7 @@ export default function LoginPromptModal({
                 />
               </svg>
             )}
-            {loadingGoogle ? "Φόρτωση…" : "Συνέχεια με Google"}
+            {loadingGoogle ? tc("loading") : t("continueGoogle")}
           </button>
 
           {/* Facebook */}
@@ -263,13 +265,13 @@ export default function LoginPromptModal({
             }}
           >
             {loadingFacebook ? (
-              "Φόρτωση…"
+              tc("loading")
             ) : (
               <>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff" aria-hidden="true">
                   <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                 </svg>
-                Συνέχεια με Facebook
+                {t("continueFacebook")}
               </>
             )}
           </button>
@@ -285,7 +287,7 @@ export default function LoginPromptModal({
           >
             <div style={{ flex: 1, height: "1px", backgroundColor: "var(--color-border)" }} />
             <span style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>
-              ή με email
+              {t("orEmail")}
             </span>
             <div style={{ flex: 1, height: "1px", backgroundColor: "var(--color-border)" }} />
           </div>
@@ -309,7 +311,7 @@ export default function LoginPromptModal({
             }}
           >
             <Mail size={16} />
-            Σύνδεση με Email
+            {t("loginWithEmail")}
           </Link>
 
           {/* Register link */}
@@ -321,12 +323,12 @@ export default function LoginPromptModal({
               margin:     "0.25rem 0 0",
             }}
           >
-            Δεν έχεις λογαριασμό;{" "}
+            {t("noAccount")}{" "}
             <Link
               href={registerHref}
               style={{ color: "var(--color-primary)", fontWeight: 600, textDecoration: "none" }}
             >
-              Εγγραφή δωρεάν →
+              {t("registerFreeLink")}
             </Link>
           </p>
         </div>

@@ -11,7 +11,8 @@
     "login": "Σύνδεση",
     "logout": "Αποσύνδεση",
     "home": "Αρχική",
-    "comingSoon": "Σύντομα"
+    "comingSoon": "Σύντομα",
+    "close": "Κλείσιμο"
   },
 
   "nav": {
@@ -209,7 +210,20 @@
     "verifiedBadge": "✓ Επαληθευμένη",
     "invitedBadge": "🔗 Προσκεκλημένη",
     "copyLink": "Αντιγραφή συνδέσμου",
-    "shareProfile": "Κοινοποίηση προφίλ"
+    "shareProfile": "Κοινοποίηση προφίλ",
+    "bookingFullTitle": "Κράτηση — Πλήρες Ημερολόγιο",
+    "bookingDateTitle": "Κράτηση Ημερομηνίας",
+    "bookingComingSoon1": "Το σύστημα κράτησης ανοίγει σύντομα.",
+    "bookingComingSoon2": "Επικοινωνήστε απευθείας μέσω τηλεφώνου.",
+    "contactWith": "Επικοινωνία με τον {firstName}",
+    "zeroCommission": "Χωρίς προμήθεια — 100% πηγαίνει στον επαγγελματία",
+    "copyNumber": "Αντιγραφή αριθμού",
+    "copyAction": "Αντιγραφή",
+    "callAction": "Κλήση",
+    "bookOnline": "Κράτηση Online",
+    "phoneBtn": "Τηλέφωνο",
+    "loginToSeePhone": "Συνδεθείτε για να δείτε τα στοιχεία επικοινωνίας του επαγγελματία.",
+    "loginToBook": "Συνδεθείτε για να κάνετε κράτηση."
   },
 
   "auth": {
@@ -260,6 +274,9 @@
     "loginLink": "Σύνδεση",
     "proRegisterCta": "Είσαι επαγγελματίας;",
     "proRegisterLink": "Εγγραφή Επαγγελματία →",
+    "loginRequired": "Απαιτείται Σύνδεση",
+    "loginWithEmail": "Σύνδεση με Email",
+    "registerFreeLink": "Εγγραφή δωρεάν →",
     "errors": {
       "invalidCredentials": "Λανθασμένο email ή κωδικός. Δοκίμασε ξανά.",
       "emailNotConfirmed": "Επιβεβαίωσε πρώτα το email σου (έλεγξε τα εισερχόμενα).",
@@ -632,5 +649,11 @@
     "paymentVerified": "Επαληθευμένη",
     "paymentFailed": "Αποτυχία",
     "paymentRefunded": "Επιστροφή"
+  },
+
+  "notFound": {
+    "title": "Σελίδα δεν βρέθηκε",
+    "description": "Η σελίδα που ψάχνετε δεν υπάρχει ή έχει μεταφερθεί.",
+    "backHome": "← Αρχική"
   }
 }

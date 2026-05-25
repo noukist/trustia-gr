@@ -1,6 +1,6 @@
 // app/[locale]/cookies/page.tsx — Πολιτική Cookies / Cookie Policy
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { setRequestLocale } from "next-intl/server";
 
 export async function generateMetadata({
@@ -10,7 +10,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   return {
-    title: locale === "en" ? "Cookie Policy | Trustia.gr" : "Πολιτική Cookies | Trustia.gr",
+    title: locale === "en" ? "Cookie Policy" : "Πολιτική Cookies",
   };
 }
 

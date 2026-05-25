@@ -11,7 +11,8 @@
     "login": "Log In",
     "logout": "Log Out",
     "home": "Home",
-    "comingSoon": "Coming Soon"
+    "comingSoon": "Coming Soon",
+    "close": "Close"
   },
 
   "nav": {
@@ -209,7 +210,20 @@
     "verifiedBadge": "✓ Verified",
     "invitedBadge": "🔗 Invited",
     "copyLink": "Copy link",
-    "shareProfile": "Share profile"
+    "shareProfile": "Share profile",
+    "bookingFullTitle": "Booking — Full Calendar",
+    "bookingDateTitle": "Date Booking",
+    "bookingComingSoon1": "The booking system is coming soon.",
+    "bookingComingSoon2": "Please contact the professional directly by phone.",
+    "contactWith": "Contact {firstName}",
+    "zeroCommission": "No commission — 100% goes to the professional",
+    "copyNumber": "Copy number",
+    "copyAction": "Copy",
+    "callAction": "Call",
+    "bookOnline": "Book Online",
+    "phoneBtn": "Phone",
+    "loginToSeePhone": "Log in to view the professional's contact details.",
+    "loginToBook": "Log in to make a booking."
   },
 
   "auth": {
@@ -260,6 +274,9 @@
     "loginLink": "Log in",
     "proRegisterCta": "Are you a professional?",
     "proRegisterLink": "Register as Professional →",
+    "loginRequired": "Login Required",
+    "loginWithEmail": "Log In with Email",
+    "registerFreeLink": "Register free →",
     "errors": {
       "invalidCredentials": "Wrong email or password. Please try again.",
       "emailNotConfirmed": "Please confirm your email first (check your inbox).",
@@ -632,5 +649,11 @@
     "paymentVerified": "Verified",
     "paymentFailed": "Failed",
     "paymentRefunded": "Refunded"
+  },
+
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you are looking for does not exist or has been moved.",
+    "backHome": "← Back to Home"
   }
 }
