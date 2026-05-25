@@ -6,7 +6,7 @@
 //
 // SECTIONS
 //   1. Hero          — headline, value props, primary CTA
-//   2. Comparison    — vs Douleutaras table with ✓ / ✗
+//   2. Comparison    — vs "Πλατφόρμες με Προμήθεια" table with ✓ / ✗
 //   3. Pricing       — three tiers × three plans from PLAN_OPTIONS
 //   4. How it works  — 4-step process for professionals
 //   5. Features grid — 2 × 3 feature cards
@@ -395,7 +395,7 @@ function ComparisonSection() {
               >
                 &nbsp;
               </th>
-              {/* Douleutaras */}
+              {/* Generic competitor column */}
               <th
                 style={{
                   ...headerCell,
@@ -405,10 +405,10 @@ function ComparisonSection() {
                   borderLeft:      "1px solid var(--color-border)",
                 }}
               >
-                Δουλευτάρας
+                Πλατφόρμες με Προμήθεια
                 <br />
                 <span style={{ fontWeight: 400, fontSize: "0.75rem", opacity: 0.8 }}>
-                  (ανταγωνιστής)
+                  (με προμήθεια)
                 </span>
               </th>
               {/* Trustia */}
