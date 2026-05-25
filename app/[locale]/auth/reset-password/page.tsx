@@ -17,7 +17,7 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 

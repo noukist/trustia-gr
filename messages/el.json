@@ -187,7 +187,29 @@
       "contact": "Τηλεφωνική Επικοινωνία",
       "date": "Κράτηση Ημερομηνίας",
       "full": "Online Κράτηση"
-    }
+    },
+    "metaNotFound": "Επαγγελματίας",
+    "metaDesc": "{name}, {catName} στο {city}. ★ {rating} βαθμολογία ({reviewCount} κριτικές) στο Trustia.gr.",
+    "metaOgDesc": "Επαγγελματίας στο Trustia.gr",
+    "featuredBadge": "★ Προβολή Plus",
+    "ratingCount": "{count} αξιολογήσεις",
+    "availableToday": "✓ Διαθέσιμος σήμερα",
+    "onVacationBadge": "🏖️ Σε διακοπές",
+    "memberSince": "Μέλος από",
+    "noServices": "Δεν έχουν οριστεί υπηρεσίες ακόμα.",
+    "serviceHeader": "Υπηρεσία",
+    "durationHeader": "Διάρκεια",
+    "priceHeader": "Τιμή",
+    "servicesSection": "Υπηρεσίες ({count})",
+    "portfolioSection": "Φωτογραφίες ({count})",
+    "reviewsSection": "Κριτικές ({count})",
+    "beforeAfter": "Πριν / Μετά",
+    "leaveReview": "Αφήστε κριτική",
+    "anonymous": "Ανώνυμος",
+    "verifiedBadge": "✓ Επαληθευμένη",
+    "invitedBadge": "🔗 Προσκεκλημένη",
+    "copyLink": "Αντιγραφή συνδέσμου",
+    "shareProfile": "Κοινοποίηση προφίλ"
   },
 
   "auth": {

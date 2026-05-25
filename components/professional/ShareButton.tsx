@@ -10,15 +10,17 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Share2, Copy, Check } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 interface ShareButtonProps {
   /** Full name of the professional — used as share text */
   proName: string;
-  /** Category name in Greek — used as share text */
+  /** Category name (locale-aware, passed from server component) */
   categoryEl: string;
 }
 
 export default function ShareButton({ proName, categoryEl }: ShareButtonProps) {
+  const t                   = useTranslations("profile");
   const [open, setOpen]     = useState(false);
   const [copied, setCopied] = useState(false);
   const menuRef             = useRef<HTMLDivElement>(null);
@@ -93,7 +95,7 @@ export default function ShareButton({ proName, categoryEl }: ShareButtonProps) {
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="true"
         aria-expanded={open}
-        aria-label="Κοινοποίηση προφίλ"
+        aria-label={t("shareProfile")}
         style={{
           display:         "inline-flex",
           alignItems:      "center",
@@ -110,7 +112,7 @@ export default function ShareButton({ proName, categoryEl }: ShareButtonProps) {
         }}
       >
         <Share2 size={15} />
-        Κοινοποίηση
+        {t("share")}
       </button>
 
       {/* ── Dropdown ── */}
@@ -142,7 +144,7 @@ export default function ShareButton({ proName, categoryEl }: ShareButtonProps) {
             ) : (
               <Copy size={15} />
             )}
-            {copied ? "Αντιγράφηκε!" : "Αντιγραφή συνδέσμου"}
+            {copied ? t("copied") : t("copyLink")}
           </button>
 
           {/* WhatsApp */}

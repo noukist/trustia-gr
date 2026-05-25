@@ -25,7 +25,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter }        from "next/navigation";
+import { useRouter }        from "@/i18n/navigation";
 import {
   ChevronRight, ChevronLeft,
   Check, Phone, CalendarDays, CalendarRange,

@@ -22,9 +22,12 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { createClient }                      from "@/lib/supabase/server";
 import CustomerProfileForm                   from "@/components/profile/CustomerProfileForm";
 
-export const metadata: Metadata = {
-  title: "My Profile | Trustia.gr",
-};
+// Dynamic metadata — layout template appends "| Trustia.gr"
+export async function generateMetadata({ params }: { params: PageParams }): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "myProfile" });
+  return { title: t("title") };
+}
 
 // Next.js 16: params is a Promise
 type PageParams = Promise<{ locale: string }>;

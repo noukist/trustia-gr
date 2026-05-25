@@ -21,8 +21,8 @@
 // =============================================================
 
 import React          from "react";
-import Link           from "next/link";
-import { redirect }   from "next/navigation";
+import { Link }          from "@/i18n/navigation";   // locale-aware Link
+import { redirect }       from "next/navigation";     // redirect — we prefix locale manually below
 import type { Metadata } from "next";
 import {
   CheckCircle2, AlertCircle, ExternalLink,
@@ -40,13 +40,16 @@ import ProfileEditor   from "@/components/dashboard/ProfileEditor";
 import BookingsTab     from "@/components/dashboard/BookingsTab";
 import ReviewsTab      from "@/components/dashboard/ReviewsTab";
 
-export const metadata: Metadata = {
-  title: "Dashboard | Trustia.gr",
-};
-
 // ── Next.js 16: params/searchParams are Promises ─────────────
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
 type PageParams       = Promise<{ locale: string }>;
+
+// Dynamic metadata — layout template appends "| Trustia.gr"
+export async function generateMetadata({ params }: { params: PageParams }): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "dashboard" });
+  return { title: t("title") };
+}
 
 // ── DB row types ──────────────────────────────────────────────
 
@@ -1011,7 +1014,7 @@ export default async function DashboardPage({
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/dashboard");
+  if (!user) redirect(`/${locale}/login`);
 
   // ── Professional check ────────────────────────────────────
   const { data: proRaw } = await supabase
@@ -1025,7 +1028,7 @@ export default async function DashboardPage({
     .maybeSingle();
 
   // If the user has no professional profile, redirect to home
-  if (!proRaw) redirect("/");
+  if (!proRaw) redirect(locale === "en" ? "/en" : "/");
 
   const pro = proRaw as unknown as DbProfessional;
 

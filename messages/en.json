@@ -187,7 +187,29 @@
       "contact": "Phone Contact",
       "date": "Date Booking",
       "full": "Online Booking"
-    }
+    },
+    "metaNotFound": "Professional",
+    "metaDesc": "{name}, {catName} in {city}. ★ {rating} rating ({reviewCount} reviews) on Trustia.gr.",
+    "metaOgDesc": "Professional on Trustia.gr",
+    "featuredBadge": "★ Featured",
+    "ratingCount": "{count} reviews",
+    "availableToday": "✓ Available today",
+    "onVacationBadge": "🏖️ On vacation",
+    "memberSince": "Member since",
+    "noServices": "No services defined yet.",
+    "serviceHeader": "Service",
+    "durationHeader": "Duration",
+    "priceHeader": "Price",
+    "servicesSection": "Services ({count})",
+    "portfolioSection": "Photos ({count})",
+    "reviewsSection": "Reviews ({count})",
+    "beforeAfter": "Before / After",
+    "leaveReview": "Leave a review",
+    "anonymous": "Anonymous",
+    "verifiedBadge": "✓ Verified",
+    "invitedBadge": "🔗 Invited",
+    "copyLink": "Copy link",
+    "shareProfile": "Share profile"
   },
 
   "auth": {

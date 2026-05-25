@@ -30,8 +30,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { useTranslations } from "next-intl";
 import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, Check } from "lucide-react";
 import {
