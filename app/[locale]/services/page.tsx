@@ -31,6 +31,7 @@ import Link  from "next/link";
 import type { Metadata } from "next";
 import { UserCircle2, Star, MapPin, Phone, Calendar, CalendarDays } from "lucide-react";
 import { setRequestLocale } from "next-intl/server";
+import { useTranslations } from "next-intl";
 
 import { createClient }  from "@/lib/supabase/server";
 import { CATEGORIES }    from "@/lib/constants";
@@ -151,17 +152,28 @@ function Stars({ rating }: { rating: number }) {
 }
 
 // ── Booking mode badge ────────────────────────────────────────
-const MODE_BADGE: Record<string, { emoji: string; label: string; color: string }> = {
-  contact: { emoji: "📞", label: "Τηλέφωνο",  color: "#6B7280" },
-  date:    { emoji: "📅", label: "Ημερομηνία", color: "#2A8F8F" },
-  full:    { emoji: "🗓️", label: "Online",      color: "#27AE60" },
+// Labels are resolved at render time via useTranslations so they
+// switch language automatically. The emoji and color are locale-agnostic.
+const MODE_EMOJI: Record<string, { emoji: string; color: string }> = {
+  contact: { emoji: "📞", color: "#6B7280" },
+  date:    { emoji: "📅", color: "#2A8F8F" },
+  full:    { emoji: "🗓️", color: "#27AE60" },
 };
 
 // ── Professional card ─────────────────────────────────────────
 function ProfessionalCard({ pro }: { pro: ProfessionalWithDistance }) {
+  const t        = useTranslations("services");
   const name     = `${pro.first_name} ${pro.last_name}`;
   const cat      = CATEGORIES.find((c) => c.id === pro.category_id);
-  const modeMeta = MODE_BADGE[pro.booking_mode];
+  const modeEmoji = MODE_EMOJI[pro.booking_mode] ?? MODE_EMOJI.contact;
+
+  // Booking mode translated label
+  const modeLabel: Record<string, string> = {
+    contact: t("modeContact"),
+    date:    t("modeDate"),
+    full:    t("modeFull"),
+  };
+  const modeMeta = { ...modeEmoji, label: modeLabel[pro.booking_mode] ?? pro.booking_mode };
   const href     = pro.slug ? `/professional/${pro.slug}` : "#";
 
   return (
@@ -313,7 +325,7 @@ function ProfessionalCard({ pro }: { pro: ProfessionalWithDistance }) {
             {pro.rating.toFixed(1)}
           </span>
           <span style={{ fontSize: "0.775rem", color: "var(--color-text-muted)" }}>
-            ({pro.review_count} κριτ.)
+            ({pro.review_count} {t("reviews")})
           </span>
         </div>
 
@@ -372,7 +384,7 @@ function ProfessionalCard({ pro }: { pro: ProfessionalWithDistance }) {
                 fontWeight:      500,
               }}
             >
-              ✓ Διαθέσιμος σήμερα
+              {t("availableToday")}
             </span>
           )}
         </div>
@@ -391,6 +403,7 @@ function ZeroResults({
   location:     string;
   nearbyPros:   ProfessionalWithDistance[];
 }) {
+  const t = useTranslations("services");
   return (
     <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
       {/* Primary message */}
@@ -403,8 +416,8 @@ function ZeroResults({
           marginBottom: "0.5rem",
         }}
       >
-        Δεν βρέθηκαν {categoryName}
-        {location ? ` στο ${location}` : ""}
+        {t("noResults")} {categoryName}
+        {location ? ` ${t("noResultsIn")} ${location}` : ""}
       </h2>
       <p
         style={{
@@ -415,7 +428,7 @@ function ZeroResults({
           lineHeight:   1.6,
         }}
       >
-        Δεν υπάρχουν εγγεγραμμένοι επαγγελματίες για αυτή την αναζήτηση ακόμα.
+        {t("noResultsSub")}
       </p>
 
       {/* Nearby pros (proximity fallback — PRD §9) */}
@@ -430,7 +443,7 @@ function ZeroResults({
               textAlign:    "center",
             }}
           >
-            Επαγγελματίες σε κοντινές περιοχές:
+            {t("nearbySub")}
           </p>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "0.875rem" }}>
             {nearbyPros.slice(0, 6).map((pro) => (
@@ -461,7 +474,7 @@ function ZeroResults({
             marginBottom: "0.5rem",
           }}
         >
-          🔔 Θέλετε να ειδοποιηθείτε;
+          {t("notifyTitle")}
         </p>
         <p
           style={{
@@ -470,8 +483,8 @@ function ZeroResults({
             marginBottom: "0.875rem",
           }}
         >
-          Θα σας στείλουμε email μόλις εγγραφεί {categoryName}
-          {location ? ` στο ${location}` : ""}.
+          {t("notifySub")} {categoryName}
+          {location ? ` ${t("noResultsIn")} ${location}` : ""}.
         </p>
         <EmailCaptureForm categoryName={categoryName} location={location} />
       </div>
@@ -591,6 +604,10 @@ export default async function ServicesPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+
+  // Translations for the page-level strings (sub-components call their own t())
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const t = useTranslations("services");
 
   // ── 1. Parse URL params ──────────────────────────────────
   const p = await searchParams;
@@ -809,8 +826,8 @@ export default async function ServicesPage({
 
           {results.length > 0 && (
             <p style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", margin: "0.25rem 0 0" }}>
-              {results.length} επαγγελματίες
-              {location && ` κοντά στο ${location}`}
+              {results.length} {t("professionals")}
+              {location && ` ${t("near")} ${location}`}
             </p>
           )}
         </div>
@@ -846,7 +863,7 @@ export default async function ServicesPage({
                 }}
               >
                 <p style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", margin: 0 }}>
-                  {results.length} αποτελέσματα
+                  {results.length} {t("results")}
                 </p>
                 <SortSelect hasLocation={hasLocation} />
               </div>

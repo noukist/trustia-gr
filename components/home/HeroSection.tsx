@@ -6,6 +6,7 @@
 // "use client" because:
 //   - Controlled form inputs (category, location state)
 //   - useRouter for programmatic navigation on search submit
+//   - useTranslations (next-intl client hook)
 //
 // Visual design:
 //   - Deep-teal → brand-teal diagonal gradient background
@@ -21,6 +22,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import { Search } from "lucide-react";
 import { CATEGORIES } from "@/lib/constants";
 import Button from "@/components/ui/Button";
@@ -37,7 +39,10 @@ const CAT_SPECIALISTS = CATEGORIES.filter((c) => c.tier === "specialists");
 const CHEVRON_BG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`;
 
 export default function HeroSection() {
+  const t      = useTranslations("home");
+  const locale = useLocale();
   const router = useRouter();
+
   const [category, setCategory]               = useState<string>("");
   const [selectedLocation, setSelectedLocation] = useState<LocationResult | null>(null);
 
@@ -61,54 +66,27 @@ export default function HeroSection() {
     router.push(`/services?${params.toString()}`);
   }
 
+  // Category name: use English translation if available and locale is EN
+  function catName(c: { nameEl: string; nameEn?: string }) {
+    return locale === "en" && c.nameEn ? c.nameEn : c.nameEl;
+  }
+
   return (
     <section
       style={{
         position: "relative",
         overflow: "hidden",
-        // Deep teal → brand teal diagonal gradient — no external images
         background: "linear-gradient(135deg, #0C5252 0%, #1A7070 45%, #2A8F8F 100%)",
         padding: "5rem 1.5rem 6rem",
       }}
     >
       {/* ── Decorative circles (CSS only, aria-hidden) ── */}
-      <span
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          top: "-100px",
-          right: "-100px",
-          width: "480px",
-          height: "480px",
-          borderRadius: "50%",
-          background: "rgba(255,255,255,0.045)",
-          pointerEvents: "none",
-        }}
-      />
-      <span
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          bottom: "-140px",
-          left: "-80px",
-          width: "400px",
-          height: "400px",
-          borderRadius: "50%",
-          background: "rgba(255,255,255,0.03)",
-          pointerEvents: "none",
-        }}
-      />
+      <span aria-hidden="true" style={{ position: "absolute", top: "-100px", right: "-100px", width: "480px", height: "480px", borderRadius: "50%", background: "rgba(255,255,255,0.045)", pointerEvents: "none" }} />
+      <span aria-hidden="true" style={{ position: "absolute", bottom: "-140px", left: "-80px", width: "400px", height: "400px", borderRadius: "50%", background: "rgba(255,255,255,0.03)", pointerEvents: "none" }} />
 
       {/* ── Main content ── */}
-      <div
-        style={{
-          maxWidth: "780px",
-          margin: "0 auto",
-          textAlign: "center",
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
+      <div style={{ maxWidth: "780px", margin: "0 auto", textAlign: "center", position: "relative", zIndex: 1 }}>
+
         {/* Founding-member badge */}
         <div
           style={{
@@ -126,7 +104,9 @@ export default function HeroSection() {
             letterSpacing: "0.01em",
           }}
         >
-          🎉 3 μήνες ΔΩΡΕΑΝ για νέους επαγγελματίες
+          {locale === "en"
+            ? "🎉 3 months FREE for new professionals"
+            : "🎉 3 μήνες ΔΩΡΕΑΝ για νέους επαγγελματίες"}
         </div>
 
         {/* H1 — main value proposition */}
@@ -140,7 +120,7 @@ export default function HeroSection() {
             margin: "0 0 1rem",
           }}
         >
-          Βρες τον ειδικό για κάθε ανάγκη
+          {t("heroTagline")}
         </h1>
 
         {/* Subtitle */}
@@ -152,7 +132,9 @@ export default function HeroSection() {
             margin: "0 0 2.5rem",
           }}
         >
-          51 κατηγορίες υπηρεσιών&nbsp;•&nbsp;0% προμήθεια για επαγγελματίες
+          {locale === "en"
+            ? "51 service categories\u00a0•\u00a00% commission for professionals"
+            : "51 κατηγορίες υπηρεσιών\u00a0•\u00a00% προμήθεια για επαγγελματίες"}
         </p>
 
         {/* ── Search form ── */}
@@ -173,7 +155,7 @@ export default function HeroSection() {
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            aria-label="Επιλογή κατηγορίας"
+            aria-label={locale === "en" ? "Select category" : "Επιλογή κατηγορίας"}
             style={{
               flex: "2 1 200px",
               border: "1.5px solid var(--color-border)",
@@ -184,7 +166,6 @@ export default function HeroSection() {
               backgroundColor: "#fff",
               cursor: "pointer",
               outline: "none",
-              // Custom arrow chevron via inline SVG data-URI
               appearance: "none",
               WebkitAppearance: "none",
               backgroundImage: CHEVRON_BG,
@@ -192,28 +173,30 @@ export default function HeroSection() {
               backgroundPosition: "right 0.75rem center",
             }}
           >
-            <option value="">Όλες οι κατηγορίες</option>
+            <option value="">
+              {locale === "en" ? "All categories" : "Όλες οι κατηγορίες"}
+            </option>
 
-            <optgroup label="Καθαρισμός & Ελαφριές">
+            <optgroup label={locale === "en" ? "Cleaning & Light" : "Καθαρισμός & Ελαφριές"}>
               {CAT_LIGHT.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.emoji} {c.nameEl}
+                  {c.emoji} {catName(c)}
                 </option>
               ))}
             </optgroup>
 
-            <optgroup label="Τεχνικά & Ομορφιά">
+            <optgroup label={locale === "en" ? "Trades & Beauty" : "Τεχνικά & Ομορφιά"}>
               {CAT_TRADES.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.emoji} {c.nameEl}
+                  {c.emoji} {catName(c)}
                 </option>
               ))}
             </optgroup>
 
-            <optgroup label="Ειδικοί">
+            <optgroup label={locale === "en" ? "Specialists" : "Ειδικοί"}>
               {CAT_SPECIALISTS.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.emoji} {c.nameEl}
+                  {c.emoji} {catName(c)}
                 </option>
               ))}
             </optgroup>
@@ -233,7 +216,7 @@ export default function HeroSection() {
 
           {/* Location autocomplete — Google Places-powered, Greece-restricted */}
           <LocationAutocomplete
-            placeholder="π.χ. Θεσσαλονίκη"
+            placeholder={locale === "en" ? "e.g. Thessaloniki" : "π.χ. Θεσσαλονίκη"}
             onSelect={setSelectedLocation}
           />
 
@@ -245,29 +228,27 @@ export default function HeroSection() {
             icon={Search}
             style={{ flex: "0 0 auto" }}
           >
-            Αναζήτηση
+            {t("heroSearch")}
           </Button>
         </form>
 
         {/* ── Trust strip ── */}
         <ul
-          aria-label="Πλεονεκτήματα"
+          aria-label={locale === "en" ? "Benefits" : "Πλεονεκτήματα"}
           style={{
             display: "flex",
             justifyContent: "center",
             flexWrap: "wrap",
             gap: "1.25rem 2rem",
-            marginTop: "1.75rem",
             listStyle: "none",
             padding: 0,
             margin: "1.75rem 0 0",
           }}
         >
-          {[
-            "✓ Δωρεάν για πελάτες",
-            "✓ 51 κατηγορίες",
-            "✓ Αξιόπιστες κριτικές",
-          ].map((item) => (
+          {(locale === "en"
+            ? ["✓ Free for customers", "✓ 51 categories", "✓ Trusted reviews"]
+            : ["✓ Δωρεάν για πελάτες", "✓ 51 κατηγορίες", "✓ Αξιόπιστες κριτικές"]
+          ).map((item) => (
             <li
               key={item}
               style={{
