@@ -19,7 +19,8 @@
 //   user       (weight 0.5) — standard anonymous — grey badge
 // =============================================================
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient }              from "@/lib/supabase/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 // ── DB row type ───────────────────────────────────────────────
 
@@ -32,31 +33,39 @@ interface DbReview {
   created_at: string;
 }
 
-// ── Type badge map ────────────────────────────────────────────
+// ── Type color map (labels come from i18n) ────────────────────
 
-const REVIEW_TYPE: Record<
+const REVIEW_TYPE_STYLE: Record<
   string,
-  { label: string; icon: string; bg: string; color: string }
+  { icon: string; bg: string; color: string }
 > = {
-  verified:   { label: "Επαληθευμένη",    icon: "✓", bg: "#D1FAE5", color: "#059669" },
-  invitation: { label: "Μέσω πρόσκλησης", icon: "✉", bg: "#FEF3C7", color: "#D97706" },
-  user:       { label: "Κοινή κριτική",   icon: "★", bg: "#F3F4F6", color: "#6B7280" },
+  verified:   { icon: "✓", bg: "#D1FAE5", color: "#059669" },
+  invitation: { icon: "✉", bg: "#FEF3C7", color: "#D97706" },
+  user:       { icon: "★", bg: "#F3F4F6", color: "#6B7280" },
 };
 
 // ── Star renderer ─────────────────────────────────────────────
 
-function Stars({ rating, size = "1rem" }: { rating: number; size?: string }) {
+function Stars({
+  rating,
+  size = "1rem",
+  ariaLabel,
+}: {
+  rating:    number;
+  size?:     string;
+  ariaLabel: string;
+}) {
   const full  = Math.min(5, Math.max(0, Math.round(rating)));
   const empty = 5 - full;
   return (
     <span
       style={{
-        color:          "var(--color-accent)",
+        color:         "var(--color-accent)",
         fontSize:       size,
         letterSpacing:  "-1px",
         lineHeight:     1,
       }}
-      aria-label={`${rating} από 5 αστέρια`}
+      aria-label={ariaLabel}
     >
       {"★".repeat(full)}{"☆".repeat(empty)}
     </span>
@@ -70,7 +79,12 @@ export default async function ReviewsTab({
 }: {
   professionalId: string;
 }) {
+  const locale   = await getLocale();
+  const t        = await getTranslations({ locale, namespace: "dashboard.reviews" });
   const supabase = await createClient();
+
+  // Date locale for Intl.DateTimeFormat
+  const dateLocale = locale === "el" ? "el-GR" : "en-GB";
 
   const { data, error } = await supabase
     .from("reviews")
@@ -109,10 +123,10 @@ export default async function ReviewsTab({
               marginBottom: "0.5rem",
             }}
           >
-            Δεν υπάρχουν κριτικές ακόμα
+            {t("empty")}
           </h2>
           <p style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", margin: 0 }}>
-            Οι κριτικές των πελατών σας θα εμφανιστούν εδώ μόλις τις υποβάλουν.
+            {t("emptyHint")}
           </p>
         </div>
       </div>
@@ -164,7 +178,11 @@ export default async function ReviewsTab({
           >
             {simpleAvg.toFixed(1)}
           </p>
-          <Stars rating={Math.round(simpleAvg)} size="1.1rem" />
+          <Stars
+            rating={Math.round(simpleAvg)}
+            size="1.1rem"
+            ariaLabel={t("starsAriaLabel", { rating: simpleAvg.toFixed(1) })}
+          />
           <p
             style={{
               fontSize: "0.775rem",
@@ -172,7 +190,7 @@ export default async function ReviewsTab({
               margin:   "0.375rem 0 0",
             }}
           >
-            {rows.length} κριτικές
+            {t("count", { count: rows.length })}
           </p>
         </div>
 
@@ -184,7 +202,7 @@ export default async function ReviewsTab({
                 {countVerified}
               </p>
               <p style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", margin: 0 }}>
-                Επαληθευμένες
+                {t("countVerifiedLabel")}
               </p>
             </div>
           )}
@@ -194,7 +212,7 @@ export default async function ReviewsTab({
                 {countInvitation}
               </p>
               <p style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", margin: 0 }}>
-                Πρόσκλησης
+                {t("countInvitationLabel")}
               </p>
             </div>
           )}
@@ -204,7 +222,7 @@ export default async function ReviewsTab({
                 {countUser}
               </p>
               <p style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", margin: 0 }}>
-                Κοινές
+                {t("countUserLabel")}
               </p>
             </div>
           )}
@@ -222,7 +240,7 @@ export default async function ReviewsTab({
             }}
           >
             <p style={{ margin: "0 0 0.125rem", fontWeight: 700, color: "var(--color-text)" }}>
-              Σταθμισμένη βαθμ.
+              {t("weightedScore")}
             </p>
             <p style={{ margin: 0, fontSize: "1.1rem", fontWeight: 800, color: "var(--color-primary)" }}>
               {weightedAvg.toFixed(1)}
@@ -233,7 +251,12 @@ export default async function ReviewsTab({
 
       {/* ── Review cards ── */}
       {rows.map((review) => {
-        const typeInfo = REVIEW_TYPE[review.type] ?? REVIEW_TYPE.user;
+        const typeStyle = REVIEW_TYPE_STYLE[review.type] ?? REVIEW_TYPE_STYLE.user;
+        // Translated label for the type badge
+        const typeLabel =
+          review.type === "verified"   ? t("typeVerified")   :
+          review.type === "invitation" ? t("typeInvitation") :
+          t("typeUser");
 
         return (
           <div
@@ -258,7 +281,10 @@ export default async function ReviewsTab({
                 gap:            "0.5rem",
               }}
             >
-              <Stars rating={review.rating} />
+              <Stars
+                rating={review.rating}
+                ariaLabel={t("starsAriaLabel", { rating: review.rating })}
+              />
 
               <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                 {/* Type badge */}
@@ -269,19 +295,19 @@ export default async function ReviewsTab({
                     gap:             "0.25rem",
                     fontSize:        "0.75rem",
                     fontWeight:      700,
-                    color:           typeInfo.color,
-                    backgroundColor: typeInfo.bg,
+                    color:           typeStyle.color,
+                    backgroundColor: typeStyle.bg,
                     padding:         "0.2rem 0.625rem",
                     borderRadius:    "99px",
                     whiteSpace:      "nowrap",
                   }}
                 >
-                  {typeInfo.icon} {typeInfo.label}
+                  {typeStyle.icon} {typeLabel}
                 </span>
 
                 {/* Date */}
                 <span style={{ fontSize: "0.775rem", color: "var(--color-text-muted)" }}>
-                  {new Date(review.created_at).toLocaleDateString("el-GR")}
+                  {new Date(review.created_at).toLocaleDateString(dateLocale)}
                 </span>
               </div>
             </div>
@@ -301,7 +327,7 @@ export default async function ReviewsTab({
             ) : (
               /* Rating-only review (no text) */
               <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", margin: 0, fontStyle: "italic" }}>
-                Μόνο βαθμολογία, χωρίς σχόλιο.
+                {t("noText")}
               </p>
             )}
           </div>

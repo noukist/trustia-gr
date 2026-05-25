@@ -17,8 +17,9 @@
 //   Others    → read-only
 // =============================================================
 
-import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
+import { createClient }    from "@/lib/supabase/server";
+import { revalidatePath }  from "next/cache";
+import { getLocale, getTranslations } from "next-intl/server";
 
 // ── Server Action ─────────────────────────────────────────────
 // Updates booking status. Called by plain <form action> buttons.
@@ -49,6 +50,7 @@ async function updateBookingStatus(formData: FormData) {
   // Revalidate the dashboard for both locales so the list refreshes
   revalidatePath("/el/dashboard");
   revalidatePath("/en/dashboard");
+  revalidatePath("/dashboard"); // default locale (el, no prefix)
 }
 
 // ── DB row type ───────────────────────────────────────────────
@@ -67,15 +69,15 @@ interface DbBooking {
   created_at:     string;
 }
 
-// ── Status badge map ──────────────────────────────────────────
+// ── Status color map (labels come from i18n) ──────────────────
 
-const STATUS: Record<string, { label: string; bg: string; color: string }> = {
-  pending:   { label: "Εκκρεμεί",      bg: "#FEF3C7", color: "#D97706" },
-  confirmed: { label: "Επιβεβαιωμένη", bg: "#D1FAE5", color: "#059669" },
-  completed: { label: "Ολοκληρώθηκε",  bg: "#EDE9FE", color: "#7C3AED" },
-  declined:  { label: "Απορρίφθηκε",   bg: "#FEE2E2", color: "#DC2626" },
-  cancelled: { label: "Ακυρώθηκε",     bg: "#F3F4F6", color: "#6B7280" },
-  no_show:   { label: "Απουσία",        bg: "#FFF7ED", color: "#EA580C" },
+const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
+  pending:   { bg: "#FEF3C7", color: "#D97706" },
+  confirmed: { bg: "#D1FAE5", color: "#059669" },
+  completed: { bg: "#EDE9FE", color: "#7C3AED" },
+  declined:  { bg: "#FEE2E2", color: "#DC2626" },
+  cancelled: { bg: "#F3F4F6", color: "#6B7280" },
+  no_show:   { bg: "#FFF7ED", color: "#EA580C" },
 };
 
 // ── Shared button styles ──────────────────────────────────────
@@ -119,7 +121,20 @@ export default async function BookingsTab({
 }: {
   professionalId: string;
 }) {
+  // Get locale for date formatting + load translations
+  const locale   = await getLocale();
+  const t        = await getTranslations({ locale, namespace: "dashboard.bookings" });
   const supabase = await createClient();
+
+  // Build the status label map using translated strings
+  const statusLabel: Record<string, string> = {
+    pending:   t("statusPending"),
+    confirmed: t("statusConfirmed"),
+    completed: t("statusCompleted"),
+    declined:  t("statusDeclined"),
+    cancelled: t("statusCancelled"),
+    no_show:   t("statusNoShow"),
+  };
 
   const { data, error } = await supabase
     .from("bookings")
@@ -144,6 +159,9 @@ export default async function BookingsTab({
   const others    = rows.filter((b) => !["pending", "confirmed"].includes(b.status));
   const ordered   = [...pending, ...confirmed, ...others];
 
+  // Date locale for Intl.DateTimeFormat — el → el-GR, en → en-GB
+  const dateLocale = locale === "el" ? "el-GR" : "en-GB";
+
   // ── Empty state ───────────────────────────────────────────
 
   if (ordered.length === 0) {
@@ -166,10 +184,10 @@ export default async function BookingsTab({
               marginBottom: "0.5rem",
             }}
           >
-            Δεν υπάρχουν κρατήσεις ακόμα
+            {t("empty")}
           </h2>
           <p style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", margin: 0 }}>
-            Οι κρατήσεις των πελατών σας θα εμφανιστούν εδώ μόλις σας βρουν.
+            {t("emptyHint")}
           </p>
         </div>
       </div>
@@ -199,10 +217,7 @@ export default async function BookingsTab({
             margin:     0,
           }}
         >
-          Κρατήσεις{" "}
-          <span style={{ color: "var(--color-text-muted)", fontWeight: 400 }}>
-            ({ordered.length})
-          </span>
+          {t("title", { count: ordered.length })}
         </h2>
 
         {/* Pending count badge — draws attention */}
@@ -218,19 +233,20 @@ export default async function BookingsTab({
               fontWeight:      700,
             }}
           >
-            {pending.length} εκκρεμείς
+            {t("pendingBadge", { count: pending.length })}
           </span>
         )}
       </div>
 
       {/* ── Booking cards ── */}
       {ordered.map((booking) => {
-        const badge       = STATUS[booking.status] ?? STATUS.pending;
+        const style       = STATUS_STYLE[booking.status] ?? STATUS_STYLE.pending;
+        const label       = statusLabel[booking.status]  ?? booking.status;
         const isPending   = booking.status === "pending";
         const isConfirmed = booking.status === "confirmed";
 
-        // Format the booking date in Greek
-        const dateLabel = new Date(booking.booking_date).toLocaleDateString("el-GR", {
+        // Format the booking date in the user's locale
+        const dateLabel = new Date(booking.booking_date).toLocaleDateString(dateLocale, {
           weekday: "long",
           day:     "numeric",
           month:   "long",
@@ -277,7 +293,8 @@ export default async function BookingsTab({
                   {dateLabel}{timeLabel}
                 </p>
                 <p style={{ fontSize: "0.775rem", color: "var(--color-text-muted)", margin: 0 }}>
-                  Υποβλήθηκε {new Date(booking.created_at).toLocaleDateString("el-GR")}
+                  {t("submittedOn")}{" "}
+                  {new Date(booking.created_at).toLocaleDateString(dateLocale)}
                 </p>
               </div>
 
@@ -286,15 +303,15 @@ export default async function BookingsTab({
                 style={{
                   display:         "inline-flex",
                   padding:         "0.25rem 0.75rem",
-                  backgroundColor: badge.bg,
-                  color:           badge.color,
+                  backgroundColor: style.bg,
+                  color:           style.color,
                   borderRadius:    "99px",
                   fontSize:        "0.8rem",
                   fontWeight:      700,
                   whiteSpace:      "nowrap",
                 }}
               >
-                {badge.label}
+                {label}
               </span>
             </div>
 
@@ -359,7 +376,7 @@ export default async function BookingsTab({
                   margin:     0,
                 }}
               >
-                Σύνολο: €{booking.total_price.toFixed(2)}
+                {t("total")}: €{booking.total_price.toFixed(2)}
               </p>
             )}
 
@@ -378,14 +395,14 @@ export default async function BookingsTab({
                   <input type="hidden" name="bookingId" value={booking.id} />
                   <input type="hidden" name="status"    value="confirmed" />
                   <button type="submit" style={btnPrimary}>
-                    ✓ Επιβεβαίωση
+                    {t("confirmBtn")}
                   </button>
                 </form>
                 <form action={updateBookingStatus}>
                   <input type="hidden" name="bookingId" value={booking.id} />
                   <input type="hidden" name="status"    value="declined" />
                   <button type="submit" style={btnDanger}>
-                    ✕ Άρνηση
+                    {t("declineBtn")}
                   </button>
                 </form>
               </div>
@@ -406,14 +423,14 @@ export default async function BookingsTab({
                   <input type="hidden" name="bookingId" value={booking.id} />
                   <input type="hidden" name="status"    value="completed" />
                   <button type="submit" style={btnSuccess}>
-                    ✓ Ολοκλήρωση
+                    {t("completeBtn")}
                   </button>
                 </form>
                 <form action={updateBookingStatus}>
                   <input type="hidden" name="bookingId" value={booking.id} />
                   <input type="hidden" name="status"    value="cancelled" />
                   <button type="submit" style={btnMuted}>
-                    Ακύρωση
+                    {t("cancelBtn")}
                   </button>
                 </form>
               </div>
