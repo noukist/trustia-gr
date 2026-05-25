@@ -355,6 +355,26 @@
       "colDuration": "Duration",
       "colPrice": "Price"
     },
+    "portfolio": {
+      "title": "Photo Portfolio",
+      "subtitle": "Photos from your work. They appear on your public profile (up to 20).",
+      "uploadBtn": "Upload Photo",
+      "uploading": "Uploading…",
+      "empty": "You have no portfolio photos yet.",
+      "emptyHint": "Add photos to showcase your work to potential clients.",
+      "captionPlaceholder": "Add a caption…",
+      "captionSaving": "Saving…",
+      "deleteBtn": "Delete",
+      "confirmDelete": "Delete photo?",
+      "cancelBtn": "Cancel",
+      "maxPhotos": "You have reached the maximum number of photos (20).",
+      "errorType": "Allowed types: JPG, PNG, WebP.",
+      "errorSize": "Maximum file size: 5 MB.",
+      "errorUpload": "Upload failed. Please try again.",
+      "errorDelete": "Error deleting. Please try again.",
+      "photoAlt": "Portfolio photo",
+      "photoCount": "{count} / 20 photos"
+    },
     "subscription": {
       "title": "My Subscription",
       "noSubscription": "No subscription found.",

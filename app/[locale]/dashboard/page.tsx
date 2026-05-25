@@ -38,6 +38,7 @@ import DashboardNav    from "@/components/dashboard/DashboardNav";
 import Button          from "@/components/ui/Button";
 import ProfileEditor   from "@/components/dashboard/ProfileEditor";
 import ServicesEditor  from "@/components/dashboard/ServicesEditor";
+import PortfolioEditor from "@/components/dashboard/PortfolioEditor";
 import BookingsTab     from "@/components/dashboard/BookingsTab";
 import ReviewsTab      from "@/components/dashboard/ReviewsTab";
 
@@ -1136,6 +1137,8 @@ export default async function DashboardPage({
             />
             {/* ── Services catalog editor — shown below profile fields ── */}
             <ServicesEditor professionalId={pro.id} />
+            {/* ── Portfolio photo upload — shown below services ── */}
+            <PortfolioEditor professionalId={pro.id} userId={user.id} />
           </>
         ) : tab === "bookings" ? (
           <BookingsTab professionalId={pro.id} />
