@@ -30,12 +30,13 @@ import type { Metadata }      from "next";
 import { ArrowLeft, MapPin, ImageIcon } from "lucide-react";
 
 import { createClient }  from "@/lib/supabase/server";
+import { setRequestLocale } from "next-intl/server";
 import { CATEGORIES }    from "@/lib/constants";
 import ActionPanel       from "@/components/professional/ActionPanel";
 import ShareButton       from "@/components/professional/ShareButton";
 
 // ── Next.js 16: params is a Promise ──────────────────────────
-type PageParams = Promise<{ slug: string }>;
+type PageParams = Promise<{ locale: string; slug: string }>;
 
 // ── DB row types ──────────────────────────────────────────────
 
@@ -289,7 +290,8 @@ export async function generateMetadata({
 }: {
   params: PageParams;
 }): Promise<Metadata> {
-  const { slug } = await params;
+  const { locale, slug } = await params;
+  setRequestLocale(locale);
   const supabase  = await createClient();
 
   const { data } = await supabase
@@ -325,7 +327,8 @@ export default async function ProfessionalProfilePage({
 }: {
   params: PageParams;
 }) {
-  const { slug } = await params;
+  const { locale, slug } = await params;
+  setRequestLocale(locale);
   const supabase  = await createClient();
 
   // ── 1. Fetch professional by slug ───────────────────────

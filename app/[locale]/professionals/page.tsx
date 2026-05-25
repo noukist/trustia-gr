@@ -17,14 +17,26 @@ import React       from "react";
 import Link        from "next/link";
 import type { Metadata } from "next";
 import { Check, X, ArrowRight, Star, Clock, Shield, BarChart2, Calendar, ShoppingBag } from "lucide-react";
+import { setRequestLocale } from "next-intl/server";
 
 import { PLAN_OPTIONS, CATEGORIES } from "@/lib/constants";
 import Button from "@/components/ui/Button";
 
-export const metadata: Metadata = {
-  title:       "Για Επαγγελματίες | Trustia.gr",
-  description: "Μπες στο Trustia και κράτα 100% των αμοιβών σου. 0% προμήθεια, 3 μήνες ΔΩΡΕΑΝ, Τιμή Γνωριμίας από €2.75/μήνα.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: locale === "en"
+      ? "For Professionals | Trustia.gr"
+      : "Για Επαγγελματίες | Trustia.gr",
+    description: locale === "en"
+      ? "Join Trustia and keep 100% of your earnings. 0% commission, 3 months FREE, intro price from €2.75/month."
+      : "Μπες στο Trustia και κράτα 100% των αμοιβών σου. 0% προμήθεια, 3 μήνες ΔΩΡΕΑΝ, Τιμή Γνωριμίας από €2.75/μήνα.",
+  };
+}
 
 // ── Tier meta ─────────────────────────────────────────────────
 interface TierMeta {
@@ -1024,7 +1036,13 @@ function FinalCTA() {
 // =============================================================
 // PAGE EXPORT
 // =============================================================
-export default function ProfessionalsPage() {
+export default async function ProfessionalsPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
   return (
     <main>
       <Hero />

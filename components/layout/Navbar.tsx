@@ -6,12 +6,15 @@
 // "use client" is required because this component:
 //   - Tracks scroll position to add a shadow when the user scrolls
 //   - Manages the mobile drawer open/close state
+//   - Reads auth state from Supabase
+//   - Has the LanguageSwitcher (EL/EN toggle)
 //
 // Structure:
 //   <header>            — sticky wrapper with scroll shadow
 //     <nav>             — centered container (max-w 1200px)
 //       Logo            — TRUSTIA.GR, links to /
 //       Desktop Links   — hidden on mobile (md:flex)
+//       LanguageSwitcher— EL / EN pill
 //       Desktop CTA     — Σύνδεση button, hidden on mobile
 //       Hamburger       — visible only on mobile (md:hidden)
 //   Backdrop            — dark overlay behind the open drawer
@@ -22,6 +25,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useRouter, usePathname } from "@/i18n/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import { Menu, X, LogIn, LayoutDashboard, LogOut, ChevronDown, User as UserIcon } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import Logo         from "@/components/ui/Logo";
@@ -30,18 +35,11 @@ import { createClient } from "@/lib/supabase/client";
 import { signOut }      from "@/lib/auth/helpers";
 
 // ---------------------------------------------------------------
-// Navigation links — edit here to add/remove nav items
-// ---------------------------------------------------------------
-const NAV_LINKS = [
-  { href: "/services",     label: "Υπηρεσίες" },
-  { href: "/professionals", label: "Για Επαγγελματίες" },
-  { href: "/how-it-works", label: "Πώς Λειτουργεί" },
-] as const;
-
-// ---------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------
 export default function Navbar() {
+  const t = useTranslations("nav");
+
   // Whether the mobile drawer is open
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Whether the user has scrolled down (used to add shadow / border)
@@ -50,6 +48,13 @@ export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
   // Whether the logged-in user has a professionals row
   const [isPro, setIsPro] = useState(false);
+
+  // Navigation links — translated
+  const NAV_LINKS = [
+    { href: "/services",      label: t("services") },
+    { href: "/professionals", label: t("forProfessionals") },
+    { href: "/how-it-works",  label: t("howItWorks") },
+  ];
 
   // Listen for scroll to apply the sticky shadow effect
   useEffect(() => {
@@ -65,14 +70,9 @@ export default function Navbar() {
   }, [drawerOpen]);
 
   // ── Auth state ─────────────────────────────────────────────
-  // 1. Fetch the current session immediately on mount so the navbar
-  //    renders correctly on first load (e.g. after OAuth redirect).
-  // 2. Subscribe to auth state changes so the navbar updates in real
-  //    time when the user logs in or out from any tab.
   useEffect(() => {
     const supabase = createClient();
 
-    // Check if a given user has a professionals row
     async function checkPro(userId: string) {
       const { data } = await supabase
         .from("professionals")
@@ -82,13 +82,11 @@ export default function Navbar() {
       setIsPro(!!data);
     }
 
-    // Get the initial user (fast — reads from localStorage)
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user ?? null);
       if (data.user) checkPro(data.user.id);
     });
 
-    // Listen for login / logout events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null);
@@ -111,7 +109,6 @@ export default function Navbar() {
           top: 0,
           zIndex: 50,
           backgroundColor: "#ffffff",
-          // Border and shadow appear only after scrolling
           borderBottom: `1px solid ${scrolled ? "var(--color-border)" : "transparent"}`,
           boxShadow: scrolled ? "0 2px 16px rgba(0,0,0,0.07)" : "none",
           transition: "border-color 0.2s ease, box-shadow 0.2s ease",
@@ -137,7 +134,7 @@ export default function Navbar() {
 
           {/* ── Desktop nav links (hidden on mobile) ── */}
           <nav
-            aria-label="Κύρια πλοήγηση"
+            aria-label={t("mainNav")}
             className="hidden md:flex"
             style={{ alignItems: "center", gap: "2rem", flex: 1 }}
           >
@@ -148,16 +145,17 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* ── Desktop CTA: logged-out → Σύνδεση, logged-in → avatar menu ── */}
+          {/* ── Desktop right group: Language switcher + CTA ── */}
           <div
             className="hidden md:flex"
-            style={{ alignItems: "center", flexShrink: 0 }}
+            style={{ alignItems: "center", gap: "0.75rem", flexShrink: 0 }}
           >
+            <LanguageSwitcher />
             {user ? (
-              <UserMenu user={user} isPro={isPro} />
+              <UserMenu user={user} isPro={isPro} t={t} />
             ) : (
               <Button variant="outline" size="sm" href="/login" icon={LogIn}>
-                Σύνδεση
+                {t("login")}
               </Button>
             )}
           </div>
@@ -165,7 +163,7 @@ export default function Navbar() {
           {/* ── Mobile hamburger button (hidden on desktop) ── */}
           <button
             className="md:hidden"
-            aria-label={drawerOpen ? "Κλείσιμο μενού" : "Άνοιγμα μενού"}
+            aria-label={drawerOpen ? t("closeMenu") : t("openMenu")}
             aria-expanded={drawerOpen}
             onClick={() => setDrawerOpen((v) => !v)}
             style={{
@@ -187,7 +185,6 @@ export default function Navbar() {
       </header>
 
       {/* ── Mobile backdrop ── */}
-      {/* Clicking the backdrop closes the drawer */}
       <div
         aria-hidden="true"
         onClick={closeDrawer}
@@ -196,7 +193,6 @@ export default function Navbar() {
           inset: 0,
           zIndex: 48,
           backgroundColor: "rgba(0, 0, 0, 0.35)",
-          // Fade in when open, invisible and non-interactive when closed
           opacity: drawerOpen ? 1 : 0,
           pointerEvents: drawerOpen ? "auto" : "none",
           transition: "opacity 0.25s ease",
@@ -207,20 +203,18 @@ export default function Navbar() {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Μενού πλοήγησης"
+        aria-label={t("navMenu")}
         style={{
           position: "fixed",
           top: 0,
           right: 0,
           bottom: 0,
           zIndex: 49,
-          // Responsive width: 320px on larger phones, 85% on very small screens
           width: "min(320px, 85vw)",
           backgroundColor: "#ffffff",
           boxShadow: "-4px 0 32px rgba(0, 0, 0, 0.12)",
           display: "flex",
           flexDirection: "column",
-          // Slide in from right
           transform: drawerOpen ? "translateX(0)" : "translateX(100%)",
           transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
@@ -236,9 +230,8 @@ export default function Navbar() {
           }}
         >
           <Logo size="sm" linkToHome onClick={closeDrawer} />
-
           <button
-            aria-label="Κλείσιμο μενού"
+            aria-label={t("closeMenu")}
             onClick={closeDrawer}
             style={{
               background: "none",
@@ -257,7 +250,7 @@ export default function Navbar() {
 
         {/* Drawer nav links */}
         <nav
-          aria-label="Πλοήγηση"
+          aria-label={t("navMenu")}
           style={{ flex: 1, overflowY: "auto", padding: "0.5rem 0" }}
         >
           {NAV_LINKS.map(({ href, label }) => (
@@ -285,6 +278,11 @@ export default function Navbar() {
               {label}
             </Link>
           ))}
+
+          {/* Language switcher in drawer */}
+          <div style={{ padding: "0.9rem 1.25rem", borderBottom: "1px solid var(--color-bg-light)" }}>
+            <LanguageSwitcher />
+          </div>
         </nav>
 
         {/* Drawer footer: auth-aware CTA */}
@@ -295,8 +293,8 @@ export default function Navbar() {
           }}
         >
           {user ? (
-            <DrawerUserFooter user={user} isPro={isPro} onClose={closeDrawer} />
-            ) : (
+            <DrawerUserFooter user={user} isPro={isPro} onClose={closeDrawer} t={t} />
+          ) : (
             <Button
               variant="outline"
               size="md"
@@ -305,7 +303,7 @@ export default function Navbar() {
               fullWidth
               onClick={closeDrawer as React.MouseEventHandler<HTMLButtonElement>}
             >
-              Σύνδεση
+              {t("login")}
             </Button>
           )}
         </div>
@@ -315,8 +313,57 @@ export default function Navbar() {
 }
 
 // ---------------------------------------------------------------
-// Sub-components — kept here to avoid unnecessary file splitting
+// Sub-components
 // ---------------------------------------------------------------
+
+// ── Language switcher ─────────────────────────────────────────
+function LanguageSwitcher() {
+  const locale   = useLocale();
+  const router   = useRouter();
+  const pathname = usePathname();
+
+  const switchTo = (newLocale: string) => {
+    router.push(pathname, { locale: newLocale });
+  };
+
+  return (
+    <div
+      style={{
+        display:         "flex",
+        alignItems:      "center",
+        border:          "1.5px solid var(--color-border)",
+        borderRadius:    "999px",
+        overflow:        "hidden",
+        fontSize:        "0.8125rem",
+        fontWeight:      600,
+      }}
+    >
+      {(["el", "en"] as const).map((loc) => (
+        <button
+          key={loc}
+          type="button"
+          onClick={() => switchTo(loc)}
+          disabled={locale === loc}
+          style={{
+            padding:         "0.25rem 0.625rem",
+            border:          "none",
+            cursor:          locale === loc ? "default" : "pointer",
+            fontFamily:      "inherit",
+            fontSize:        "inherit",
+            fontWeight:      "inherit",
+            backgroundColor: locale === loc ? "var(--color-primary)" : "transparent",
+            color:           locale === loc ? "#fff" : "var(--color-text-muted)",
+            transition:      "background-color 0.15s, color 0.15s",
+          }}
+          aria-label={`Switch to ${loc === "el" ? "Greek" : "English"}`}
+          aria-pressed={locale === loc}
+        >
+          {loc.toUpperCase()}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -368,7 +415,6 @@ function AvatarCircle({ user, size = 34 }: { user: User; size?: number }) {
     );
   }
 
-  // Deterministic background from initials char codes
   const palette = ["var(--color-primary)", "#1A6F6F", "#D4A039", "#27AE60", "#8B5CF6"];
   const idx     = (initials.charCodeAt(0) + (initials.charCodeAt(1) || 0)) % palette.length;
 
@@ -397,12 +443,11 @@ function AvatarCircle({ user, size = 34 }: { user: User; size?: number }) {
 }
 
 // ── Desktop user menu (avatar + dropdown) ─────────────────────
-function UserMenu({ user, isPro }: { user: User; isPro: boolean }) {
+function UserMenu({ user, isPro, t }: { user: User; isPro: boolean; t: ReturnType<typeof useTranslations<"nav">> }) {
   const [open, setOpen]         = useState(false);
   const containerRef            = useRef<HTMLDivElement>(null);
   const displayName             = getDisplayName(user);
 
-  // Close when clicking outside
   useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
@@ -414,7 +459,6 @@ function UserMenu({ user, isPro }: { user: User; isPro: boolean }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, [open]);
 
-  // Close on Escape
   useEffect(() => {
     if (!open) return;
     function handleKey(e: KeyboardEvent) {
@@ -427,13 +471,11 @@ function UserMenu({ user, isPro }: { user: User; isPro: boolean }) {
   async function handleSignOut() {
     setOpen(false);
     await signOut();
-    // Hard navigate to home so the server layout re-reads the session
     window.location.href = "/";
   }
 
   return (
     <div ref={containerRef} style={{ position: "relative" }}>
-      {/* Trigger: avatar + chevron */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -463,7 +505,6 @@ function UserMenu({ user, isPro }: { user: User; isPro: boolean }) {
         />
       </button>
 
-      {/* Dropdown panel */}
       {open && (
         <div
           role="menu"
@@ -492,52 +533,32 @@ function UserMenu({ user, isPro }: { user: User; isPro: boolean }) {
           >
             <AvatarCircle user={user} size={32} />
             <div style={{ minWidth: 0 }}>
-              <p
-                style={{
-                  fontWeight:   700,
-                  fontSize:     "0.875rem",
-                  color:        "var(--color-text)",
-                  margin:       0,
-                  overflow:     "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace:   "nowrap",
-                }}
-              >
+              <p style={{ fontWeight: 700, fontSize: "0.875rem", color: "var(--color-text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {displayName}
               </p>
-              <p
-                style={{
-                  fontSize:     "0.75rem",
-                  color:        "var(--color-text-muted)",
-                  margin:       0,
-                  overflow:     "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace:   "nowrap",
-                }}
-              >
+              <p style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {user.email}
               </p>
             </div>
           </div>
 
-          {/* Menu items — role-aware */}
+          {/* Menu items */}
           <div style={{ padding: "0.375rem" }}>
             {isPro ? (
               <DropdownItem
                 href="/dashboard"
                 icon={<LayoutDashboard size={15} />}
-                label="Dashboard"
+                label={t("dashboard")}
                 onClick={() => setOpen(false)}
               />
             ) : (
               <DropdownItem
                 href="/profile"
                 icon={<UserIcon size={15} />}
-                label="Το Προφίλ μου"
+                label={t("myProfile")}
                 onClick={() => setOpen(false)}
               />
             )}
-            {/* Divider */}
             <div style={{ height: "1px", backgroundColor: "var(--color-border)", margin: "0.375rem 0" }} />
             <button
               type="button"
@@ -564,7 +585,7 @@ function UserMenu({ user, isPro }: { user: User; isPro: boolean }) {
               onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
             >
               <LogOut size={15} />
-              Αποσύνδεση
+              {t("logout")}
             </button>
           </div>
         </div>
@@ -612,7 +633,17 @@ function DropdownItem({
 }
 
 // ── Mobile drawer: logged-in footer ───────────────────────────
-function DrawerUserFooter({ user, isPro, onClose }: { user: User; isPro: boolean; onClose: () => void }) {
+function DrawerUserFooter({
+  user,
+  isPro,
+  onClose,
+  t,
+}: {
+  user: User;
+  isPro: boolean;
+  onClose: () => void;
+  t: ReturnType<typeof useTranslations<"nav">>;
+}) {
   const displayName = getDisplayName(user);
 
   async function handleSignOut() {
@@ -623,7 +654,6 @@ function DrawerUserFooter({ user, isPro, onClose }: { user: User; isPro: boolean
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
-      {/* User info row */}
       <div
         style={{
           display:         "flex",
@@ -636,35 +666,15 @@ function DrawerUserFooter({ user, isPro, onClose }: { user: User; isPro: boolean
       >
         <AvatarCircle user={user} size={36} />
         <div style={{ minWidth: 0 }}>
-          <p
-            style={{
-              fontWeight:   700,
-              fontSize:     "0.875rem",
-              color:        "var(--color-text)",
-              margin:       0,
-              overflow:     "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace:   "nowrap",
-            }}
-          >
+          <p style={{ fontWeight: 700, fontSize: "0.875rem", color: "var(--color-text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {displayName}
           </p>
-          <p
-            style={{
-              fontSize:     "0.75rem",
-              color:        "var(--color-text-muted)",
-              margin:       0,
-              overflow:     "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace:   "nowrap",
-            }}
-          >
+          <p style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {user.email}
           </p>
         </div>
       </div>
 
-      {/* Primary action — Dashboard for pros, Profile for customers */}
       <Link
         href={isPro ? "/dashboard" : "/profile"}
         onClick={onClose}
@@ -682,10 +692,9 @@ function DrawerUserFooter({ user, isPro, onClose }: { user: User; isPro: boolean
         }}
       >
         {isPro ? <LayoutDashboard size={17} /> : <UserIcon size={17} />}
-        {isPro ? "Dashboard" : "Το Προφίλ μου"}
+        {isPro ? t("dashboard") : t("myProfile")}
       </Link>
 
-      {/* Sign out */}
       <button
         type="button"
         onClick={handleSignOut}
@@ -706,14 +715,13 @@ function DrawerUserFooter({ user, isPro, onClose }: { user: User; isPro: boolean
         }}
       >
         <LogOut size={15} />
-        Αποσύνδεση
+        {t("logout")}
       </button>
     </div>
   );
 }
 
 // ── Desktop nav link with hover color change ──────────────────
-/** Desktop nav link with hover color change */
 function NavLink({
   href,
   children,
@@ -743,4 +751,3 @@ function NavLink({
     </Link>
   );
 }
-

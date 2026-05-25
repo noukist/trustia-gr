@@ -30,6 +30,7 @@ import React from "react";
 import Link  from "next/link";
 import type { Metadata } from "next";
 import { UserCircle2, Star, MapPin, Phone, Calendar, CalendarDays } from "lucide-react";
+import { setRequestLocale } from "next-intl/server";
 
 import { createClient }  from "@/lib/supabase/server";
 import { CATEGORIES }    from "@/lib/constants";
@@ -70,11 +71,14 @@ interface ProfessionalWithDistance extends DbProfessional {
 
 // ── Next.js 16: searchParams is a Promise ─────────────────────
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
+type PageParams       = Promise<{ locale: string }>;
 
 // ── Metadata (dynamic, SEO-friendly) ─────────────────────────
 export async function generateMetadata({
+  params,
   searchParams,
 }: {
+  params: PageSearchParams;
   searchParams: PageSearchParams;
 }): Promise<Metadata> {
   const p        = await searchParams;
@@ -579,10 +583,15 @@ function BrowseMode() {
 // MAIN PAGE (Server Component)
 // =============================================================
 export default async function ServicesPage({
+  params,
   searchParams,
 }: {
+  params: PageParams;
   searchParams: PageSearchParams;
 }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   // ── 1. Parse URL params ──────────────────────────────────
   const p = await searchParams;
 

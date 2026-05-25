@@ -17,11 +17,23 @@ import React       from "react";
 import Link        from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight, Phone, Calendar, CalendarDays, ChevronDown } from "lucide-react";
+import { setRequestLocale } from "next-intl/server";
 
-export const metadata: Metadata = {
-  title:       "Πώς Λειτουργεί | Trustia.gr",
-  description: "Μάθε πώς το Trustia.gr συνδέει πελάτες με επαγγελματίες. 0% προμήθεια, 3 μήνες δωρεάν, 51 κατηγορίες.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: locale === "en"
+      ? "How It Works | Trustia.gr"
+      : "Πώς Λειτουργεί | Trustia.gr",
+    description: locale === "en"
+      ? "Learn how Trustia.gr connects customers with professionals. 0% commission, 3 months free, 51 categories."
+      : "Μάθε πώς το Trustia.gr συνδέει πελάτες με επαγγελματίες. 0% προμήθεια, 3 μήνες δωρεάν, 51 κατηγορίες.",
+  };
+}
 
 // ── Shared layout helpers ─────────────────────────────────────
 
@@ -891,7 +903,13 @@ function DualCTA() {
 // =============================================================
 // PAGE EXPORT
 // =============================================================
-export default function HowItWorksPage() {
+export default async function HowItWorksPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
   return (
     <main>
       <Hero />

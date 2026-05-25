@@ -1,12 +1,26 @@
-// app/privacy/page.tsx — Πολιτική Απορρήτου (placeholder)
+// app/[locale]/privacy/page.tsx — Πολιτική Απορρήτου / Privacy Policy
 import type { Metadata } from "next";
 import Link from "next/link";
+import { setRequestLocale } from "next-intl/server";
 
-export const metadata: Metadata = {
-  title: "Πολιτική Απορρήτου | Trustia.gr",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: locale === "en" ? "Privacy Policy | Trustia.gr" : "Πολιτική Απορρήτου | Trustia.gr",
+  };
+}
 
-export default function PrivacyPage() {
+export default async function PrivacyPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
   return (
     <main style={{ maxWidth: "760px", margin: "0 auto", padding: "4rem 1.5rem" }}>
       <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", marginBottom: "0.5rem", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600 }}>

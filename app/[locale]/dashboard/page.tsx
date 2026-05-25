@@ -32,6 +32,7 @@ import {
 
 import { createClient }  from "@/lib/supabase/server";
 import { CATEGORIES, PLAN_OPTIONS } from "@/lib/constants";
+import { setRequestLocale } from "next-intl/server";
 import DashboardNav    from "@/components/dashboard/DashboardNav";
 import Button          from "@/components/ui/Button";
 import ProfileEditor   from "@/components/dashboard/ProfileEditor";
@@ -42,6 +43,7 @@ export const metadata: Metadata = {
 
 // ── Next.js 16: params/searchParams are Promises ─────────────
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
+type PageParams       = Promise<{ locale: string }>;
 
 // ── DB row types ──────────────────────────────────────────────
 
@@ -988,10 +990,15 @@ function PlaceholderTab({ label }: { label: string }) {
 // MAIN PAGE (Server Component)
 // =============================================================
 export default async function DashboardPage({
+  params,
   searchParams,
 }: {
+  params: PageParams;
   searchParams: PageSearchParams;
 }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   const p           = await searchParams;
   const str         = (k: string) => (Array.isArray(p[k]) ? p[k][0] : p[k]) ?? "";
   const tab         = str("tab")     || "overview";
