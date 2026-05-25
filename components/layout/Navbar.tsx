@@ -20,11 +20,14 @@
 
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Menu, X, LogIn } from "lucide-react";
-import Logo   from "@/components/ui/Logo";
-import Button from "@/components/ui/Button";
+import { Menu, X, LogIn, LayoutDashboard, LogOut, ChevronDown } from "lucide-react";
+import type { User } from "@supabase/supabase-js";
+import Logo         from "@/components/ui/Logo";
+import Button       from "@/components/ui/Button";
+import { createClient } from "@/lib/supabase/client";
+import { signOut }      from "@/lib/auth/helpers";
 
 // ---------------------------------------------------------------
 // Navigation links — edit here to add/remove nav items
@@ -43,6 +46,8 @@ export default function Navbar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   // Whether the user has scrolled down (used to add shadow / border)
   const [scrolled, setScrolled] = useState(false);
+  // Authenticated Supabase user (null = logged out)
+  const [user, setUser] = useState<User | null>(null);
 
   // Listen for scroll to apply the sticky shadow effect
   useEffect(() => {
@@ -56,6 +61,25 @@ export default function Navbar() {
     document.body.style.overflow = drawerOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [drawerOpen]);
+
+  // ── Auth state ─────────────────────────────────────────────
+  // 1. Fetch the current session immediately on mount so the navbar
+  //    renders correctly on first load (e.g. after OAuth redirect).
+  // 2. Subscribe to auth state changes so the navbar updates in real
+  //    time when the user logs in or out from any tab.
+  useEffect(() => {
+    const supabase = createClient();
+
+    // Get the initial user (fast — reads from localStorage)
+    supabase.auth.getUser().then(({ data }) => setUser(data.user ?? null));
+
+    // Listen for login / logout events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => setUser(session?.user ?? null),
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const closeDrawer = () => setDrawerOpen(false);
 
@@ -105,19 +129,18 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* ── Desktop CTA: Σύνδεση (hidden on mobile) ── */}
+          {/* ── Desktop CTA: logged-out → Σύνδεση, logged-in → avatar menu ── */}
           <div
             className="hidden md:flex"
             style={{ alignItems: "center", flexShrink: 0 }}
           >
-            <Button
-              variant="outline"
-              size="sm"
-              href="/login"
-              icon={LogIn}
-            >
-              Σύνδεση
-            </Button>
+            {user ? (
+              <UserMenu user={user} />
+            ) : (
+              <Button variant="outline" size="sm" href="/login" icon={LogIn}>
+                Σύνδεση
+              </Button>
+            )}
           </div>
 
           {/* ── Mobile hamburger button (hidden on desktop) ── */}
@@ -245,23 +268,27 @@ export default function Navbar() {
           ))}
         </nav>
 
-        {/* Drawer footer: Σύνδεση CTA */}
+        {/* Drawer footer: auth-aware CTA */}
         <div
           style={{
             padding: "1.25rem",
             borderTop: "1px solid var(--color-border)",
           }}
         >
-          <Button
-            variant="outline"
-            size="md"
-            href="/login"
-            icon={LogIn}
-            fullWidth
-            onClick={closeDrawer as React.MouseEventHandler<HTMLButtonElement>}
-          >
-            Σύνδεση
-          </Button>
+          {user ? (
+            <DrawerUserFooter user={user} onClose={closeDrawer} />
+          ) : (
+            <Button
+              variant="outline"
+              size="md"
+              href="/login"
+              icon={LogIn}
+              fullWidth
+              onClick={closeDrawer as React.MouseEventHandler<HTMLButtonElement>}
+            >
+              Σύνδεση
+            </Button>
+          )}
         </div>
       </div>
     </>
@@ -272,6 +299,392 @@ export default function Navbar() {
 // Sub-components — kept here to avoid unnecessary file splitting
 // ---------------------------------------------------------------
 
+// ── Helpers ──────────────────────────────────────────────────
+
+/** Derive two-letter initials from a Supabase User */
+function getInitials(u: User): string {
+  const name: string =
+    (u.user_metadata?.full_name as string | undefined) ||
+    (u.user_metadata?.name    as string | undefined) ||
+    u.email ||
+    "?";
+  const parts = name.trim().split(/\s+/);
+  return parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : name.slice(0, 2).toUpperCase();
+}
+
+/** Derive display name for the dropdown header */
+function getDisplayName(u: User): string {
+  return (
+    (u.user_metadata?.full_name as string | undefined) ||
+    (u.user_metadata?.name    as string | undefined) ||
+    u.email ||
+    "Χρήστης"
+  );
+}
+
+// ── Avatar circle (image or initials fallback) ────────────────
+function AvatarCircle({ user, size = 34 }: { user: User; size?: number }) {
+  const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
+  const initials  = getInitials(user);
+
+  if (avatarUrl) {
+    return (
+      /* eslint-disable-next-line @next/next/no-img-element */
+      <img
+        src={avatarUrl}
+        alt={getDisplayName(user)}
+        referrerPolicy="no-referrer"
+        style={{
+          width:        size,
+          height:       size,
+          borderRadius: "50%",
+          objectFit:    "cover",
+          border:       "2px solid var(--color-primary)",
+          display:      "block",
+          flexShrink:   0,
+        }}
+      />
+    );
+  }
+
+  // Deterministic background from initials char codes
+  const palette = ["var(--color-primary)", "#1A6F6F", "#D4A039", "#27AE60", "#8B5CF6"];
+  const idx     = (initials.charCodeAt(0) + (initials.charCodeAt(1) || 0)) % palette.length;
+
+  return (
+    <div
+      aria-label={initials}
+      style={{
+        width:           size,
+        height:          size,
+        borderRadius:    "50%",
+        backgroundColor: palette[idx],
+        display:         "flex",
+        alignItems:      "center",
+        justifyContent:  "center",
+        color:           "#fff",
+        fontSize:        size * 0.38,
+        fontWeight:      800,
+        userSelect:      "none",
+        flexShrink:      0,
+        border:          "2px solid var(--color-primary)",
+      }}
+    >
+      {initials}
+    </div>
+  );
+}
+
+// ── Desktop user menu (avatar + dropdown) ─────────────────────
+function UserMenu({ user }: { user: User }) {
+  const [open, setOpen]         = useState(false);
+  const containerRef            = useRef<HTMLDivElement>(null);
+  const displayName             = getDisplayName(user);
+
+  // Close when clicking outside
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [open]);
+
+  async function handleSignOut() {
+    setOpen(false);
+    await signOut();
+    // Hard navigate to home so the server layout re-reads the session
+    window.location.href = "/";
+  }
+
+  return (
+    <div ref={containerRef} style={{ position: "relative" }}>
+      {/* Trigger: avatar + chevron */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="true"
+        aria-expanded={open}
+        style={{
+          display:         "flex",
+          alignItems:      "center",
+          gap:             "0.375rem",
+          background:      "none",
+          border:          "none",
+          cursor:          "pointer",
+          padding:         "0.25rem 0.375rem",
+          borderRadius:    "99px",
+          transition:      "background-color 0.15s",
+          backgroundColor: open ? "var(--color-primary-bg)" : "transparent",
+        }}
+      >
+        <AvatarCircle user={user} size={34} />
+        <ChevronDown
+          size={14}
+          style={{
+            color:     "var(--color-text-muted)",
+            transition:"transform 0.2s",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+        />
+      </button>
+
+      {/* Dropdown panel */}
+      {open && (
+        <div
+          role="menu"
+          style={{
+            position:        "absolute",
+            top:             "calc(100% + 8px)",
+            right:           0,
+            minWidth:        "220px",
+            backgroundColor: "#fff",
+            border:          "1.5px solid var(--color-border)",
+            borderRadius:    "14px",
+            boxShadow:       "0 8px 32px rgba(0,0,0,0.12)",
+            overflow:        "hidden",
+            zIndex:          200,
+          }}
+        >
+          {/* User info header */}
+          <div
+            style={{
+              padding:      "0.875rem 1rem",
+              borderBottom: "1px solid var(--color-border)",
+              display:      "flex",
+              alignItems:   "center",
+              gap:          "0.625rem",
+            }}
+          >
+            <AvatarCircle user={user} size={32} />
+            <div style={{ minWidth: 0 }}>
+              <p
+                style={{
+                  fontWeight:   700,
+                  fontSize:     "0.875rem",
+                  color:        "var(--color-text)",
+                  margin:       0,
+                  overflow:     "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace:   "nowrap",
+                }}
+              >
+                {displayName}
+              </p>
+              <p
+                style={{
+                  fontSize:     "0.75rem",
+                  color:        "var(--color-text-muted)",
+                  margin:       0,
+                  overflow:     "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace:   "nowrap",
+                }}
+              >
+                {user.email}
+              </p>
+            </div>
+          </div>
+
+          {/* Menu items */}
+          <div style={{ padding: "0.375rem" }}>
+            <DropdownItem
+              href="/dashboard"
+              icon={<LayoutDashboard size={15} />}
+              label="Dashboard"
+              onClick={() => setOpen(false)}
+            />
+            {/* Divider */}
+            <div style={{ height: "1px", backgroundColor: "var(--color-border)", margin: "0.375rem 0" }} />
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handleSignOut}
+              style={{
+                display:         "flex",
+                alignItems:      "center",
+                gap:             "0.625rem",
+                width:           "100%",
+                padding:         "0.5rem 0.75rem",
+                border:          "none",
+                borderRadius:    "8px",
+                background:      "none",
+                cursor:          "pointer",
+                fontSize:        "0.875rem",
+                fontFamily:      "inherit",
+                color:           "#E74C3C",
+                fontWeight:      500,
+                textAlign:       "left",
+                transition:      "background-color 0.12s",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "#FEF2F2"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+            >
+              <LogOut size={15} />
+              Αποσύνδεση
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Single item inside the dropdown */
+function DropdownItem({
+  href,
+  icon,
+  label,
+  onClick,
+}: {
+  href:    string;
+  icon:    React.ReactNode;
+  label:   string;
+  onClick: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      role="menuitem"
+      onClick={onClick}
+      style={{
+        display:        "flex",
+        alignItems:     "center",
+        gap:            "0.625rem",
+        padding:        "0.5rem 0.75rem",
+        borderRadius:   "8px",
+        color:          "var(--color-text)",
+        textDecoration: "none",
+        fontSize:       "0.875rem",
+        fontWeight:     500,
+        transition:     "background-color 0.12s",
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = "var(--color-primary-bg)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = "transparent"; }}
+    >
+      <span style={{ color: "var(--color-primary)", display: "flex" }}>{icon}</span>
+      {label}
+    </Link>
+  );
+}
+
+// ── Mobile drawer: logged-in footer ───────────────────────────
+function DrawerUserFooter({ user, onClose }: { user: User; onClose: () => void }) {
+  const displayName = getDisplayName(user);
+
+  async function handleSignOut() {
+    onClose();
+    await signOut();
+    window.location.href = "/";
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+      {/* User info row */}
+      <div
+        style={{
+          display:         "flex",
+          alignItems:      "center",
+          gap:             "0.625rem",
+          padding:         "0.625rem 0.75rem",
+          backgroundColor: "var(--color-bg-light)",
+          borderRadius:    "10px",
+        }}
+      >
+        <AvatarCircle user={user} size={36} />
+        <div style={{ minWidth: 0 }}>
+          <p
+            style={{
+              fontWeight:   700,
+              fontSize:     "0.875rem",
+              color:        "var(--color-text)",
+              margin:       0,
+              overflow:     "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace:   "nowrap",
+            }}
+          >
+            {displayName}
+          </p>
+          <p
+            style={{
+              fontSize:     "0.75rem",
+              color:        "var(--color-text-muted)",
+              margin:       0,
+              overflow:     "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace:   "nowrap",
+            }}
+          >
+            {user.email}
+          </p>
+        </div>
+      </div>
+
+      {/* Dashboard link */}
+      <Link
+        href="/dashboard"
+        onClick={onClose}
+        style={{
+          display:         "flex",
+          alignItems:      "center",
+          gap:             "0.5rem",
+          padding:         "0.75rem",
+          backgroundColor: "var(--color-primary)",
+          color:           "#fff",
+          borderRadius:    "10px",
+          fontWeight:      700,
+          fontSize:        "0.9375rem",
+          textDecoration:  "none",
+        }}
+      >
+        <LayoutDashboard size={17} />
+        Dashboard
+      </Link>
+
+      {/* Sign out */}
+      <button
+        type="button"
+        onClick={handleSignOut}
+        style={{
+          display:         "flex",
+          alignItems:      "center",
+          justifyContent:  "center",
+          gap:             "0.5rem",
+          padding:         "0.625rem",
+          border:          "1.5px solid #FECACA",
+          borderRadius:    "10px",
+          backgroundColor: "#FEF2F2",
+          color:           "#991B1B",
+          fontSize:        "0.875rem",
+          fontWeight:      600,
+          cursor:          "pointer",
+          fontFamily:      "inherit",
+        }}
+      >
+        <LogOut size={15} />
+        Αποσύνδεση
+      </button>
+    </div>
+  );
+}
+
+// ── Desktop nav link with hover color change ──────────────────
 /** Desktop nav link with hover color change */
 function NavLink({
   href,
