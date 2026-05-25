@@ -30,7 +30,7 @@ import React from "react";
 import Link  from "next/link";
 import type { Metadata } from "next";
 import { UserCircle2, Star, MapPin, Phone, Calendar, CalendarDays } from "lucide-react";
-import { setRequestLocale } from "next-intl/server";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 import { useTranslations } from "next-intl";
 
 import { createClient }  from "@/lib/supabase/server";
@@ -605,9 +605,10 @@ export default async function ServicesPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  // Translations for the page-level strings (sub-components call their own t())
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const t = useTranslations("services");
+  // Translations for the page-level strings (sub-components call their own t()).
+  // Must use getTranslations (awaitable) inside an async Server Component —
+  // useTranslations is only valid in sync components (next-intl v4 rule).
+  const t = await getTranslations("services");
 
   // ── 1. Parse URL params ──────────────────────────────────
   const p = await searchParams;
