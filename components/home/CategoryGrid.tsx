@@ -14,6 +14,7 @@
 // =============================================================
 
 import Link from "next/link";
+import { getTranslations, getLocale } from "next-intl/server";
 import { CATEGORIES, POPULAR_CATEGORY_IDS } from "@/lib/constants";
 import type { Category } from "@/lib/constants";
 
@@ -22,7 +23,12 @@ const POPULAR: Category[] = POPULAR_CATEGORY_IDS
   .map((id) => CATEGORIES.find((c) => c.id === id))
   .filter((c): c is Category => c !== undefined);
 
-export default function CategoryGrid() {
+export default async function CategoryGrid() {
+  const [t, locale] = await Promise.all([
+    getTranslations("home"),
+    getLocale(),
+  ]);
+
   return (
     <section
       id="categories"
@@ -88,7 +94,7 @@ export default function CategoryGrid() {
               margin: 0,
             }}
           >
-            Δημοφιλείς Υπηρεσίες
+            {t("categoriesHeading")}
           </h2>
 
           <Link
@@ -101,7 +107,7 @@ export default function CategoryGrid() {
               whiteSpace: "nowrap",
             }}
           >
-            Δείτε όλες τις κατηγορίες&nbsp;→
+            {t("categoriesViewAll")}
           </Link>
         </div>
 
@@ -128,7 +134,7 @@ export default function CategoryGrid() {
                 {cat.emoji}
               </span>
 
-              {/* Greek category name */}
+              {/* Category name — locale-aware */}
               <span
                 style={{
                   fontSize: "0.875rem",
@@ -138,7 +144,7 @@ export default function CategoryGrid() {
                   lineHeight: 1.35,
                 }}
               >
-                {cat.nameEl}
+                {locale === "en" ? cat.nameEn : cat.nameEl}
               </span>
             </Link>
           ))}
@@ -164,7 +170,7 @@ export default function CategoryGrid() {
               textDecoration: "none",
             }}
           >
-            Όλες οι κατηγορίες&nbsp;→
+            {t("categoriesViewAll")}
           </Link>
         </div>
 

@@ -15,42 +15,19 @@
 //   Connecting dashed line between cards (desktop only, CSS)
 // =============================================================
 
+import { getTranslations } from "next-intl/server";
 import { Search, CalendarDays, Star } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-// ---------------------------------------------------------------
-// Step definitions — edit here to change text or icons
-// ---------------------------------------------------------------
-const STEPS: {
-  num:         number;
-  Icon:        LucideIcon;
-  title:       string;
-  description: string;
-}[] = [
-  {
-    num:   1,
-    Icon:  Search,
-    title: "Αναζήτηση",
-    description:
-      "Βρείτε τον κατάλληλο επαγγελματία από 51 κατηγορίες στην περιοχή σας.",
-  },
-  {
-    num:   2,
-    Icon:  CalendarDays,
-    title: "Κράτηση",
-    description:
-      "Κλείστε ραντεβού online ή καλέστε απευθείας — εσείς διαλέγετε τον τρόπο.",
-  },
-  {
-    num:   3,
-    Icon:  Star,
-    title: "Αξιολόγηση",
-    description:
-      "Αφήστε κριτική μετά την υπηρεσία και βοηθήστε την κοινότητα.",
-  },
-];
+export default async function HowItWorks() {
+  const t = await getTranslations("home");
 
-export default function HowItWorks() {
+  // Step icons stay static; titles and descriptions come from translations
+  const STEPS: { num: number; Icon: LucideIcon; title: string; description: string }[] = [
+    { num: 1, Icon: Search,      title: t("howHomeStep1Title"), description: t("howHomeStep1Desc") },
+    { num: 2, Icon: CalendarDays, title: t("howHomeStep2Title"), description: t("howHomeStep2Desc") },
+    { num: 3, Icon: Star,         title: t("howHomeStep3Title"), description: t("howHomeStep3Desc") },
+  ];
   return (
     <section
       id="how-it-works"
@@ -98,7 +75,7 @@ export default function HowItWorks() {
               marginBottom: "0.5rem",
             }}
           >
-            Πώς λειτουργεί
+            {t("howSectionEyebrow")}
           </p>
           <h2
             style={{
@@ -109,7 +86,7 @@ export default function HowItWorks() {
               margin: 0,
             }}
           >
-            Τρία βήματα για κάθε υπηρεσία
+            {t("howSectionHeading")}
           </h2>
         </div>
 

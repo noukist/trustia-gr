@@ -16,20 +16,19 @@
 //   Section 3   — Feature entitlements (vacation, portfolio, invitations)
 // =============================================================
 
+import { getTranslations } from "next-intl/server";
 import { ArrowRight, Check } from "lucide-react";
 import Button from "@/components/ui/Button";
 
-// ---------------------------------------------------------------
-// Feature highlights shown as pill badges
-// ---------------------------------------------------------------
-const FEATURES = [
-  "3 μήνες ΔΩΡΕΑΝ",
-  "0% προμήθεια",
-  "Τιμή Γνωριμίας από €2.75/μήνα",
-  "Ακύρωση οποτεδήποτε",
-] as const;
+export default async function ProCTA() {
+  const t = await getTranslations("home");
 
-export default function ProCTA() {
+  const FEATURES = [
+    t("proFeat1"),
+    t("proFeat2"),
+    t("proFeat3"),
+    t("proFeat4"),
+  ];
   return (
     <section
       style={{
@@ -96,7 +95,7 @@ export default function ProCTA() {
               margin: "0 0 0.75rem",
             }}
           >
-            Για Επαγγελματίες
+            {t("proEyebrow")}
           </p>
 
           {/* Heading */}
@@ -110,7 +109,7 @@ export default function ProCTA() {
               margin: "0 0 1.25rem",
             }}
           >
-            Είσαι επαγγελματίας;
+            {t("proCtaTitle")}
           </h2>
 
           {/* Sub-heading */}
@@ -123,8 +122,7 @@ export default function ProCTA() {
               maxWidth: "460px",
             }}
           >
-            Μπες στο Trustia.gr χωρίς καμία δέσμευση. Μηδέν προμήθεια —
-            κρατάς το&nbsp;100% των αμοιβών σου.
+            {t("proSub")}
           </p>
 
           {/* Feature pills */}
@@ -192,7 +190,7 @@ export default function ProCTA() {
               boxShadow: "0 4px 24px rgba(212, 160, 57, 0.4)",
             }}
           >
-            Ξεκίνα Δωρεάν
+            {t("proBtn")}
             <ArrowRight size={20} strokeWidth={2.5} aria-hidden="true" />
           </Button>
 
@@ -205,9 +203,9 @@ export default function ProCTA() {
               lineHeight: 1.5,
             }}
           >
-            Δεν χρειάζεται πιστωτική κάρτα
+            {t("proNoCard")}
             <br />
-            Οι πρώτοι 50 κλειδώνουν την Τιμή Γνωριμίας για πάντα
+            {t("proFoundingLock")}
           </p>
         </div>
       </div>
@@ -248,7 +246,7 @@ export default function ProCTA() {
               margin: "0 0 0.5rem",
             }}
           >
-            Πλατφόρμες με Προμήθεια
+            {t("proCompTitle")}
           </p>
           <p
             style={{
@@ -259,7 +257,7 @@ export default function ProCTA() {
               letterSpacing: "-0.02em",
             }}
           >
-            €150–200/μήνα
+            {t("proCompAmount")}
           </p>
           <p
             style={{
@@ -268,7 +266,7 @@ export default function ProCTA() {
               margin: 0,
             }}
           >
-            15-20% από έσοδα €1.000/μήνα
+            {t("proCompNote")}
           </p>
         </div>
 
@@ -326,7 +324,7 @@ export default function ProCTA() {
               letterSpacing: "-0.02em",
             }}
           >
-            €2.75–7/μήνα
+            {t("proTrustiaAmount")}
           </p>
           <p
             style={{
@@ -335,7 +333,7 @@ export default function ProCTA() {
               margin: 0,
             }}
           >
-            σταθερό, ανεξαρτήτως εσόδων
+            {t("proTrustiaNote")}
           </p>
         </div>
       </div>

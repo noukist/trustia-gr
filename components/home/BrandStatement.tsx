@@ -12,16 +12,19 @@
 // two-sentence explanation, four green-dot value pills.
 // =============================================================
 
+import { getTranslations } from "next-intl/server";
 import { CheckCircle2 } from "lucide-react";
 
-const PILLARS = [
-  "0% προμήθεια",
-  "Αξιόπιστες κριτικές",
-  "Χωρίς διαφημίσεις",
-  "Δίκαιο για όλους",
-] as const;
+export default async function BrandStatement() {
+  const t = await getTranslations("home");
 
-export default function BrandStatement() {
+  const PILLARS = [
+    t("brandPillar1"),
+    t("brandPillar2"),
+    t("brandPillar3"),
+    t("brandPillar4"),
+  ];
+
   return (
     <section
       style={{
@@ -49,7 +52,7 @@ export default function BrandStatement() {
             lineHeight: 1.3,
           }}
         >
-          Δίκαιη πρόσβαση. Δίκαιη τιμή. 100% στον επαγγελματία.
+          {t("brandMission")}
         </p>
 
         {/* Explanation */}
@@ -62,10 +65,7 @@ export default function BrandStatement() {
             maxWidth: "680px",
           }}
         >
-          Οι επαγγελματίες δουλεύουν σκληρά — δεν πρέπει να δίνουν 15-20%
-          για κάθε εργασία. Στο Trustia.gr πληρώνουν ένα σταθερό μηνιαίο
-          ποσό και κρατούν ό,τι κερδίζουν. Οι πελάτες βρίσκουν αξιόπιστους
-          επαγγελματίες με επαληθευμένες κριτικές — χωρίς κρυφές χρεώσεις.
+          {t("brandExplain")}
         </p>
 
         {/* Value pills */}

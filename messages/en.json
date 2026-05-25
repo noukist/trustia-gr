@@ -69,7 +69,41 @@
     "howStep3Desc": "Contact directly or book online. No middlemen.",
     "proCtaTitle": "Are you a professional?",
     "proCtaSub": "Sign up for free and start receiving clients from day one.",
-    "proCtaBtn": "Register as a Professional"
+    "proCtaBtn": "Register as a Professional",
+
+    "brandMission": "Fair access. Fair price. 100% to the professional.",
+    "brandExplain": "Professionals work hard — they shouldn't pay 15-20% of every job just to find clients. At Trustia.gr, they pay a fair fixed monthly amount and keep everything they earn. Customers find reliable professionals with verified reviews — no hidden fees, no surprises.",
+    "brandPillar1": "0% commission",
+    "brandPillar2": "Verified reviews",
+    "brandPillar3": "Ad-free",
+    "brandPillar4": "Fair for everyone",
+
+    "categoriesHeading": "Popular Services",
+    "categoriesViewAll": "View all categories →",
+
+    "howSectionEyebrow": "How it works",
+    "howSectionHeading": "Three steps for every service",
+    "howHomeStep1Title": "Search",
+    "howHomeStep1Desc": "Find the right professional from 51 categories in your area.",
+    "howHomeStep2Title": "Book",
+    "howHomeStep2Desc": "Book online or call directly — you choose how.",
+    "howHomeStep3Title": "Review",
+    "howHomeStep3Desc": "Leave a review after the service and help the community.",
+
+    "proEyebrow": "For Professionals",
+    "proSub": "Join Trustia.gr with no commitment. Zero commission — keep 100% of your earnings.",
+    "proFeat1": "3 months FREE",
+    "proFeat2": "0% commission",
+    "proFeat3": "Founding Price from €2.75/month",
+    "proFeat4": "Cancel anytime",
+    "proBtn": "Get Started Free",
+    "proNoCard": "No credit card required",
+    "proFoundingLock": "First 50 lock in the Founding Price forever",
+    "proCompTitle": "Commission Platforms",
+    "proCompAmount": "€150–200/month",
+    "proCompNote": "15-20% on €1,000/month earnings",
+    "proTrustiaAmount": "€2.75–7/month",
+    "proTrustiaNote": "flat fee, regardless of earnings"
   },
 
   "services": {
