@@ -7,7 +7,8 @@
 
 "use client";
 
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter, usePathname } from "@/i18n/navigation";
+import { useSearchParams }        from "next/navigation";
 import { useTranslations } from "next-intl";
 
 export default function SortSelect({ hasLocation }: { hasLocation: boolean }) {

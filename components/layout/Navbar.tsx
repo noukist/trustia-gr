@@ -24,8 +24,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import Link from "next/link";
-import { useRouter, usePathname } from "@/i18n/navigation";
+import { Link, useRouter, usePathname } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { Menu, X, LogIn, LayoutDashboard, LogOut, ChevronDown, User as UserIcon, Shield } from "lucide-react";
 import type { User } from "@supabase/supabase-js";

@@ -18,7 +18,7 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Loader2 } from "lucide-react";
 import type { LucideProps } from "lucide-react";
 

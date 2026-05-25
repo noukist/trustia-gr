@@ -19,11 +19,11 @@
 // =============================================================
 
 import React       from "react";
-import Link        from "next/link";
 import type { Metadata } from "next";
 import { useTranslations } from "next-intl";
 import { Check, X, ArrowRight } from "lucide-react";
 import { setRequestLocale, getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 
 import { PLAN_OPTIONS, CATEGORIES } from "@/lib/constants";
 
@@ -35,7 +35,7 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "professionals" });
   return {
-    title: `${t("heroTitle")} | Trustia.gr`,
+    title: t("heroHeadline1"),  // layout adds "| Trustia.gr"
     description: t("heroSub"),
   };
 }

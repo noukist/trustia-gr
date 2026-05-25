@@ -14,7 +14,7 @@
 
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 // ── Size → font-size mapping ──────────────────────────────────
 // sm  → text-lg   (1.125 rem)
