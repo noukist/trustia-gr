@@ -9,6 +9,14 @@
 //                   parent in a right-column div)
 //   Mobile:         fixed bottom bar overlaid on the page
 //
+// BUTTON LAYOUT PER BOOKING MODE
+//   contact → phone button only   (no booking button)
+//   date    → phone button  +  "Επιλογή Ημερομηνίας" button
+//   full    → phone button  +  "Κράτηση Online" button
+//
+//   The phone button is ALWAYS shown regardless of booking mode.
+//   The booking button is an ADDITIONAL option for date/full modes.
+//
 // AUTH FLOW
 //   Phone reveal → check Supabase session → show modal if logged out
 //   Book button  → same check → placeholder form if logged in
@@ -262,7 +270,9 @@ export default function ActionPanel({
       </button>
     );
 
-  // ── Booking button (only for date/full mode) ──────────────
+  // ── Booking button — ADDITIONAL option for date/full modes ──
+  // Phone button above is always shown for ALL three booking modes.
+  // This booking button is rendered only as an extra action alongside it.
   const bookingContent = bookingMode !== "contact" ? (
     <button
       type="button"
