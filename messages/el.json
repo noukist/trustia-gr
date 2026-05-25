@@ -153,7 +153,15 @@
     "modeDate": "Ημερομηνία",
     "modeFull": "Online",
     "availableToday": "✓ Διαθέσιμος σήμερα",
-    "reviews": "κριτ."
+    "reviews": "κριτ.",
+    "catInLocation": "{catName} στο {location}",
+    "searchResults": "Αποτελέσματα αναζήτησης",
+    "browseTierLight": "Ελαφριές Υπηρεσίες",
+    "browseTierTrades": "Τεχνικά & Ομορφιά",
+    "browseTierSpecialists": "Ειδικοί",
+    "metaDescCatLocation": "Βρείτε {catName} στο {location}. Επαγγελματίες με επαληθευμένες κριτικές, άμεση κράτηση, 0% προμήθεια.",
+    "metaDescCat": "Βρείτε {catName} κοντά σας. Επαγγελματίες με κριτικές σε όλη την Ελλάδα.",
+    "metaDesc": "Βρείτε τον κατάλληλο επαγγελματία για κάθε ανάγκη. 51 κατηγορίες σε όλη την Ελλάδα."
   },
 
   "profile": {

@@ -153,7 +153,15 @@
     "modeDate": "Date",
     "modeFull": "Online",
     "availableToday": "✓ Available today",
-    "reviews": "rev."
+    "reviews": "rev.",
+    "catInLocation": "{catName} in {location}",
+    "searchResults": "Search results",
+    "browseTierLight": "Cleaning & Light Services",
+    "browseTierTrades": "Trades & Beauty",
+    "browseTierSpecialists": "Specialists",
+    "metaDescCatLocation": "Find {catName} in {location}. Professionals with verified reviews, instant booking, 0% commission.",
+    "metaDescCat": "Find {catName} near you. Professionals with verified reviews across Greece.",
+    "metaDesc": "Find the right professional for every need. 51 categories across Greece."
   },
 
   "profile": {
