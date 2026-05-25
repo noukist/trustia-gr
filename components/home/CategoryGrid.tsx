@@ -117,7 +117,7 @@ export default async function CategoryGrid() {
           Tailwind's md:grid-cols-3 works because --color-* tokens
           in @theme don't affect structural utilities.
         */}
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
           {POPULAR.map((cat) => (
             <Link
               key={cat.id}

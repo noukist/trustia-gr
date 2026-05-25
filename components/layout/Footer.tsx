@@ -9,7 +9,7 @@
 import React from "react";
 import Link from "next/link";
 import { Music2 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 // ── Social brand icons (inline SVGs — lucide-react has no brand logos) ──
 
@@ -43,7 +43,18 @@ const SOCIAL_LINKS: { label: string; href: string; Icon: React.FC<{ size?: numbe
 
 // ── Component ────────────────────────────────────────────────
 export default function Footer() {
-  const t = useTranslations("footer");
+  const t      = useTranslations("footer");
+  const locale = useLocale();
+
+  // Popular service links — shown in Greek or English based on locale
+  const POPULAR_SERVICES = [
+    { id: "plumber",        el: "Υδραυλικός",        en: "Plumber" },
+    { id: "electrician",    el: "Ηλεκτρολόγος",      en: "Electrician" },
+    { id: "house-cleaning", el: "Καθαρισμός Σπιτιού", en: "House Cleaning" },
+    { id: "painter",        el: "Ελαιοχρωματιστής",   en: "Painter" },
+    { id: "handyman",       el: "Handyman",            en: "Handyman" },
+    { id: "moving",         el: "Μετακόμιση",          en: "Moving" },
+  ];
 
   const LINK_COLUMNS = [
     {
@@ -72,6 +83,14 @@ export default function Footer() {
         { label: t("privacy"), href: "/privacy" },
         { label: t("cookies"), href: "/cookies" },
       ],
+    },
+    {
+      id: "popular",
+      heading: locale === "en" ? "Popular Services" : "Δημοφιλείς Υπηρεσίες",
+      links: POPULAR_SERVICES.map((s) => ({
+        label: locale === "en" ? s.en : s.el,
+        href:  `/services?category=${s.id}`,
+      })),
     },
   ];
 

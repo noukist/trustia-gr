@@ -27,7 +27,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { Menu, X, LogIn, LayoutDashboard, LogOut, ChevronDown, User as UserIcon } from "lucide-react";
+import { Menu, X, LogIn, LayoutDashboard, LogOut, ChevronDown, User as UserIcon, Shield } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import Logo         from "@/components/ui/Logo";
 import Button       from "@/components/ui/Button";
@@ -48,6 +48,8 @@ export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
   // Whether the logged-in user has a professionals row
   const [isPro, setIsPro] = useState(false);
+  // Whether the logged-in user has the admin role
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Navigation links — translated
   const NAV_LINKS = [
@@ -73,25 +75,42 @@ export default function Navbar() {
   useEffect(() => {
     const supabase = createClient();
 
-    async function checkPro(userId: string) {
-      const { data } = await supabase
+    async function checkRoles(userId: string) {
+      // Check if the user has a professional profile
+      const { data: proData } = await supabase
         .from("professionals")
         .select("id")
         .eq("user_id", userId)
         .maybeSingle();
-      setIsPro(!!data);
+      setIsPro(!!proData);
+
+      // Check if the user has an admin role via the user_roles table
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("roles(name)")
+        .eq("user_id", userId);
+      // roleData shape: Array<{ roles: { name: string }[] }> from Supabase join
+      const hasAdmin = Array.isArray(roleData) &&
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        roleData.some((r: any) => {
+          const roles = r.roles;
+          if (!roles) return false;
+          if (Array.isArray(roles)) return roles.some((role) => role.name === "admin");
+          return roles.name === "admin";
+        });
+      setIsAdmin(hasAdmin);
     }
 
     supabase.auth.getUser().then(({ data }) => {
       setUser(data.user ?? null);
-      if (data.user) checkPro(data.user.id);
+      if (data.user) checkRoles(data.user.id);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setUser(session?.user ?? null);
-        if (session?.user) checkPro(session.user.id);
-        else setIsPro(false);
+        if (session?.user) checkRoles(session.user.id);
+        else { setIsPro(false); setIsAdmin(false); }
       },
     );
 
@@ -152,7 +171,7 @@ export default function Navbar() {
           >
             <LanguageSwitcher />
             {user ? (
-              <UserMenu user={user} isPro={isPro} t={t} />
+              <UserMenu user={user} isPro={isPro} isAdmin={isAdmin} t={t} />
             ) : (
               <Button variant="outline" size="sm" href="/login" icon={LogIn}>
                 {t("login")}
@@ -293,7 +312,7 @@ export default function Navbar() {
           }}
         >
           {user ? (
-            <DrawerUserFooter user={user} isPro={isPro} onClose={closeDrawer} t={t} />
+            <DrawerUserFooter user={user} isPro={isPro} isAdmin={isAdmin} onClose={closeDrawer} t={t} />
           ) : (
             <Button
               variant="outline"
@@ -443,7 +462,7 @@ function AvatarCircle({ user, size = 34 }: { user: User; size?: number }) {
 }
 
 // ── Desktop user menu (avatar + dropdown) ─────────────────────
-function UserMenu({ user, isPro, t }: { user: User; isPro: boolean; t: ReturnType<typeof useTranslations<"nav">> }) {
+function UserMenu({ user, isPro, isAdmin, t }: { user: User; isPro: boolean; isAdmin: boolean; t: ReturnType<typeof useTranslations<"nav">> }) {
   const [open, setOpen]         = useState(false);
   const containerRef            = useRef<HTMLDivElement>(null);
   const displayName             = getDisplayName(user);
@@ -544,6 +563,15 @@ function UserMenu({ user, isPro, t }: { user: User; isPro: boolean; t: ReturnTyp
 
           {/* Menu items */}
           <div style={{ padding: "0.375rem" }}>
+            {/* Admin panel — only visible to admins */}
+            {isAdmin && (
+              <DropdownItem
+                href="/admin"
+                icon={<Shield size={15} />}
+                label={t("adminPanel")}
+                onClick={() => setOpen(false)}
+              />
+            )}
             {isPro ? (
               <DropdownItem
                 href="/dashboard"
@@ -636,11 +664,13 @@ function DropdownItem({
 function DrawerUserFooter({
   user,
   isPro,
+  isAdmin,
   onClose,
   t,
 }: {
   user: User;
   isPro: boolean;
+  isAdmin: boolean;
   onClose: () => void;
   t: ReturnType<typeof useTranslations<"nav">>;
 }) {
@@ -674,6 +704,30 @@ function DrawerUserFooter({
           </p>
         </div>
       </div>
+
+      {/* Admin shortcut — shown above the main action */}
+      {isAdmin && (
+        <Link
+          href="/admin"
+          onClick={onClose}
+          style={{
+            display:         "flex",
+            alignItems:      "center",
+            gap:             "0.5rem",
+            padding:         "0.625rem 0.75rem",
+            backgroundColor: "rgba(212,160,57,0.12)",
+            border:          "1.5px solid rgba(212,160,57,0.3)",
+            color:           "var(--color-accent-dark, #B8882A)",
+            borderRadius:    "10px",
+            fontWeight:      600,
+            fontSize:        "0.875rem",
+            textDecoration:  "none",
+          }}
+        >
+          <Shield size={15} />
+          {t("adminPanel")}
+        </Link>
+      )}
 
       <Link
         href={isPro ? "/dashboard" : "/profile"}
