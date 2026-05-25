@@ -22,7 +22,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { Menu, X, LogIn, LayoutDashboard, LogOut, ChevronDown } from "lucide-react";
+import { Menu, X, LogIn, LayoutDashboard, LogOut, ChevronDown, User as UserIcon } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import Logo         from "@/components/ui/Logo";
 import Button       from "@/components/ui/Button";
@@ -48,6 +48,8 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   // Authenticated Supabase user (null = logged out)
   const [user, setUser] = useState<User | null>(null);
+  // Whether the logged-in user has a professionals row
+  const [isPro, setIsPro] = useState(false);
 
   // Listen for scroll to apply the sticky shadow effect
   useEffect(() => {
@@ -70,12 +72,29 @@ export default function Navbar() {
   useEffect(() => {
     const supabase = createClient();
 
+    // Check if a given user has a professionals row
+    async function checkPro(userId: string) {
+      const { data } = await supabase
+        .from("professionals")
+        .select("id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      setIsPro(!!data);
+    }
+
     // Get the initial user (fast — reads from localStorage)
-    supabase.auth.getUser().then(({ data }) => setUser(data.user ?? null));
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(data.user ?? null);
+      if (data.user) checkPro(data.user.id);
+    });
 
     // Listen for login / logout events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => setUser(session?.user ?? null),
+      (_event, session) => {
+        setUser(session?.user ?? null);
+        if (session?.user) checkPro(session.user.id);
+        else setIsPro(false);
+      },
     );
 
     return () => subscription.unsubscribe();
@@ -135,7 +154,7 @@ export default function Navbar() {
             style={{ alignItems: "center", flexShrink: 0 }}
           >
             {user ? (
-              <UserMenu user={user} />
+              <UserMenu user={user} isPro={isPro} />
             ) : (
               <Button variant="outline" size="sm" href="/login" icon={LogIn}>
                 Σύνδεση
@@ -276,8 +295,8 @@ export default function Navbar() {
           }}
         >
           {user ? (
-            <DrawerUserFooter user={user} onClose={closeDrawer} />
-          ) : (
+            <DrawerUserFooter user={user} isPro={isPro} onClose={closeDrawer} />
+            ) : (
             <Button
               variant="outline"
               size="md"
@@ -378,7 +397,7 @@ function AvatarCircle({ user, size = 34 }: { user: User; size?: number }) {
 }
 
 // ── Desktop user menu (avatar + dropdown) ─────────────────────
-function UserMenu({ user }: { user: User }) {
+function UserMenu({ user, isPro }: { user: User; isPro: boolean }) {
   const [open, setOpen]         = useState(false);
   const containerRef            = useRef<HTMLDivElement>(null);
   const displayName             = getDisplayName(user);
@@ -501,14 +520,23 @@ function UserMenu({ user }: { user: User }) {
             </div>
           </div>
 
-          {/* Menu items */}
+          {/* Menu items — role-aware */}
           <div style={{ padding: "0.375rem" }}>
-            <DropdownItem
-              href="/dashboard"
-              icon={<LayoutDashboard size={15} />}
-              label="Dashboard"
-              onClick={() => setOpen(false)}
-            />
+            {isPro ? (
+              <DropdownItem
+                href="/dashboard"
+                icon={<LayoutDashboard size={15} />}
+                label="Dashboard"
+                onClick={() => setOpen(false)}
+              />
+            ) : (
+              <DropdownItem
+                href="/profile"
+                icon={<UserIcon size={15} />}
+                label="Το Προφίλ μου"
+                onClick={() => setOpen(false)}
+              />
+            )}
             {/* Divider */}
             <div style={{ height: "1px", backgroundColor: "var(--color-border)", margin: "0.375rem 0" }} />
             <button
@@ -584,7 +612,7 @@ function DropdownItem({
 }
 
 // ── Mobile drawer: logged-in footer ───────────────────────────
-function DrawerUserFooter({ user, onClose }: { user: User; onClose: () => void }) {
+function DrawerUserFooter({ user, isPro, onClose }: { user: User; isPro: boolean; onClose: () => void }) {
   const displayName = getDisplayName(user);
 
   async function handleSignOut() {
@@ -636,9 +664,9 @@ function DrawerUserFooter({ user, onClose }: { user: User; onClose: () => void }
         </div>
       </div>
 
-      {/* Dashboard link */}
+      {/* Primary action — Dashboard for pros, Profile for customers */}
       <Link
-        href="/dashboard"
+        href={isPro ? "/dashboard" : "/profile"}
         onClick={onClose}
         style={{
           display:         "flex",
@@ -653,8 +681,8 @@ function DrawerUserFooter({ user, onClose }: { user: User; onClose: () => void }
           textDecoration:  "none",
         }}
       >
-        <LayoutDashboard size={17} />
-        Dashboard
+        {isPro ? <LayoutDashboard size={17} /> : <UserIcon size={17} />}
+        {isPro ? "Dashboard" : "Το Προφίλ μου"}
       </Link>
 
       {/* Sign out */}

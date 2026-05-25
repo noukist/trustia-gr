@@ -12,10 +12,11 @@
 // app/layout.tsx — no override needed for the homepage default title.
 // =============================================================
 
-import HeroSection  from "@/components/home/HeroSection";
-import CategoryGrid from "@/components/home/CategoryGrid";
-import HowItWorks   from "@/components/home/HowItWorks";
-import ProCTA       from "@/components/home/ProCTA";
+import HeroSection     from "@/components/home/HeroSection";
+import BrandStatement  from "@/components/home/BrandStatement";
+import CategoryGrid    from "@/components/home/CategoryGrid";
+import HowItWorks      from "@/components/home/HowItWorks";
+import ProCTA          from "@/components/home/ProCTA";
 
 export default function HomePage() {
   return (
@@ -23,13 +24,16 @@ export default function HomePage() {
       {/* 1 — Hero with search */}
       <HeroSection />
 
-      {/* 2 — Popular category cards */}
+      {/* 2 — Mission / values strip (builds trust before searching) */}
+      <BrandStatement />
+
+      {/* 3 — Popular category cards */}
       <CategoryGrid />
 
-      {/* 3 — How it works steps */}
+      {/* 4 — How it works steps */}
       <HowItWorks />
 
-      {/* 4 — Professional recruitment CTA */}
+      {/* 5 — Professional recruitment CTA */}
       <ProCTA />
     </>
   );

@@ -211,6 +211,134 @@ export default function ProCTA() {
           </p>
         </div>
       </div>
+
+      {/* ── Savings comparison widget ── */}
+      {/* Shows concretely what professionals save vs commission platforms */}
+      <div
+        style={{
+          maxWidth: "1100px",
+          margin: "3rem auto 0",
+          position: "relative",
+          zIndex: 1,
+          display: "flex",
+          gap: "1rem",
+          flexWrap: "wrap",
+          justifyContent: "center",
+        }}
+      >
+        {/* Commission platform card (bad) */}
+        <div
+          style={{
+            flex: "1 1 220px",
+            maxWidth: "280px",
+            backgroundColor: "rgba(255,255,255,0.07)",
+            border: "1px solid rgba(255,80,80,0.35)",
+            borderRadius: "14px",
+            padding: "1.25rem 1.5rem",
+            textAlign: "center",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "0.8rem",
+              fontWeight: 700,
+              color: "rgba(255,120,120,0.9)",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              margin: "0 0 0.5rem",
+            }}
+          >
+            Πλατφόρμες με Προμήθεια
+          </p>
+          <p
+            style={{
+              fontSize: "1.625rem",
+              fontWeight: 800,
+              color: "#fff",
+              margin: "0 0 0.25rem",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            €150–200/μήνα
+          </p>
+          <p
+            style={{
+              fontSize: "0.8rem",
+              color: "rgba(255,255,255,0.45)",
+              margin: 0,
+            }}
+          >
+            15-20% από έσοδα €1.000/μήνα
+          </p>
+        </div>
+
+        {/* VS divider */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <span
+            style={{
+              fontSize: "0.875rem",
+              fontWeight: 700,
+              color: "rgba(255,255,255,0.3)",
+              letterSpacing: "0.05em",
+            }}
+          >
+            VS
+          </span>
+        </div>
+
+        {/* Trustia card (good) */}
+        <div
+          style={{
+            flex: "1 1 220px",
+            maxWidth: "280px",
+            backgroundColor: "rgba(255,255,255,0.13)",
+            border: "1.5px solid rgba(212,160,57,0.6)",
+            borderRadius: "14px",
+            padding: "1.25rem 1.5rem",
+            textAlign: "center",
+          }}
+        >
+          <p
+            style={{
+              fontSize: "0.8rem",
+              fontWeight: 700,
+              color: "var(--color-accent)",
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              margin: "0 0 0.5rem",
+            }}
+          >
+            Trustia.gr ✓
+          </p>
+          <p
+            style={{
+              fontSize: "1.625rem",
+              fontWeight: 800,
+              color: "#fff",
+              margin: "0 0 0.25rem",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            €2.75–7/μήνα
+          </p>
+          <p
+            style={{
+              fontSize: "0.8rem",
+              color: "rgba(255,255,255,0.55)",
+              margin: 0,
+            }}
+          >
+            σταθερό, ανεξαρτήτως εσόδων
+          </p>
+        </div>
+      </div>
     </section>
   );
 }

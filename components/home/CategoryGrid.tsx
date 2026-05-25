@@ -55,6 +55,14 @@ export default function CategoryGrid() {
         .trustia-cat-card:active {
           transform: translateY(0);
         }
+        /* Emoji starts desaturated; pops to full colour on card hover */
+        .trustia-cat-emoji {
+          filter: grayscale(1);
+          transition: filter 0.25s ease;
+        }
+        .trustia-cat-card:hover .trustia-cat-emoji {
+          filter: grayscale(0);
+        }
       `}</style>
 
       <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
@@ -111,9 +119,10 @@ export default function CategoryGrid() {
               className="trustia-cat-card"
               aria-label={cat.nameEl}
             >
-              {/* Emoji icon — large, centered */}
+              {/* Emoji icon — large, centered. Grayscale by default, full colour on hover */}
               <span
                 aria-hidden="true"
+                className="trustia-cat-emoji"
                 style={{ fontSize: "2.25rem", lineHeight: 1 }}
               >
                 {cat.emoji}
