@@ -36,6 +36,8 @@ import { setRequestLocale } from "next-intl/server";
 import DashboardNav    from "@/components/dashboard/DashboardNav";
 import Button          from "@/components/ui/Button";
 import ProfileEditor   from "@/components/dashboard/ProfileEditor";
+import BookingsTab     from "@/components/dashboard/BookingsTab";
+import ReviewsTab      from "@/components/dashboard/ReviewsTab";
 
 export const metadata: Metadata = {
   title: "Dashboard | Trustia.gr",
@@ -1124,9 +1126,9 @@ export default async function DashboardPage({
             isOAuthAccount={isOAuthAccount}
           />
         ) : tab === "bookings" ? (
-          <PlaceholderTab label="Κρατήσεις" />
+          <BookingsTab professionalId={pro.id} />
         ) : tab === "reviews" ? (
-          <PlaceholderTab label="Κριτικές" />
+          <ReviewsTab professionalId={pro.id} />
         ) : (
           <OverviewTab pro={pro} sub={sub} showWelcome={showWelcome} />
         )}
