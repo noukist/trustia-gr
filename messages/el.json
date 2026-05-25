@@ -312,5 +312,41 @@
     "comingSoon": "Σε εξέλιξη",
     "comingSoonSub": "Το περιεχόμενο αυτής της σελίδας ολοκληρώνεται από τη νομική μας ομάδα.",
     "backHome": "Πίσω στην αρχική"
+  },
+
+  "myProfile": {
+    "title": "Το Προφίλ μου",
+    "subtitle": "Διαχείριση πληροφοριών λογαριασμού",
+    "personalInfo": "Προσωπικά Στοιχεία",
+    "displayNameLabel": "Εμφανιζόμενο όνομα",
+    "phoneLabel": "Τηλέφωνο",
+    "emailLabel": "Email",
+    "emailNote": "Το email σας διαχειρίζεται από τον πάροχο σύνδεσης και δεν μπορεί να αλλάξει εδώ.",
+    "marketingLabel": "Λήψη προσφορών και νέων από το Trustia.gr",
+    "saveBtn": "Αποθήκευση Αλλαγών",
+    "saving": "Αποθήκευση…",
+    "saved": "✓ Αποθηκεύτηκε!",
+    "saveError": "Σφάλμα κατά την αποθήκευση. Δοκιμάστε ξανά."
+  },
+
+  "admin": {
+    "title": "Πίνακας Admin",
+    "subtitle": "Διαχείριση πλατφόρμας",
+    "statsTotal": "Σύνολο Επαγγελματιών",
+    "statsActive": "Ενεργές Συνδρομές",
+    "statsPending": "Εκκρεμείς Πληρωμές",
+    "filterAll": "Όλοι",
+    "filterPending": "Εκκρεμείς",
+    "colName": "Όνομα",
+    "colEmail": "Email",
+    "colSubscription": "Συνδρομή",
+    "colPayment": "Πληρωμή",
+    "colDate": "Εγγραφή",
+    "verifyBtn": "Επαλήθευση",
+    "noResults": "Δεν βρέθηκαν επαγγελματίες.",
+    "paymentPending": "Εκκρεμεί",
+    "paymentVerified": "Επαληθευμένη",
+    "paymentFailed": "Αποτυχία",
+    "paymentRefunded": "Επιστροφή"
   }
 }

@@ -312,5 +312,41 @@
     "comingSoon": "In progress",
     "comingSoonSub": "The content of this page is being finalized by our legal team.",
     "backHome": "Back to home"
+  },
+
+  "myProfile": {
+    "title": "My Profile",
+    "subtitle": "Manage your account information",
+    "personalInfo": "Personal Information",
+    "displayNameLabel": "Display name",
+    "phoneLabel": "Phone",
+    "emailLabel": "Email",
+    "emailNote": "Your email is managed by your sign-in provider and cannot be changed here.",
+    "marketingLabel": "Receive offers and news from Trustia.gr",
+    "saveBtn": "Save Changes",
+    "saving": "Saving…",
+    "saved": "✓ Saved!",
+    "saveError": "Error saving. Please try again."
+  },
+
+  "admin": {
+    "title": "Admin Panel",
+    "subtitle": "Platform management",
+    "statsTotal": "Total Professionals",
+    "statsActive": "Active Subscriptions",
+    "statsPending": "Pending Payments",
+    "filterAll": "All",
+    "filterPending": "Pending",
+    "colName": "Name",
+    "colEmail": "Email",
+    "colSubscription": "Subscription",
+    "colPayment": "Payment",
+    "colDate": "Registered",
+    "verifyBtn": "Verify",
+    "noResults": "No professionals found.",
+    "paymentPending": "Pending",
+    "paymentVerified": "Verified",
+    "paymentFailed": "Failed",
+    "paymentRefunded": "Refunded"
   }
 }
