@@ -1,13 +1,18 @@
 // =============================================================
-// app/professionals/page.tsx
+// app/[locale]/professionals/page.tsx
 // =============================================================
 // Professional recruitment landing page.
-// Replaces the placeholder. No auth required — fully public.
+// No auth required — fully public.
+//
+// i18n: all sub-components are sync Server Components that call
+// useTranslations("professionals") directly.
+// The TIERS array (which contains translatable strings) is built
+// inside PricingSection after t() is available.
 //
 // SECTIONS
 //   1. Hero          — headline, value props, primary CTA
-//   2. Comparison    — vs "Πλατφόρμες με Προμήθεια" table with ✓ / ✗
-//   3. Pricing       — three tiers × three plans from PLAN_OPTIONS
+//   2. Comparison    — vs "Commission Platforms" table
+//   3. Pricing       — three tiers × three plans
 //   4. How it works  — 4-step process for professionals
 //   5. Features grid — 2 × 3 feature cards
 //   6. Final CTA     — repeat signup prompt
@@ -16,11 +21,11 @@
 import React       from "react";
 import Link        from "next/link";
 import type { Metadata } from "next";
-import { Check, X, ArrowRight, Star, Clock, Shield, BarChart2, Calendar, ShoppingBag } from "lucide-react";
-import { setRequestLocale } from "next-intl/server";
+import { useTranslations } from "next-intl";
+import { Check, X, ArrowRight } from "lucide-react";
+import { setRequestLocale, getTranslations } from "next-intl/server";
 
 import { PLAN_OPTIONS, CATEGORIES } from "@/lib/constants";
-import Button from "@/components/ui/Button";
 
 export async function generateMetadata({
   params,
@@ -28,47 +33,37 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "professionals" });
   return {
-    title: locale === "en"
-      ? "For Professionals | Trustia.gr"
-      : "Για Επαγγελματίες | Trustia.gr",
-    description: locale === "en"
-      ? "Join Trustia and keep 100% of your earnings. 0% commission, 3 months FREE, intro price from €2.75/month."
-      : "Μπες στο Trustia και κράτα 100% των αμοιβών σου. 0% προμήθεια, 3 μήνες ΔΩΡΕΑΝ, Τιμή Γνωριμίας από €2.75/μήνα.",
+    title: `${t("heroTitle")} | Trustia.gr`,
+    description: t("heroSub"),
   };
 }
 
-// ── Tier meta ─────────────────────────────────────────────────
-interface TierMeta {
+// ── Static tier data (non-translatable fields only) ───────────
+// Translatable label/examples are added inside PricingSection via t().
+interface TierBase {
   id:        "light" | "trades" | "specialists";
-  label:     string;
   emoji:     string;
-  examples:  string;
   catCount:  number;
   highlight?: boolean;
 }
 
-const TIERS: TierMeta[] = [
+const TIER_BASE: TierBase[] = [
   {
     id:       "light",
-    label:    "Ελαφριές Υπηρεσίες",
     emoji:    "🧹",
-    examples: "Καθαριστές, Κηπουροί, Babysitting, Ιδιαίτερα",
     catCount: CATEGORIES.filter((c) => c.tier === "light").length,
   },
   {
     id:        "trades",
-    label:     "Τεχνικά & Ομορφιά",
     emoji:     "🔧",
-    examples:  "Υδραυλικοί, Ηλεκτρολόγοι, Nail Tech, Κομμωτές",
     catCount:  CATEGORIES.filter((c) => c.tier === "trades").length,
     highlight: true,
   },
   {
     id:       "specialists",
-    label:    "Ειδικοί",
     emoji:    "🏗️",
-    examples: "Αρχιτέκτονες, Ανακαινίσεις, Ηλιακά, Μηχανικοί",
     catCount: CATEGORIES.filter((c) => c.tier === "specialists").length,
   },
 ];
@@ -141,10 +136,10 @@ function SectionHeading({
       {sub && (
         <p
           style={{
-            fontSize:  "1.0625rem",
-            color:     "var(--color-text-muted)",
-            maxWidth:  "560px",
-            margin:    "0 auto",
+            fontSize:   "1.0625rem",
+            color:      "var(--color-text-muted)",
+            maxWidth:   "560px",
+            margin:     "0 auto",
             lineHeight: 1.6,
           }}
         >
@@ -159,6 +154,7 @@ function SectionHeading({
 // 1. HERO
 // =============================================================
 function Hero() {
+  const t = useTranslations("professionals");
   return (
     <section
       style={{
@@ -202,7 +198,7 @@ function Hero() {
         {/* Badge */}
         <span
           style={{
-            display:         "inline-block",
+            display:        "inline-block",
             backgroundColor: "rgba(255,255,255,0.15)",
             border:          "1px solid rgba(255,255,255,0.3)",
             borderRadius:    "999px",
@@ -213,25 +209,25 @@ function Hero() {
             backdropFilter:  "blur(4px)",
           }}
         >
-          🎉 3 μήνες ΔΩΡΕΑΝ — Τιμή Γνωριμίας
+          {t("heroBadge")}
         </span>
 
         {/* Headline */}
         <h1
           style={{
-            fontSize:   "clamp(2rem, 6vw, 3.25rem)",
-            fontWeight: 900,
-            lineHeight: 1.1,
-            margin:     "0 0 1.25rem",
+            fontSize:      "clamp(2rem, 6vw, 3.25rem)",
+            fontWeight:    900,
+            lineHeight:    1.1,
+            margin:        "0 0 1.25rem",
             letterSpacing: "-0.02em",
           }}
         >
-          Είσαι επαγγελματίας;
+          {t("heroHeadline1")}
           <br />
-          <span style={{ color: "#D4F0F0" }}>Μπες στο Trustia.</span>
+          <span style={{ color: "#D4F0F0" }}>{t("heroHeadline2")}</span>
         </h1>
 
-        {/* Subtitle */}
+        {/* Value props */}
         <p
           style={{
             fontSize:   "clamp(1rem, 2.5vw, 1.25rem)",
@@ -240,12 +236,12 @@ function Hero() {
             margin:     "0 0 2.25rem",
           }}
         >
-          0% προμήθεια&nbsp;&nbsp;•&nbsp;&nbsp;3 μήνες ΔΩΡΕΑΝ
+          {t("heroPropLine")}
           <br />
-          Κράτα το <strong>100%</strong> των αμοιβών σου
+          {t("heroKeepLine")}
         </p>
 
-        {/* CTA */}
+        {/* CTAs */}
         <div
           style={{
             display:        "flex",
@@ -268,10 +264,9 @@ function Hero() {
               fontSize:        "1.0625rem",
               textDecoration:  "none",
               boxShadow:       "0 4px 20px rgba(0,0,0,0.25)",
-              transition:      "transform 0.15s, box-shadow 0.15s",
             }}
           >
-            Ξεκίνα Δωρεάν
+            {t("heroBtn")}
             <ArrowRight size={18} />
           </Link>
 
@@ -291,7 +286,7 @@ function Hero() {
               textDecoration:  "none",
             }}
           >
-            Δες τις τιμές ↓
+            {t("heroPricingLink")}
           </Link>
         </div>
 
@@ -307,9 +302,9 @@ function Hero() {
           }}
         >
           {[
-            { n: "51",  label: "κατηγορίες" },
-            { n: "0%",  label: "προμήθεια" },
-            { n: "3",   label: "μήνες ΔΩΡΕΑΝ" },
+            { n: "51",  label: t("heroStat1Label") },
+            { n: "0%",  label: t("heroStat2Label") },
+            { n: "3",   label: t("heroStat3Label") },
           ].map(({ n, label }) => (
             <div key={label} style={{ textAlign: "center" }}>
               <p style={{ fontSize: "1.75rem", fontWeight: 800, margin: 0, lineHeight: 1 }}>{n}</p>
@@ -326,43 +321,16 @@ function Hero() {
 // 2. COMPARISON TABLE
 // =============================================================
 function ComparisonSection() {
+  const t = useTranslations("professionals");
+
+  // Build rows inside the component so t() is available
   const rows = [
-    {
-      label:      "Προμήθεια ανά κράτηση",
-      them:       "15 – 20%",
-      us:         "0%",
-      usGood:     true,
-    },
-    {
-      label:      "Καθαριστής €800/μήνα",
-      them:       "Πληρώνει €120–160/μήνα",
-      us:         "Πληρώνει €2.75/μήνα",
-      usGood:     true,
-    },
-    {
-      label:      "Ηλεκτρολόγος €2.000/μήνα",
-      them:       "Πληρώνει €300–400/μήνα",
-      us:         "Πληρώνει €7/μήνα",
-      usGood:     true,
-    },
-    {
-      label:      "Nail tech €1.500/μήνα",
-      them:       "Πληρώνει €225–300/μήνα",
-      us:         "Πληρώνει €7/μήνα",
-      usGood:     true,
-    },
-    {
-      label:      "Δοκιμαστική περίοδος",
-      them:       "Δεν υπάρχει",
-      us:         "3 μήνες ΔΩΡΕΑΝ",
-      usGood:     true,
-    },
-    {
-      label:      "Εγγυημένη σταθερή τιμή",
-      them:       "Αλλάζει ανά πάσα στιγμή",
-      us:         "🔒 Κλειδωμένη για τους 50 πρώτους",
-      usGood:     true,
-    },
+    { label: t("compRow1Label"), them: t("compRow1Them"), us: t("compRow1Us") },
+    { label: t("compRow2Label"), them: t("compRow2Them"), us: t("compRow2Us") },
+    { label: t("compRow3Label"), them: t("compRow3Them"), us: t("compRow3Us") },
+    { label: t("compRow4Label"), them: t("compRow4Them"), us: t("compRow4Us") },
+    { label: t("compRow5Label"), them: t("compRow5Them"), us: t("compRow5Us") },
+    { label: t("compRow6Label"), them: t("compRow6Them"), us: t("compRow6Us") },
   ];
 
   const headerCell: React.CSSProperties = {
@@ -375,9 +343,9 @@ function ComparisonSection() {
   return (
     <Section style={{ backgroundColor: "var(--color-bg-light)" }}>
       <SectionHeading
-        label="Γιατί Trustia;"
-        title="Σύγκριση με τον ανταγωνισμό"
-        sub="Οι υπάρχουσες πλατφόρμες παίρνουν μεγάλο κομμάτι των εσόδων σου. Εμείς όχι."
+        label={t("compLabel")}
+        title={t("compTitle")}
+        sub={t("compSub")}
       />
 
       <div style={{ overflowX: "auto" }}>
@@ -417,13 +385,13 @@ function ComparisonSection() {
                   borderLeft:      "1px solid var(--color-border)",
                 }}
               >
-                Πλατφόρμες με Προμήθεια
+                {t("compThemHeader")}
                 <br />
                 <span style={{ fontWeight: 400, fontSize: "0.75rem", opacity: 0.8 }}>
-                  (με προμήθεια)
+                  {t("compThemSub")}
                 </span>
               </th>
-              {/* Trustia */}
+              {/* Trustia column */}
               <th
                 style={{
                   ...headerCell,
@@ -433,10 +401,10 @@ function ComparisonSection() {
                   borderLeft:      "1px solid rgba(255,255,255,0.2)",
                 }}
               >
-                Trustia.gr ✓
+                {t("compUsHeader")}
                 <br />
                 <span style={{ fontWeight: 400, fontSize: "0.75rem", opacity: 0.9 }}>
-                  (εμείς)
+                  {t("compUsSub")}
                 </span>
               </th>
             </tr>
@@ -445,7 +413,7 @@ function ComparisonSection() {
           <tbody>
             {rows.map((row, i) => (
               <tr
-                key={row.label}
+                key={i}
                 style={{
                   backgroundColor: i % 2 === 0 ? "#fff" : "var(--color-bg-light)",
                 }}
@@ -453,9 +421,9 @@ function ComparisonSection() {
                 {/* Row label */}
                 <td
                   style={{
-                    padding:     "0.875rem 1.25rem",
-                    fontWeight:  600,
-                    color:       "var(--color-text)",
+                    padding:      "0.875rem 1.25rem",
+                    fontWeight:   600,
+                    color:        "var(--color-text)",
                     borderBottom: i < rows.length - 1 ? "1px solid var(--color-border)" : "none",
                   }}
                 >
@@ -472,13 +440,7 @@ function ComparisonSection() {
                     borderLeft:   "1px solid var(--color-border)",
                   }}
                 >
-                  <span
-                    style={{
-                      display:    "inline-flex",
-                      alignItems: "center",
-                      gap:        "0.375rem",
-                    }}
-                  >
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem" }}>
                     <X size={15} style={{ flexShrink: 0, color: "#E74C3C" }} />
                     {row.them}
                   </span>
@@ -496,13 +458,7 @@ function ComparisonSection() {
                     borderLeft:      "1px solid rgba(39,174,96,0.15)",
                   }}
                 >
-                  <span
-                    style={{
-                      display:    "inline-flex",
-                      alignItems: "center",
-                      gap:        "0.375rem",
-                    }}
-                  >
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem" }}>
                     <Check size={15} style={{ flexShrink: 0, color: "#27AE60" }} />
                     {row.us}
                   </span>
@@ -515,13 +471,13 @@ function ComparisonSection() {
 
       <p
         style={{
-          textAlign:  "center",
-          fontSize:   "0.8125rem",
-          color:      "var(--color-text-muted)",
-          marginTop:  "1.25rem",
+          textAlign: "center",
+          fontSize:  "0.8125rem",
+          color:     "var(--color-text-muted)",
+          marginTop: "1.25rem",
         }}
       >
-        * Σύγκριση βασισμένη σε δημόσιες τιμές ανταγωνιστών, Μάιος 2026
+        {t("compFootnote")}
       </p>
     </Section>
   );
@@ -531,7 +487,15 @@ function ComparisonSection() {
 // 3. PRICING
 // =============================================================
 function PricingSection() {
-  // annual plan is "Δημοφιλέστερο"
+  const t = useTranslations("professionals");
+
+  // Tier label/examples built here so t() is available
+  const tierMeta: Record<string, { label: string; examples: string }> = {
+    light:       { label: t("tierLightLabel"),       examples: t("tierLightExamples") },
+    trades:      { label: t("tierTradesLabel"),      examples: t("tierTradesExamples") },
+    specialists: { label: t("tierSpecialistsLabel"), examples: t("tierSpecialistsExamples") },
+  };
+
   const annualPlan  = PLAN_OPTIONS.find((p) => p.id === "annual")!;
   const semiPlan    = PLAN_OPTIONS.find((p) => p.id === "semi")!;
   const monthlyPlan = PLAN_OPTIONS.find((p) => p.id === "monthly")!;
@@ -541,17 +505,17 @@ function PricingSection() {
       {/* Free trial banner */}
       <div
         style={{
-          background:    "linear-gradient(90deg, var(--color-primary) 0%, #2ab8b8 100%)",
-          borderRadius:  "14px",
-          padding:       "1.125rem 1.5rem",
-          textAlign:     "center",
-          color:         "#fff",
-          marginBottom:  "2.5rem",
-          fontSize:      "1.0625rem",
-          fontWeight:    700,
+          background:   "linear-gradient(90deg, var(--color-primary) 0%, #2ab8b8 100%)",
+          borderRadius: "14px",
+          padding:      "1.125rem 1.5rem",
+          textAlign:    "center",
+          color:        "#fff",
+          marginBottom: "2.5rem",
+          fontSize:     "1.0625rem",
+          fontWeight:   700,
         }}
       >
-        🎉 3 μήνες ΔΩΡΕΑΝ — Ξεκινήστε χωρίς πληρωμή!
+        {t("pricingBanner")}
         <span
           style={{
             display:         "inline-block",
@@ -563,14 +527,14 @@ function PricingSection() {
             fontWeight:      500,
           }}
         >
-          Δεν χρειάζεται πιστωτική κάρτα
+          {t("pricingBannerNote")}
         </span>
       </div>
 
       <SectionHeading
-        label="Τιμολόγηση"
-        title="Τιμή Γνωριμίας"
-        sub="Τρεις κατηγορίες. Επίλεξε τη διάρκεια που σε συμφέρει. Κλείδωσε την τιμή για πάντα."
+        label={t("pricingLabel")}
+        title={t("pricingIntroTitle")}
+        sub={t("pricingIntroSub")}
       />
 
       {/* Tier cards */}
@@ -582,148 +546,150 @@ function PricingSection() {
           marginBottom:        "2rem",
         }}
       >
-        {TIERS.map((tier) => (
-          <div
-            key={tier.id}
-            style={{
-              backgroundColor: "#fff",
-              border:          tier.highlight
-                ? "2px solid var(--color-primary)"
-                : "1.5px solid var(--color-border)",
-              borderRadius:    "16px",
-              padding:         "1.75rem",
-              position:        "relative",
-              boxShadow:       tier.highlight
-                ? "0 8px 32px rgba(42,143,143,0.15)"
-                : "none",
-            }}
-          >
-            {/* "Δημοφιλέστερο" ribbon on Trades tier */}
-            {tier.highlight && (
-              <span
-                style={{
-                  position:        "absolute",
-                  top:             "-1px",
-                  right:           "1.25rem",
-                  backgroundColor: "var(--color-primary)",
-                  color:           "#fff",
-                  borderRadius:    "0 0 8px 8px",
-                  padding:         "0.25rem 0.875rem",
-                  fontSize:        "0.72rem",
-                  fontWeight:      700,
-                  textTransform:   "uppercase",
-                  letterSpacing:   "0.05em",
-                }}
-              >
-                ⭐ Δημοφιλέστερο
-              </span>
-            )}
-
-            {/* Tier header */}
-            <div style={{ marginBottom: "1.25rem" }}>
-              <p style={{ fontSize: "1.75rem", margin: "0 0 0.375rem" }}>{tier.emoji}</p>
-              <h3
-                style={{
-                  fontWeight:   800,
-                  fontSize:     "1.125rem",
-                  color:        "var(--color-text)",
-                  margin:       "0 0 0.25rem",
-                }}
-              >
-                {tier.label}
-              </h3>
-              <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", margin: 0 }}>
-                {tier.examples} &nbsp;·&nbsp; {tier.catCount} κατηγορίες
-              </p>
-            </div>
-
-            {/* Plan options */}
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem", marginBottom: "1.5rem" }}>
-              {[monthlyPlan, semiPlan, annualPlan].map((plan) => {
-                const isAnnual   = plan.id === "annual";
-                const totalPrice = plan.total[tier.id];
-                const perMonth   = plan.perMonth[tier.id];
-                return (
-                  <div
-                    key={plan.id}
-                    style={{
-                      display:         "flex",
-                      alignItems:      "center",
-                      justifyContent:  "space-between",
-                      padding:         "0.625rem 0.875rem",
-                      borderRadius:    "10px",
-                      backgroundColor: isAnnual ? "var(--color-primary-bg)" : "var(--color-bg-light)",
-                      border:          isAnnual ? "1.5px solid var(--color-primary)" : "1px solid var(--color-border)",
-                      gap:             "0.5rem",
-                    }}
-                  >
-                    <div>
-                      <p
-                        style={{
-                          fontWeight:  isAnnual ? 700 : 500,
-                          fontSize:    "0.875rem",
-                          color:       isAnnual ? "var(--color-primary)" : "var(--color-text)",
-                          margin:      0,
-                        }}
-                      >
-                        {plan.labelEl}
-                        {isAnnual && (
-                          <span
-                            style={{
-                              marginLeft:      "0.4rem",
-                              backgroundColor: "var(--color-accent)",
-                              color:           "#fff",
-                              borderRadius:    "4px",
-                              padding:         "0.05rem 0.4rem",
-                              fontSize:        "0.65rem",
-                              fontWeight:      700,
-                              verticalAlign:   "middle",
-                            }}
-                          >
-                            🔒 Κλείδωμα
-                          </span>
-                        )}
-                      </p>
-                      <p style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", margin: "0.1rem 0 0" }}>
-                        €{perMonth.toFixed(2).replace(/\.00$/, "")} / μήνα
-                      </p>
-                    </div>
-                    <span
-                      style={{
-                        fontWeight: 800,
-                        fontSize:   "1rem",
-                        color:      isAnnual ? "var(--color-primary)" : "var(--color-text)",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      €{totalPrice}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* CTA */}
-            <Link
-              href="/register/professional"
+        {TIER_BASE.map((tier) => {
+          const { label, examples } = tierMeta[tier.id];
+          return (
+            <div
+              key={tier.id}
               style={{
-                display:         "block",
-                textAlign:       "center",
-                padding:         "0.8125rem",
-                backgroundColor: tier.highlight ? "var(--color-primary)" : "#fff",
-                border:          `2px solid ${tier.highlight ? "var(--color-primary)" : "var(--color-border)"}`,
-                color:           tier.highlight ? "#fff" : "var(--color-text)",
-                borderRadius:    "10px",
-                fontWeight:      700,
-                fontSize:        "0.9375rem",
-                textDecoration:  "none",
-                transition:      "background-color 0.15s",
+                backgroundColor: "#fff",
+                border:          tier.highlight
+                  ? "2px solid var(--color-primary)"
+                  : "1.5px solid var(--color-border)",
+                borderRadius:    "16px",
+                padding:         "1.75rem",
+                position:        "relative",
+                boxShadow:       tier.highlight
+                  ? "0 8px 32px rgba(42,143,143,0.15)"
+                  : "none",
               }}
             >
-              Ξεκίνα Δωρεάν →
-            </Link>
-          </div>
-        ))}
+              {/* "Most Popular" ribbon on Trades tier */}
+              {tier.highlight && (
+                <span
+                  style={{
+                    position:        "absolute",
+                    top:             "-1px",
+                    right:           "1.25rem",
+                    backgroundColor: "var(--color-primary)",
+                    color:           "#fff",
+                    borderRadius:    "0 0 8px 8px",
+                    padding:         "0.25rem 0.875rem",
+                    fontSize:        "0.72rem",
+                    fontWeight:      700,
+                    textTransform:   "uppercase",
+                    letterSpacing:   "0.05em",
+                  }}
+                >
+                  {t("pricingPopular")}
+                </span>
+              )}
+
+              {/* Tier header */}
+              <div style={{ marginBottom: "1.25rem" }}>
+                <p style={{ fontSize: "1.75rem", margin: "0 0 0.375rem" }}>{tier.emoji}</p>
+                <h3
+                  style={{
+                    fontWeight: 800,
+                    fontSize:   "1.125rem",
+                    color:      "var(--color-text)",
+                    margin:     "0 0 0.25rem",
+                  }}
+                >
+                  {label}
+                </h3>
+                <p style={{ fontSize: "0.8rem", color: "var(--color-text-muted)", margin: 0 }}>
+                  {examples} &nbsp;·&nbsp; {tier.catCount} {t("pricingCatSuffix")}
+                </p>
+              </div>
+
+              {/* Plan options */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem", marginBottom: "1.5rem" }}>
+                {[monthlyPlan, semiPlan, annualPlan].map((plan) => {
+                  const isAnnual   = plan.id === "annual";
+                  const totalPrice = plan.total[tier.id];
+                  const perMonth   = plan.perMonth[tier.id];
+                  return (
+                    <div
+                      key={plan.id}
+                      style={{
+                        display:         "flex",
+                        alignItems:      "center",
+                        justifyContent:  "space-between",
+                        padding:         "0.625rem 0.875rem",
+                        borderRadius:    "10px",
+                        backgroundColor: isAnnual ? "var(--color-primary-bg)" : "var(--color-bg-light)",
+                        border:          isAnnual ? "1.5px solid var(--color-primary)" : "1px solid var(--color-border)",
+                        gap:             "0.5rem",
+                      }}
+                    >
+                      <div>
+                        <p
+                          style={{
+                            fontWeight: isAnnual ? 700 : 500,
+                            fontSize:   "0.875rem",
+                            color:      isAnnual ? "var(--color-primary)" : "var(--color-text)",
+                            margin:     0,
+                          }}
+                        >
+                          {plan.labelEl}
+                          {isAnnual && (
+                            <span
+                              style={{
+                                marginLeft:    "0.4rem",
+                                backgroundColor: "var(--color-accent)",
+                                color:           "#fff",
+                                borderRadius:    "4px",
+                                padding:         "0.05rem 0.4rem",
+                                fontSize:        "0.65rem",
+                                fontWeight:      700,
+                                verticalAlign:   "middle",
+                              }}
+                            >
+                              {t("pricingLockBadge")}
+                            </span>
+                          )}
+                        </p>
+                        <p style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", margin: "0.1rem 0 0" }}>
+                          €{perMonth.toFixed(2).replace(/\.00$/, "")} {t("pricingPerMonth")}
+                        </p>
+                      </div>
+                      <span
+                        style={{
+                          fontWeight: 800,
+                          fontSize:   "1rem",
+                          color:      isAnnual ? "var(--color-primary)" : "var(--color-text)",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        €{totalPrice}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* CTA */}
+              <Link
+                href="/register/professional"
+                style={{
+                  display:         "block",
+                  textAlign:       "center",
+                  padding:         "0.8125rem",
+                  backgroundColor: tier.highlight ? "var(--color-primary)" : "#fff",
+                  border:          `2px solid ${tier.highlight ? "var(--color-primary)" : "var(--color-border)"}`,
+                  color:           tier.highlight ? "#fff" : "var(--color-text)",
+                  borderRadius:    "10px",
+                  fontWeight:      700,
+                  fontSize:        "0.9375rem",
+                  textDecoration:  "none",
+                }}
+              >
+                {t("pricingStartFree")}
+              </Link>
+            </div>
+          );
+        })}
       </div>
 
       {/* Founding member note */}
@@ -743,8 +709,7 @@ function PricingSection() {
       >
         <span style={{ fontSize: "1.25rem" }}>🏆</span>
         <p style={{ margin: 0, fontSize: "0.9rem", color: "#92400E", fontWeight: 600, lineHeight: 1.4 }}>
-          Οι πρώτοι <strong>50 επαγγελματίες</strong> κλειδώνουν αυτή την τιμή για πάντα,
-          ακόμα και αν οι τιμές ανέβουν μελλοντικά.
+          {t("pricingFoundingNote")}
         </p>
       </div>
     </Section>
@@ -755,38 +720,20 @@ function PricingSection() {
 // 4. HOW IT WORKS
 // =============================================================
 function HowItWorksSection() {
+  const t = useTranslations("professionals");
+
   const steps = [
-    {
-      n:      "1",
-      emoji:  "✍️",
-      title:  "Εγγραφή σε 2 λεπτά",
-      desc:   "Επέλεξε κατηγορία, τρόπο κράτησης και πλάνο. Δεν χρειάζεσαι πιστωτική κάρτα.",
-    },
-    {
-      n:      "2",
-      emoji:  "🪪",
-      title:  "Δημιούργησε το Προφίλ σου",
-      desc:   "Φωτογραφία, βιογραφικό, τιμή, υπηρεσίες. Σε λίγα λεπτά είσαι ορατός σε όλη την Ελλάδα.",
-    },
-    {
-      n:      "3",
-      emoji:  "📲",
-      title:  "Λάμβανε Κρατήσεις",
-      desc:   "Πελάτες σε βρίσκουν μέσω αναζήτησης ή Google. Επικοινωνούν μέσω τηλεφώνου ή online κράτησης.",
-    },
-    {
-      n:      "4",
-      emoji:  "💰",
-      title:  "Κέρδισε χωρίς Προμήθεια",
-      desc:   "Εισπράττεις απευθείας από τον πελάτη. Εμείς παίρνουμε €0. Εσύ κρατάς το 100%.",
-    },
+    { n: "1", emoji: "✍️", title: t("step1Title"), desc: t("step1Desc") },
+    { n: "2", emoji: "🪪",  title: t("step2Title"), desc: t("step2Desc") },
+    { n: "3", emoji: "📲", title: t("step3Title"), desc: t("step3Desc") },
+    { n: "4", emoji: "💰", title: t("step4Title"), desc: t("step4Desc") },
   ];
 
   return (
     <Section style={{ backgroundColor: "var(--color-bg-light)" }}>
       <SectionHeading
-        label="Πώς Λειτουργεί"
-        title="Από την εγγραφή στα κέρδη σε 4 βήματα"
+        label={t("stepsLabel")}
+        title={t("stepsTitle")}
       />
 
       <div
@@ -832,12 +779,12 @@ function HowItWorksSection() {
                 aria-hidden="true"
                 className="hidden lg:block"
                 style={{
-                  position:  "absolute",
-                  top:       "2.25rem",
-                  right:     "-0.875rem",
-                  color:     "var(--color-border)",
-                  fontSize:  "1.25rem",
-                  zIndex:    1,
+                  position: "absolute",
+                  top:      "2.25rem",
+                  right:    "-0.875rem",
+                  color:    "var(--color-border)",
+                  fontSize: "1.25rem",
+                  zIndex:   1,
                 }}
               >
                 →
@@ -847,10 +794,10 @@ function HowItWorksSection() {
             <p style={{ fontSize: "1.75rem", margin: "0 0 0.625rem" }}>{step.emoji}</p>
             <h3
               style={{
-                fontWeight:   700,
-                fontSize:     "1rem",
-                color:        "var(--color-text)",
-                margin:       "0 0 0.5rem",
+                fontWeight: 700,
+                fontSize:   "1rem",
+                color:      "var(--color-text)",
+                margin:     "0 0 0.5rem",
               }}
             >
               {step.title}
@@ -876,44 +823,22 @@ function HowItWorksSection() {
 // 5. FEATURES GRID
 // =============================================================
 function FeaturesSection() {
+  const t = useTranslations("professionals");
+
   const features = [
-    {
-      icon:  "📞",
-      title: "Τηλέφωνο ή Online Κράτηση",
-      desc:  "Επίλεξε πώς θέλεις να δέχεσαι πελάτες: μόνο τηλέφωνο, ημερομηνία ή πλήρες ημερολόγιο.",
-    },
-    {
-      icon:  "⭐",
-      title: "Σύστημα Κριτικών με Βαρύτητα",
-      desc:  "Επαληθευμένες κριτικές από κρατήσεις έχουν 4× βαρύτητα. Η φήμη σου οικοδομείται γρήγορα.",
-    },
-    {
-      icon:  "🗓️",
-      title: "Ημερολόγιο & Ωράριο",
-      desc:  "Ορίσε τη διαθεσιμότητά σου. Αυτόματη απόρριψη εκτός ωραρίου. Διακοπές με ένα κλικ.",
-    },
-    {
-      icon:  "🛍️",
-      title: "Online Shop (Beauty)",
-      desc:  "Πώλησε προϊόντα μαζί με τις υπηρεσίες σου. Για κατηγορίες ομορφιάς, ετήσιο πλάνο.",
-    },
-    {
-      icon:  "📊",
-      title: "Στατιστικά Προφίλ",
-      desc:  "Προβολές, κλήσεις, κρατήσεις — δες πώς σε βρίσκουν οι πελάτες. Σύντομα.",
-    },
-    {
-      icon:  "🔒",
-      title: "Κλείδωμα Τιμής για Πάντα",
-      desc:  "Οι πρώτοι 50 κλειδώνουν τη σημερινή τιμή για πάντα, ακόμα κι αν ανέβουν οι τιμές.",
-    },
+    { icon: "📞", title: t("feat1Title"), desc: t("feat1Desc") },
+    { icon: "⭐", title: t("feat2Title"), desc: t("feat2Desc") },
+    { icon: "🗓️", title: t("feat3Title"), desc: t("feat3Desc") },
+    { icon: "🛍️", title: t("feat4Title"), desc: t("feat4Desc") },
+    { icon: "📊", title: t("feat5Title"), desc: t("feat5Desc") },
+    { icon: "🔒", title: t("feat6Title"), desc: t("feat6Desc") },
   ];
 
   return (
     <Section>
       <SectionHeading
-        label="Χαρακτηριστικά"
-        title="Όλα όσα χρειάζεσαι για να αναπτύξεις την πελατεία σου"
+        label={t("featLabel")}
+        title={t("featTitle")}
       />
 
       <div
@@ -940,10 +865,10 @@ function FeaturesSection() {
             <div>
               <h3
                 style={{
-                  fontWeight:   700,
-                  fontSize:     "0.9375rem",
-                  color:        "var(--color-text)",
-                  margin:       "0 0 0.375rem",
+                  fontWeight: 700,
+                  fontSize:   "0.9375rem",
+                  color:      "var(--color-text)",
+                  margin:     "0 0 0.375rem",
                 }}
               >
                 {f.title}
@@ -970,6 +895,7 @@ function FeaturesSection() {
 // 6. FINAL CTA
 // =============================================================
 function FinalCTA() {
+  const t = useTranslations("professionals");
   return (
     <section
       style={{
@@ -989,19 +915,19 @@ function FinalCTA() {
             lineHeight: 1.15,
           }}
         >
-          Έτοιμος να ξεκινήσεις;
+          {t("finalCtaTitle")}
         </h2>
         <p
           style={{
-            fontSize:     "1.0625rem",
-            opacity:      0.9,
-            margin:       "0 0 2rem",
-            lineHeight:   1.6,
+            fontSize:   "1.0625rem",
+            opacity:    0.9,
+            margin:     "0 0 2rem",
+            lineHeight: 1.6,
           }}
         >
-          Εγγράψου σε 2 λεπτά. Δεν χρειάζεσαι πιστωτική κάρτα.
+          {t("finalCtaDesc1")}
           <br />
-          Τα 3 πρώτα μήνα είναι εντελώς δωρεάν.
+          {t("finalCtaDesc2")}
         </p>
 
         <Link
@@ -1021,12 +947,12 @@ function FinalCTA() {
             marginBottom:    "1rem",
           }}
         >
-          Ξεκίνα Δωρεάν
+          {t("finalCtaBtn")}
           <ArrowRight size={20} />
         </Link>
 
         <p style={{ opacity: 0.75, fontSize: "0.8125rem", margin: "0.75rem 0 0" }}>
-          Δεν χρειάζεται πιστωτική κάρτα &nbsp;·&nbsp; Ακύρωση οποτεδήποτε
+          {t("finalCtaNote")}
         </p>
       </div>
     </section>

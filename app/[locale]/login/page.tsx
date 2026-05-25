@@ -24,6 +24,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import {
   signInWithGoogle,
@@ -62,6 +63,7 @@ function FacebookIcon() {
 // Component
 // ---------------------------------------------------------------
 export default function LoginPage() {
+  const t      = useTranslations("auth");
   const router = useRouter();
 
   // Form state
@@ -99,7 +101,7 @@ export default function LoginPage() {
     setLoadingGoogle(true);
     const { error: err } = await signInWithGoogle();
     if (err) {
-      setError("Η σύνδεση με Google απέτυχε. Δοκίμασε ξανά.");
+      setError(t("errors.googleFailed"));
       setLoadingGoogle(false);
     }
     // On success the browser navigates away — no need to set loading=false
@@ -110,7 +112,7 @@ export default function LoginPage() {
     setLoadingFacebook(true);
     const { error: err } = await signInWithFacebook();
     if (err) {
-      setError("Η σύνδεση με Facebook απέτυχε. Δοκίμασε ξανά.");
+      setError(t("errors.facebookFailed"));
       setLoadingFacebook(false);
     }
   }
@@ -127,9 +129,9 @@ export default function LoginPage() {
     if (err) {
       // Map Supabase error messages to Greek user-facing text
       if (err.message.toLowerCase().includes("invalid login credentials")) {
-        setError("Λανθασμένο email ή κωδικός. Δοκίμασε ξανά.");
+        setError(t("errors.invalidCredentials"));
       } else if (err.message.toLowerCase().includes("email not confirmed")) {
-        setError("Επιβεβαίωσε πρώτα το email σου (έλεγξε τα εισερχόμενα).");
+        setError(t("errors.emailNotConfirmed"));
       } else {
         setError(err.message);
       }
@@ -149,7 +151,7 @@ export default function LoginPage() {
     setResetLoading(false);
 
     if (err) {
-      setError("Αποτυχία αποστολής email. Έλεγξε τη διεύθυνση και δοκίμασε ξανά.");
+      setError(t("errors.resetFailed"));
     } else {
       setResetSent(true);
     }
@@ -227,10 +229,10 @@ export default function LoginPage() {
                 letterSpacing: "-0.02em",
               }}
             >
-              Σύνδεση
+              {t("loginTitle")}
             </h1>
             <p style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", margin: 0 }}>
-              Καλώς ήρθες πίσω
+              {t("loginSub")}
             </p>
           </div>
 
@@ -284,7 +286,7 @@ export default function LoginPage() {
             ) : (
               <GoogleIcon />
             )}
-            Συνέχεια με Google
+            {t("continueGoogle")}
           </button>
 
           {/* ── OAuth: Facebook ── */}
@@ -315,7 +317,7 @@ export default function LoginPage() {
             ) : (
               <FacebookIcon />
             )}
-            Συνέχεια με Facebook
+            {t("continueFacebook")}
           </button>
 
           {/* ── Divider ── */}
@@ -329,7 +331,7 @@ export default function LoginPage() {
           >
             <div style={{ flex: 1, height: "1px", backgroundColor: "var(--color-border)" }} />
             <span style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", fontWeight: 500 }}>
-              ή με email
+              {t("orEmail")}
             </span>
             <div style={{ flex: 1, height: "1px", backgroundColor: "var(--color-border)" }} />
           </div>
@@ -347,10 +349,10 @@ export default function LoginPage() {
                     fontWeight: 500,
                   }}
                 >
-                  ✓ Στάλθηκε email επαναφοράς στο{" "}
+                  {t("resetSentPrefix")}{" "}
                   <strong>{resetEmail}</strong>.
                   <br />
-                  Έλεγξε τα εισερχόμενά σου.
+                  {t("checkInbox")}
                 </div>
               ) : (
                 <form onSubmit={handleResetPassword}>
@@ -358,7 +360,7 @@ export default function LoginPage() {
                     htmlFor="reset-email"
                     style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)", marginBottom: "0.375rem" }}
                   >
-                    Email επαναφοράς
+                    {t("resetEmail")}
                   </label>
                   <div style={{ position: "relative", marginBottom: "1rem" }}>
                     <Mail
@@ -398,7 +400,7 @@ export default function LoginPage() {
                     }}
                   >
                     {resetLoading && <Loader2 size={17} className="spin" />}
-                    Αποστολή email επαναφοράς
+                    {t("resetBtn")}
                   </button>
                 </form>
               )}
@@ -406,7 +408,7 @@ export default function LoginPage() {
                 onClick={() => { setResetMode(false); setResetSent(false); setResetEmail(""); }}
                 style={{ display: "block", margin: "1rem auto 0", background: "none", border: "none", cursor: "pointer", fontSize: "0.875rem", color: "var(--color-text-muted)" }}
               >
-                ← Πίσω στη σύνδεση
+                {t("backToLogin")}
               </button>
             </div>
           ) : (
@@ -418,7 +420,7 @@ export default function LoginPage() {
                   htmlFor="email"
                   style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)", marginBottom: "0.375rem" }}
                 >
-                  Email
+                  {t("emailLabel")}
                 </label>
                 <div style={{ position: "relative" }}>
                   <Mail
@@ -445,7 +447,7 @@ export default function LoginPage() {
                   htmlFor="password"
                   style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)", marginBottom: "0.375rem" }}
                 >
-                  Κωδικός
+                  {t("passwordLabel")}
                 </label>
                 <div style={{ position: "relative" }}>
                   <Lock
@@ -466,7 +468,7 @@ export default function LoginPage() {
                   {/* Show/hide toggle */}
                   <button
                     type="button"
-                    aria-label={showPassword ? "Απόκρυψη κωδικού" : "Εμφάνιση κωδικού"}
+                    aria-label={showPassword ? t("hidePassword") : t("showPassword")}
                     onClick={() => setShowPassword((v) => !v)}
                     style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", padding: "0.125rem" }}
                   >
@@ -483,7 +485,7 @@ export default function LoginPage() {
                   className="auth-link"
                   style={{ background: "none", border: "none", cursor: "pointer", fontSize: "0.8375rem", color: "var(--color-primary)", fontWeight: 500, padding: 0 }}
                 >
-                  Ξέχασες τον κωδικό;
+                  {t("forgotPassword")}
                 </button>
               </div>
 
@@ -510,7 +512,7 @@ export default function LoginPage() {
                 }}
               >
                 {loadingEmail && <Loader2 size={18} className="spin" />}
-                Σύνδεση
+                {t("loginBtn")}
               </button>
             </form>
           )}
@@ -524,12 +526,12 @@ export default function LoginPage() {
               color: "var(--color-text-muted)",
             }}
           >
-            Δεν έχεις λογαριασμό;{" "}
+            {t("noAccount")}{" "}
             <Link
               href="/register"
               style={{ color: "var(--color-primary)", fontWeight: 600, textDecoration: "none" }}
             >
-              Εγγραφή
+              {t("registerLink")}
             </Link>
           </p>
         </div>

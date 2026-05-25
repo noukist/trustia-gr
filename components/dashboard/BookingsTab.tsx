@@ -136,7 +136,7 @@ export default async function BookingsTab({
     console.error("[BookingsTab] fetch error:", error.message);
   }
 
-  const rows = (data ?? []) as DbBooking[];
+  const rows = (data ?? []) as unknown as DbBooking[];
 
   // Sort: pending → confirmed → all others (newest booking_date first within each group)
   const pending   = rows.filter((b) => b.status === "pending");

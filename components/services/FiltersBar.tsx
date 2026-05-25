@@ -22,6 +22,7 @@
 
 import React, { useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { SlidersHorizontal, X, RotateCcw } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────
@@ -30,35 +31,36 @@ interface FiltersBarProps {
   hasLocation: boolean;
 }
 
-// ── Filter options ─────────────────────────────────────────────
-const RATING_OPTIONS = [
-  { value: "",    label: "Όλοι" },
-  { value: "3",   label: "3★ +" },
-  { value: "4",   label: "4★ +" },
-  { value: "4.5", label: "4.5★ +" },
-] as const;
-
-const MODE_OPTIONS = [
-  { value: "",        label: "Όλοι" },
-  { value: "contact", label: "📞 Τηλέφωνο" },
-  { value: "date",    label: "📅 Ημερομηνία" },
-  { value: "full",    label: "🗓️ Online" },
-] as const;
-
-const DISTANCE_OPTIONS = [
-  { value: "",    label: "Οπουδήποτε" },
-  { value: "5",   label: "≤ 5 km" },
-  { value: "10",  label: "≤ 10 km" },
-  { value: "30",  label: "≤ 30 km" },
-  { value: "60",  label: "≤ 60 km" },
-  { value: "120", label: "≤ 120 km" },
-] as const;
-
 // ── Component ──────────────────────────────────────────────────
 export default function FiltersBar({ hasLocation }: FiltersBarProps) {
+  const t           = useTranslations("services");
   const router      = useRouter();
   const pathname    = usePathname();
   const searchParams = useSearchParams();
+
+  // ── Filter options (translated) ────────────────────────────
+  const RATING_OPTIONS = [
+    { value: "",    label: t("filterAll") },
+    { value: "3",   label: "3★ +" },
+    { value: "4",   label: "4★ +" },
+    { value: "4.5", label: "4.5★ +" },
+  ] as const;
+
+  const MODE_OPTIONS = [
+    { value: "",        label: t("filterAll") },
+    { value: "contact", label: `📞 ${t("modeContact")}` },
+    { value: "date",    label: `📅 ${t("modeDate")}` },
+    { value: "full",    label: `🗓️ ${t("modeFull")}` },
+  ] as const;
+
+  const DISTANCE_OPTIONS = [
+    { value: "",    label: t("filterAnyDistance") },
+    { value: "5",   label: "≤ 5 km" },
+    { value: "10",  label: "≤ 10 km" },
+    { value: "30",  label: "≤ 30 km" },
+    { value: "60",  label: "≤ 60 km" },
+    { value: "120", label: "≤ 120 km" },
+  ] as const;
 
   // Mobile panel open/close state
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -109,7 +111,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
       {/* ── Rating ── */}
-      <FilterGroup label="Βαθμολογία">
+      <FilterGroup label={t("filterRating")}>
         {RATING_OPTIONS.map((opt) => (
           <RadioChip
             key={opt.value}
@@ -121,7 +123,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
       </FilterGroup>
 
       {/* ── Booking mode ── */}
-      <FilterGroup label="Τρόπος κράτησης">
+      <FilterGroup label={t("filterMode")}>
         {MODE_OPTIONS.map((opt) => (
           <RadioChip
             key={opt.value}
@@ -133,14 +135,14 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
       </FilterGroup>
 
       {/* ── Reviews ── */}
-      <FilterGroup label="Κριτικές">
+      <FilterGroup label={t("filterReviewsGroup")}>
         <RadioChip
-          label="Όλοι"
+          label={t("filterAll")}
           selected={currentReviews !== "1"}
           onClick={() => setFilter("reviews", "")}
         />
         <RadioChip
-          label="Με κριτικές μόνο"
+          label={t("filterWithReviews")}
           selected={currentReviews === "1"}
           onClick={() => setFilter("reviews", "1")}
         />
@@ -148,7 +150,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
 
       {/* ── Distance (only when lat/lng are known) ── */}
       {hasLocation && (
-        <FilterGroup label="Απόσταση">
+        <FilterGroup label={t("filterDistance")}>
           {DISTANCE_OPTIONS.map((opt) => (
             <RadioChip
               key={opt.value}
@@ -161,7 +163,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
       )}
 
       {/* ── Available today ── */}
-      <FilterGroup label="Διαθεσιμότητα">
+      <FilterGroup label={t("filterAvailability")}>
         <label
           style={{
             display:    "flex",
@@ -207,7 +209,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
               }}
             />
           </span>
-          Διαθέσιμος σήμερα
+          {t("filterAvailable")}
         </label>
       </FilterGroup>
 
@@ -230,7 +232,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
           }}
         >
           <RotateCcw size={13} />
-          Καθαρισμός φίλτρων
+          {t("filterReset")}
         </button>
       )}
     </div>
@@ -258,7 +260,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
           }}
         >
           <SlidersHorizontal size={16} />
-          Φίλτρα
+          {t("filtersTitle")}
           {activeCount > 0 && (
             <span
               style={{
@@ -292,7 +294,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
           {/* Close button */}
           <button
             type="button"
-            aria-label="Κλείσιμο φίλτρων"
+            aria-label={t("filterClose")}
             onClick={() => setMobileOpen(false)}
             style={{
               position:        "absolute",
@@ -316,7 +318,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
               color:        "var(--color-text)",
             }}
           >
-            Φίλτρα
+            {t("filtersTitle")}
           </p>
           {filterContent}
         </div>
@@ -350,7 +352,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
               margin:     0,
             }}
           >
-            Φίλτρα
+            {t("filtersTitle")}
             {activeCount > 0 && (
               <span
                 style={{
@@ -381,7 +383,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
                 padding:        0,
               }}
             >
-              Καθαρισμός
+              {t("filterResetShort")}
             </button>
           )}
         </div>
