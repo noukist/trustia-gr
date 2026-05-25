@@ -37,6 +37,7 @@ import { useTranslations } from "next-intl";
 import DashboardNav    from "@/components/dashboard/DashboardNav";
 import Button          from "@/components/ui/Button";
 import ProfileEditor   from "@/components/dashboard/ProfileEditor";
+import ServicesEditor  from "@/components/dashboard/ServicesEditor";
 import BookingsTab     from "@/components/dashboard/BookingsTab";
 import ReviewsTab      from "@/components/dashboard/ReviewsTab";
 
@@ -1111,27 +1112,31 @@ export default async function DashboardPage({
         {tab === "subscription" ? (
           <SubscriptionTab pro={pro} sub={sub} />
         ) : tab === "profile" ? (
-          <ProfileEditor
-            professionalId={pro.id}
-            userId={user.id}
-            initialData={{
-              first_name:      pro.first_name,
-              last_name:       pro.last_name,
-              phone:           pro.phone,
-              email:           pro.email,
-              avatar_url:      pro.avatar_url,
-              category_id:     pro.category_id,
-              tier:            pro.tier,
-              city:            pro.city,
-              lat:             pro.lat,
-              lng:             pro.lng,
-              bio:             pro.bio,
-              price_text:      pro.price_text,
-              booking_mode:    pro.booking_mode,
-              profile_complete: pro.profile_complete,
-            }}
-            isOAuthAccount={isOAuthAccount}
-          />
+          <>
+            <ProfileEditor
+              professionalId={pro.id}
+              userId={user.id}
+              initialData={{
+                first_name:      pro.first_name,
+                last_name:       pro.last_name,
+                phone:           pro.phone,
+                email:           pro.email,
+                avatar_url:      pro.avatar_url,
+                category_id:     pro.category_id,
+                tier:            pro.tier,
+                city:            pro.city,
+                lat:             pro.lat,
+                lng:             pro.lng,
+                bio:             pro.bio,
+                price_text:      pro.price_text,
+                booking_mode:    pro.booking_mode,
+                profile_complete: pro.profile_complete,
+              }}
+              isOAuthAccount={isOAuthAccount}
+            />
+            {/* ── Services catalog editor — shown below profile fields ── */}
+            <ServicesEditor professionalId={pro.id} />
+          </>
         ) : tab === "bookings" ? (
           <BookingsTab professionalId={pro.id} />
         ) : tab === "reviews" ? (
