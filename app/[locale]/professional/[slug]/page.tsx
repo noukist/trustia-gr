@@ -36,6 +36,7 @@ import { CATEGORIES }                          from "@/lib/constants";
 import ActionPanel                             from "@/components/professional/ActionPanel";
 import ShareButton                             from "@/components/professional/ShareButton";
 import ProfileViewTracker                      from "@/components/professional/ProfileViewTracker";
+import RecentlyViewedTracker                   from "@/components/professional/RecentlyViewedTracker";
 import ReviewActions                           from "@/components/reviews/ReviewActions";
 import FavoriteButton                         from "@/components/professional/FavoriteButton";
 
@@ -557,6 +558,8 @@ export default async function ProfessionalProfilePage({
       />
       {/* ── Profile view tracker (client-only, renders null) ── */}
       <ProfileViewTracker professionalId={pro.id} />
+      {/* Track this visit in customer's recently-viewed history (skipped for non-customers) */}
+      <RecentlyViewedTracker professionalId={pro.id} customerId={reviewCustomerId} />
       {/* ── Topbar: Back + Share ── */}
       <div
         style={{
