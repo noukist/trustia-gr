@@ -26,7 +26,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useRouter, usePathname } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { Menu, X, LogIn, LayoutDashboard, LogOut, ChevronDown, User as UserIcon, Shield, CalendarDays } from "lucide-react";
+import { Menu, X, LogIn, LayoutDashboard, LogOut, ChevronDown, User as UserIcon, Shield, CalendarDays, Heart } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import Logo              from "@/components/ui/Logo";
 import Button            from "@/components/ui/Button";
@@ -596,6 +596,15 @@ function UserMenu({ user, isPro, isAdmin, t }: { user: User; isPro: boolean; isA
               label={t("myBookings")}
               onClick={() => setOpen(false)}
             />
+            {/* Favorites — only relevant for customers (pros have no favorites) */}
+            {!isPro && (
+              <DropdownItem
+                href="/favorites"
+                icon={<Heart size={15} />}
+                label={t("favorites")}
+                onClick={() => setOpen(false)}
+              />
+            )}
             <div style={{ height: "1px", backgroundColor: "var(--color-border)", margin: "0.375rem 0" }} />
             <button
               type="button"
@@ -779,6 +788,30 @@ function DrawerUserFooter({
         <CalendarDays size={15} style={{ color: "var(--color-primary)" }} />
         {t("myBookings")}
       </Link>
+
+      {/* Favorites — only relevant for customers */}
+      {!isPro && (
+        <Link
+          href="/favorites"
+          onClick={onClose}
+          style={{
+            display:         "flex",
+            alignItems:      "center",
+            gap:             "0.5rem",
+            padding:         "0.625rem 0.75rem",
+            backgroundColor: "var(--color-bg-light)",
+            color:           "var(--color-text)",
+            borderRadius:    "10px",
+            fontWeight:      600,
+            fontSize:        "0.875rem",
+            textDecoration:  "none",
+            border:          "1.5px solid var(--color-border)",
+          }}
+        >
+          <Heart size={15} style={{ color: "#E74C3C" }} />
+          {t("favorites")}
+        </Link>
+      )}
 
       <button
         type="button"

@@ -23,6 +23,7 @@
     "dashboard": "Dashboard",
     "myProfile": "My Profile",
     "myBookings": "My Bookings",
+    "favorites": "Saved",
     "adminPanel": "Admin Panel",
     "logout": "Log Out",
     "openMenu": "Open menu",
@@ -878,5 +879,17 @@
     "emptyHint": "When you request an appointment with a professional, it will appear here.",
     "browseBtn": "Browse Professionals",
     "unknownPro": "Professional"
+  },
+
+  "favorites": {
+    "title": "Saved",
+    "subtitle": "{count} saved professionals",
+    "emptyTitle": "Nothing saved yet",
+    "emptySubtitle": "Start saving professionals you're interested in.",
+    "emptyHint": "Tap the heart on any professional to save them here.",
+    "browseBtn": "Browse Professionals",
+    "remove": "Remove from saved",
+    "save": "Save",
+    "unsave": "Remove from saved"
   }
 }

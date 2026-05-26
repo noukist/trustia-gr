@@ -37,6 +37,7 @@ import ActionPanel                             from "@/components/professional/A
 import ShareButton                             from "@/components/professional/ShareButton";
 import ProfileViewTracker                      from "@/components/professional/ProfileViewTracker";
 import ReviewActions                           from "@/components/reviews/ReviewActions";
+import FavoriteButton                         from "@/components/professional/FavoriteButton";
 
 // ── Next.js 16: params is a Promise ──────────────────────────
 type PageParams = Promise<{ locale: string; slug: string }>;
@@ -426,9 +427,10 @@ export default async function ProfessionalProfilePage({
   // We need: customer row, completed booking with this pro, existing review.
   const { data: { user } } = await supabase.auth.getUser();
 
-  let reviewCustomerId:     string | null = null;
+  let reviewCustomerId:         string | null = null;
   let reviewCompletedBookingId: string | null = null;
   let reviewExisting: { id: string; rating: number; text: string | null; type: string } | null = null;
+  let isFavorited = false;
 
   if (user) {
     // Step 1: get customer row for this user
@@ -441,8 +443,8 @@ export default async function ProfessionalProfilePage({
     if (custRow) {
       reviewCustomerId = custRow.id;
 
-      // Step 2: parallel — completed booking + existing review
-      const [bookingRes, reviewRes] = await Promise.all([
+      // Step 2: parallel — completed booking + existing review + favorite
+      const [bookingRes, reviewRes, favoriteRes] = await Promise.all([
         supabase
           .from("bookings")
           .select("id")
@@ -458,10 +460,17 @@ export default async function ProfessionalProfilePage({
           .eq("customer_id", custRow.id)
           .is("deleted_at", null)
           .maybeSingle(),
+        supabase
+          .from("favorites")
+          .select("id")
+          .eq("professional_id", pro.id)
+          .eq("customer_id", custRow.id)
+          .maybeSingle(),
       ]);
 
       reviewCompletedBookingId = bookingRes.data?.id ?? null;
       reviewExisting = reviewRes.data ?? null;
+      isFavorited = !!favoriteRes.data;
     }
   }
 
@@ -572,11 +581,18 @@ export default async function ProfessionalProfilePage({
             {t("back")}
           </Link>
 
-          {/* Share button (client) */}
-          <ShareButton
-            proName={name}
-            categoryEl={catDispName}
-          />
+          {/* Right group: Favorite + Share */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <FavoriteButton
+              professionalId={pro.id}
+              customerId={reviewCustomerId}
+              initialFavorited={isFavorited}
+            />
+            <ShareButton
+              proName={name}
+              categoryEl={catDispName}
+            />
+          </div>
         </div>
       </div>
 
