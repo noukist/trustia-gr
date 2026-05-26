@@ -40,6 +40,8 @@ interface WriteReviewModalProps {
   existingReview:    ExistingReview | null;
   /** If customer has a completed booking, the review becomes 'verified' */
   completedBookingId: string | null;
+  /** Invite code from ?invite= URL param — makes the review type='invitation' */
+  inviteCode?: string | null;
   onClose:   () => void;
   onSuccess: () => void;
 }
@@ -102,6 +104,7 @@ export default function WriteReviewModal({
   customerId,
   existingReview,
   completedBookingId,
+  inviteCode = null,
   onClose,
   onSuccess,
 }: WriteReviewModalProps) {
@@ -141,10 +144,25 @@ export default function WriteReviewModal({
     }
 
     setStatus("saving");
-    const supabase  = createClient();
-    const isVerified = !!completedBookingId;
-    const type      = isVerified ? "verified" : "user";
-    const weight    = isVerified ? 2.0 : 0.5;
+    const supabase = createClient();
+
+    // ── Determine review type + weight ──────────────────────
+    // Priority: verified (completed booking) > invitation > user
+    const isVerified   = !!completedBookingId;
+    const isInvitation = !isVerified && !!inviteCode;
+    const type   = isVerified ? "verified" : isInvitation ? "invitation" : "user";
+    const weight = isVerified ? 2.0       : isInvitation ? 1.0          : 0.5;
+
+    // Resolve invitation_id from the invite code (needed for FK)
+    let invitationId: string | null = null;
+    if (isInvitation && inviteCode) {
+      const { data: inv } = await supabase
+        .from("review_invitations")
+        .select("id")
+        .eq("code", inviteCode)
+        .maybeSingle();
+      invitationId = inv?.id ?? null;
+    }
 
     let error: { message: string } | null = null;
 
@@ -154,8 +172,8 @@ export default function WriteReviewModal({
         .from("reviews")
         .update({
           rating,
-          text:      text.trim() || null,
-          edited_at: new Date().toISOString(),
+          text:       text.trim() || null,
+          edited_at:  new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
         .eq("id", existingReview.id));
@@ -167,12 +185,16 @@ export default function WriteReviewModal({
           professional_id: professionalId,
           customer_id:     customerId,
           booking_id:      completedBookingId ?? null,
+          invitation_id:   invitationId,
           rating,
           text:            text.trim() || null,
           type,
           weight,
           status:          "active",
         }));
+
+      // Note: used_count increment requires a SECURITY DEFINER RPC
+      // (customer doesn't own the invitation row). Tracked as future migration.
     }
 
     if (error) {

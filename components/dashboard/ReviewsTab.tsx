@@ -21,6 +21,7 @@
 
 import { createClient }              from "@/lib/supabase/server";
 import { getLocale, getTranslations } from "next-intl/server";
+import InviteLinksManager             from "@/components/dashboard/InviteLinksManager";
 
 // ── DB row type ───────────────────────────────────────────────
 
@@ -76,8 +77,10 @@ function Stars({
 
 export default async function ReviewsTab({
   professionalId,
+  proSlug,
 }: {
   professionalId: string;
+  proSlug:        string | null;
 }) {
   const locale   = await getLocale();
   const t        = await getTranslations({ locale, namespace: "dashboard.reviews" });
@@ -105,29 +108,35 @@ export default async function ReviewsTab({
 
   if (rows.length === 0) {
     return (
-      <div
-        style={{
-          backgroundColor: "#ffffff",
-          border:          "1.5px solid var(--color-border)",
-          borderRadius:    "14px",
-          padding:         "1.5rem",
-        }}
-      >
-        <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
-          <p style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>⭐</p>
-          <h2
-            style={{
-              fontSize:     "1.125rem",
-              fontWeight:   700,
-              color:        "var(--color-text)",
-              marginBottom: "0.5rem",
-            }}
-          >
-            {t("empty")}
-          </h2>
-          <p style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", margin: 0 }}>
-            {t("emptyHint")}
-          </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        {/* Invite links manager always visible so pros can generate links
+            even before they have any reviews */}
+        <InviteLinksManager professionalId={professionalId} proSlug={proSlug} />
+
+        <div
+          style={{
+            backgroundColor: "#ffffff",
+            border:          "1.5px solid var(--color-border)",
+            borderRadius:    "14px",
+            padding:         "1.5rem",
+          }}
+        >
+          <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
+            <p style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>⭐</p>
+            <h2
+              style={{
+                fontSize:     "1.125rem",
+                fontWeight:   700,
+                color:        "var(--color-text)",
+                marginBottom: "0.5rem",
+              }}
+            >
+              {t("empty")}
+            </h2>
+            <p style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", margin: 0 }}>
+              {t("emptyHint")}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -151,6 +160,9 @@ export default async function ReviewsTab({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+
+      {/* ── Invite links manager ── */}
+      <InviteLinksManager professionalId={professionalId} proSlug={proSlug} />
 
       {/* ── Summary card ── */}
       <div

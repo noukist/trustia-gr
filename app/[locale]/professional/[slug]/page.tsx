@@ -39,8 +39,9 @@ import ProfileViewTracker                      from "@/components/professional/P
 import ReviewActions                           from "@/components/reviews/ReviewActions";
 import FavoriteButton                         from "@/components/professional/FavoriteButton";
 
-// ── Next.js 16: params is a Promise ──────────────────────────
-type PageParams = Promise<{ locale: string; slug: string }>;
+// ── Next.js 16: params and searchParams are Promises ─────────
+type PageParams       = Promise<{ locale: string; slug: string }>;
+type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 // ── DB row types ──────────────────────────────────────────────
 
@@ -355,10 +356,19 @@ export async function generateMetadata({
 // =============================================================
 export default async function ProfessionalProfilePage({
   params,
+  searchParams,
 }: {
-  params: PageParams;
+  params:       PageParams;
+  searchParams: PageSearchParams;
 }) {
   const { locale, slug } = await params;
+  const sp = await searchParams;
+
+  // ── Read invite code from ?invite= URL param ─────────────
+  // Passed down to ReviewActions so WriteReviewModal opens automatically
+  // and pre-sets the review type to 'invitation' (weight 1.0).
+  const inviteCode = (Array.isArray(sp["invite"]) ? sp["invite"][0] : sp["invite"]) || null;
+
   setRequestLocale(locale);
   const supabase  = await createClient();
 
@@ -1057,6 +1067,7 @@ export default async function ProfessionalProfilePage({
                     customerId={reviewCustomerId}
                     existingReview={reviewExisting}
                     completedBookingId={reviewCompletedBookingId}
+                    inviteCode={inviteCode}
                   />
                 </div>
               ) : (
@@ -1136,6 +1147,7 @@ export default async function ProfessionalProfilePage({
                       customerId={reviewCustomerId}
                       existingReview={reviewExisting}
                       completedBookingId={reviewCompletedBookingId}
+                      inviteCode={inviteCode}
                     />
                   </div>
                 </div>

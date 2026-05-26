@@ -1161,7 +1161,7 @@ export default async function DashboardPage({
         ) : tab === "bookings" ? (
           <BookingsTab professionalId={pro.id} />
         ) : tab === "reviews" ? (
-          <ReviewsTab professionalId={pro.id} />
+          <ReviewsTab professionalId={pro.id} proSlug={pro.slug} />
         ) : tab === "availability" ? (
           <AvailabilityEditor professionalId={pro.id} />
         ) : (

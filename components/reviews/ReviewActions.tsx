@@ -35,6 +35,8 @@ interface ReviewActionsProps {
   customerId:         string | null;
   existingReview:     ExistingReview | null;
   completedBookingId: string | null;
+  /** Invite code from ?invite= URL param — pre-sets modal to invitation type */
+  inviteCode?:        string | null;
 }
 
 // ── Component ─────────────────────────────────────────────────
@@ -46,11 +48,15 @@ export default function ReviewActions({
   customerId,
   existingReview,
   completedBookingId,
+  inviteCode = null,
 }: ReviewActionsProps) {
   const t      = useTranslations("profile");
   const router = useRouter();
 
-  const [modalOpen, setModalOpen] = useState(false);
+  // Auto-open when arriving via an invite link (and no review written yet)
+  const [modalOpen, setModalOpen] = useState(
+    !!inviteCode && !existingReview && !!customerId,
+  );
 
   // After a successful review write / edit — refresh server data
   function handleSuccess() {
@@ -61,7 +67,7 @@ export default function ReviewActions({
   if (!customerId) {
     return (
       <a
-        href={`/login?next=/professional/${professionalSlug}`}
+        href={`/login?next=/professional/${professionalSlug}${inviteCode ? `?invite=${inviteCode}` : ""}`}
         style={{
           display:         "inline-flex",
           alignItems:      "center",
@@ -96,6 +102,7 @@ export default function ReviewActions({
       <button
         type="button"
         onClick={() => setModalOpen(true)}
+
         style={{
           display:         "inline-flex",
           alignItems:      "center",
@@ -129,6 +136,7 @@ export default function ReviewActions({
           customerId={customerId}
           existingReview={existingReview}
           completedBookingId={completedBookingId}
+          inviteCode={inviteCode}
           onClose={() => setModalOpen(false)}
           onSuccess={handleSuccess}
         />

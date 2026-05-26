@@ -894,5 +894,10 @@
     "remove": "Remove from saved",
     "save": "Save",
     "unsave": "Remove from saved"
+  },
+  "invite": {
+    "invalidTitle": "Link unavailable",
+    "invalidHint": "This invitation link has expired, reached its usage limit, or is no longer valid. Ask the professional to send you a new link.",
+    "goHome": "Go to homepage"
   }
 }
