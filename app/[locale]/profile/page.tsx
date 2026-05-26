@@ -8,19 +8,25 @@
 //   2. Session + professional   → redirect /[locale]/dashboard  (pros have their own page)
 //   3. Session + customer only  → render profile editor
 //
-// DATA FETCHED
-//   - auth user (id, email, user_metadata for OAuth name/avatar)
-//   - customers row (may be null for brand-new OAuth users)
+// SECTIONS
+//   • Avatar header card
+//   • Stats strip: total bookings + member-since date
+//   • My Bookings shortcut card
+//   • Personal info form + Change Password (CustomerProfileForm)
 //
-// The interactive parts (form fields, save button) are handled
-// by the CustomerProfileForm client component.
+// DATA FETCHED
+//   - auth user (id, email, created_at, user_metadata for OAuth name/avatar)
+//   - customers row (may be null for brand-new OAuth users)
+//   - bookings count (0 if no customer row yet)
 // =============================================================
 
 import type { Metadata }                     from "next";
 import { redirect }                          from "next/navigation";
+import { Link }                              from "@/i18n/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { createClient }                      from "@/lib/supabase/server";
 import CustomerProfileForm                   from "@/components/profile/CustomerProfileForm";
+import { CalendarDays }                      from "lucide-react";
 
 // Dynamic metadata — layout template appends "| Trustia.gr"
 export async function generateMetadata({ params }: { params: PageParams }): Promise<Metadata> {
@@ -66,11 +72,19 @@ export default async function ProfilePage({
   // ── 3. Fetch customer row (may be null for new OAuth users) ──
   const { data: customer } = await supabase
     .from("customers")
-    .select("id, display_name, phone, email, avatar_url, marketing_consent")
+    .select("id, display_name, phone, email, avatar_url, marketing_consent, created_at")
     .eq("user_id", user.id)
     .maybeSingle();
 
-  // Derive display values — prefer DB row, fall back to OAuth metadata
+  // ── 4. Fetch bookings count (0 if no customer row yet) ───────
+  const { count: bookingsCount } = customer
+    ? await supabase
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .eq("customer_id", customer.id)
+    : { count: 0 };
+
+  // ── Derived values ────────────────────────────────────────────
   const displayName      = customer?.display_name ?? (user.user_metadata?.full_name as string) ?? "";
   const phone            = customer?.phone ?? "";
   const email            = customer?.email ?? user.email ?? "";
@@ -90,6 +104,13 @@ export default async function ProfilePage({
         .toUpperCase()
         .slice(0, 2)
     : email.charAt(0).toUpperCase();
+
+  // Member since date — use customer row date, fall back to auth user date
+  const memberSinceISO = customer?.created_at ?? user.created_at;
+  const memberSinceLabel = new Date(memberSinceISO).toLocaleDateString(
+    locale === "en" ? "en-GB" : "el-GR",
+    { day: "numeric", month: "long", year: "numeric" },
+  );
 
   // ── Render ────────────────────────────────────────────────────
 
@@ -128,7 +149,7 @@ export default async function ProfilePage({
             border:          "1.5px solid var(--color-border)",
             borderRadius:    "16px",
             padding:         "1.5rem",
-            marginBottom:    "1.25rem",
+            marginBottom:    "1rem",
             display:         "flex",
             alignItems:      "center",
             gap:             "1.25rem",
@@ -182,7 +203,132 @@ export default async function ProfilePage({
           </div>
         </div>
 
-        {/* ── Editable form (Client Component) ── */}
+        {/* ── Stats strip ── */}
+        <div
+          style={{
+            display:         "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap:             "0.75rem",
+            marginBottom:    "1rem",
+          }}
+        >
+          {/* Bookings count */}
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              border:          "1.5px solid var(--color-border)",
+              borderRadius:    "14px",
+              padding:         "1rem 1.25rem",
+            }}
+          >
+            <p
+              style={{
+                fontSize:   "1.875rem",
+                fontWeight: 800,
+                color:      "var(--color-primary)",
+                margin:     "0 0 0.125rem",
+                lineHeight: 1,
+              }}
+            >
+              {bookingsCount ?? 0}
+            </p>
+            <p
+              style={{
+                fontSize:  "0.8125rem",
+                color:     "var(--color-text-muted)",
+                margin:    0,
+                fontWeight: 500,
+              }}
+            >
+              {t("statBookings")}
+            </p>
+          </div>
+
+          {/* Member since */}
+          <div
+            style={{
+              backgroundColor: "#ffffff",
+              border:          "1.5px solid var(--color-border)",
+              borderRadius:    "14px",
+              padding:         "1rem 1.25rem",
+            }}
+          >
+            <p
+              style={{
+                fontSize:   "0.8rem",
+                fontWeight: 800,
+                color:      "var(--color-text)",
+                margin:     "0 0 0.125rem",
+                lineHeight: 1.3,
+              }}
+            >
+              {memberSinceLabel}
+            </p>
+            <p
+              style={{
+                fontSize:  "0.8125rem",
+                color:     "var(--color-text-muted)",
+                margin:    0,
+                fontWeight: 500,
+              }}
+            >
+              {t("statMemberSince")}
+            </p>
+          </div>
+        </div>
+
+        {/* ── My Bookings shortcut card ── */}
+        <Link
+          href="/my-bookings"
+          style={{
+            display:         "flex",
+            alignItems:      "center",
+            justifyContent:  "space-between",
+            backgroundColor: "#ffffff",
+            border:          "1.5px solid var(--color-border)",
+            borderRadius:    "14px",
+            padding:         "1rem 1.25rem",
+            marginBottom:    "1.25rem",
+            textDecoration:  "none",
+            color:           "var(--color-text)",
+            transition:      "border-color 0.15s, box-shadow 0.15s",
+          }}
+          // @ts-ignore — inline hover not typed on Link but works fine
+          onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => {
+            e.currentTarget.style.borderColor = "var(--color-primary)";
+            e.currentTarget.style.boxShadow   = "0 0 0 3px var(--color-primary-bg)";
+          }}
+          onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => {
+            e.currentTarget.style.borderColor = "var(--color-border)";
+            e.currentTarget.style.boxShadow   = "none";
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <div
+              style={{
+                width:           "38px",
+                height:          "38px",
+                borderRadius:    "10px",
+                backgroundColor: "var(--color-primary-bg)",
+                display:         "flex",
+                alignItems:      "center",
+                justifyContent:  "center",
+                flexShrink:      0,
+              }}
+            >
+              <CalendarDays size={18} style={{ color: "var(--color-primary)" }} />
+            </div>
+            <span style={{ fontWeight: 600, fontSize: "0.9375rem" }}>
+              {t("viewBookings")}
+            </span>
+          </div>
+          {/* Arrow indicator */}
+          <span style={{ color: "var(--color-primary)", fontSize: "1.1rem", fontWeight: 700 }}>
+            →
+          </span>
+        </Link>
+
+        {/* ── Editable form + change password (Client Component) ── */}
         <CustomerProfileForm
           userId={user.id}
           customerId={customer?.id ?? null}

@@ -52,11 +52,18 @@ export default function CustomerProfileForm({
 }: CustomerProfileFormProps) {
   const t = useTranslations("myProfile");
 
-  // Controlled field state
+  // ── Personal info state ───────────────────────────────────
   const [displayName, setDisplayName]           = useState(initialDisplayName);
   const [phone, setPhone]                       = useState(initialPhone);
   const [marketingConsent, setMarketingConsent] = useState(initialMarketingConsent);
   const [status, setStatus]                     = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  // ── Password change state (non-OAuth only) ────────────────
+  const [newPassword,     setNewPassword]     = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwStatus, setPwStatus]               = useState<
+    "idle" | "saving" | "saved" | "error" | "mismatch" | "tooshort"
+  >("idle");
 
   // ── Save handler ──────────────────────────────────────────
 
@@ -99,6 +106,33 @@ export default function CustomerProfileForm({
     }
   }
 
+  // ── Change password handler ───────────────────────────────
+  async function handleChangePassword() {
+    // Client-side validation first
+    if (newPassword.length < 8) {
+      setPwStatus("tooshort");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwStatus("mismatch");
+      return;
+    }
+
+    setPwStatus("saving");
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+    if (error) {
+      console.error("[CustomerProfileForm] password change error:", error.message);
+      setPwStatus("error");
+    } else {
+      setPwStatus("saved");
+      setNewPassword("");
+      setConfirmPassword("");
+      setTimeout(() => setPwStatus("idle"), 4000);
+    }
+  }
+
   // ── Shared styles ─────────────────────────────────────────
 
   const inputStyle: React.CSSProperties = {
@@ -125,12 +159,14 @@ export default function CustomerProfileForm({
   // ── Render ────────────────────────────────────────────────
 
   return (
+    <>
     <div
       style={{
         backgroundColor: "#ffffff",
         border: "1.5px solid var(--color-border)",
         borderRadius: "16px",
         padding: "1.5rem",
+        marginBottom: isOAuth ? undefined : "1.25rem",
       }}
     >
       {/* Section heading */}
@@ -277,5 +313,115 @@ export default function CustomerProfileForm({
 
       </div>
     </div>
+
+    {/* ── Change Password card (hidden for OAuth users) ── */}
+    {!isOAuth && (
+      <div
+        style={{
+          backgroundColor: "#ffffff",
+          border: "1.5px solid var(--color-border)",
+          borderRadius: "16px",
+          padding: "1.5rem",
+        }}
+      >
+        <h2
+          style={{
+            fontSize: "1rem",
+            fontWeight: 700,
+            color: "var(--color-text)",
+            margin: "0 0 1.5rem",
+          }}
+        >
+          {t("passwordSection")}
+        </h2>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+
+          {/* New password */}
+          <div>
+            <label style={labelStyle}>{t("newPasswordLabel")}</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => { setNewPassword(e.target.value); setPwStatus("idle"); }}
+              style={inputStyle}
+              autoComplete="new-password"
+              disabled={pwStatus === "saving"}
+            />
+          </div>
+
+          {/* Confirm password */}
+          <div>
+            <label style={labelStyle}>{t("confirmPasswordLabel")}</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => { setConfirmPassword(e.target.value); setPwStatus("idle"); }}
+              style={inputStyle}
+              autoComplete="new-password"
+              disabled={pwStatus === "saving"}
+            />
+            {/* Validation hints shown inline below confirm field */}
+            {pwStatus === "mismatch" && (
+              <p style={{ fontSize: "0.8rem", color: "#DC2626", margin: "0.375rem 0 0" }}>
+                {t("passwordMismatch")}
+              </p>
+            )}
+            {pwStatus === "tooshort" && (
+              <p style={{ fontSize: "0.8rem", color: "#DC2626", margin: "0.375rem 0 0" }}>
+                {t("passwordTooShort")}
+              </p>
+            )}
+          </div>
+
+          {/* Save password row */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "1rem",
+              paddingTop: "0.75rem",
+              borderTop: "1px solid var(--color-border)",
+            }}
+          >
+            <button
+              onClick={handleChangePassword}
+              disabled={pwStatus === "saving" || !newPassword}
+              style={{
+                padding: "0.625rem 1.5rem",
+                backgroundColor:
+                  pwStatus === "saving" || !newPassword
+                    ? "var(--color-border)"
+                    : "var(--color-primary)",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "8px",
+                fontSize: "0.9rem",
+                fontWeight: 700,
+                fontFamily: "inherit",
+                cursor: pwStatus === "saving" || !newPassword ? "default" : "pointer",
+                transition: "background-color 0.15s ease",
+              }}
+            >
+              {pwStatus === "saving" ? t("changingPassword") : t("changePasswordBtn")}
+            </button>
+
+            {/* Inline feedback */}
+            {pwStatus === "saved" && (
+              <span style={{ fontSize: "0.875rem", color: "#059669", fontWeight: 600 }}>
+                {t("passwordChanged")}
+              </span>
+            )}
+            {pwStatus === "error" && (
+              <span style={{ fontSize: "0.875rem", color: "#DC2626", fontWeight: 600 }}>
+                {t("passwordError")}
+              </span>
+            )}
+          </div>
+
+        </div>
+      </div>
+    )}
+    </>
   );
 }

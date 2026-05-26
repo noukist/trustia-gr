@@ -795,7 +795,19 @@
     "saveBtn": "Αποθήκευση Αλλαγών",
     "saving": "Αποθήκευση…",
     "saved": "✓ Αποθηκεύτηκε!",
-    "saveError": "Σφάλμα κατά την αποθήκευση. Δοκιμάστε ξανά."
+    "saveError": "Σφάλμα κατά την αποθήκευση. Δοκιμάστε ξανά.",
+    "passwordSection": "Αλλαγή Κωδικού",
+    "newPasswordLabel": "Νέος Κωδικός",
+    "confirmPasswordLabel": "Επιβεβαίωση Νέου Κωδικού",
+    "changePasswordBtn": "Αλλαγή Κωδικού",
+    "changingPassword": "Αλλαγή…",
+    "passwordChanged": "✓ Κωδικός άλλαξε!",
+    "passwordError": "Σφάλμα. Δοκιμάστε ξανά.",
+    "passwordMismatch": "Οι κωδικοί δεν ταιριάζουν.",
+    "passwordTooShort": "Τουλάχιστον 8 χαρακτήρες.",
+    "statBookings": "Κρατήσεις",
+    "statMemberSince": "Μέλος από",
+    "viewBookings": "Δες τις κρατήσεις σου →"
   },
 
   "admin": {

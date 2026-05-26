@@ -795,7 +795,19 @@
     "saveBtn": "Save Changes",
     "saving": "Saving…",
     "saved": "✓ Saved!",
-    "saveError": "Error saving. Please try again."
+    "saveError": "Error saving. Please try again.",
+    "passwordSection": "Change Password",
+    "newPasswordLabel": "New Password",
+    "confirmPasswordLabel": "Confirm New Password",
+    "changePasswordBtn": "Change Password",
+    "changingPassword": "Changing…",
+    "passwordChanged": "✓ Password changed!",
+    "passwordError": "Error. Please try again.",
+    "passwordMismatch": "Passwords don't match.",
+    "passwordTooShort": "At least 8 characters.",
+    "statBookings": "Bookings",
+    "statMemberSince": "Member since",
+    "viewBookings": "View your bookings →"
   },
 
   "admin": {
