@@ -26,6 +26,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter }        from "@/i18n/navigation";
+import { useSearchParams }  from "next/navigation";
 import {
   ChevronRight, ChevronLeft,
   Check, Phone, CalendarDays, CalendarRange,
@@ -828,8 +829,12 @@ function ThankYouOther() {
 // MAIN COMPONENT
 // =============================================================
 export default function ProfessionalRegistrationPage() {
-  const router   = useRouter();
-  const supabase = createClient();
+  const router       = useRouter();
+  const supabase     = createClient();
+  const searchParams = useSearchParams();
+
+  // ?ref= captures the referrer's slug so we can record the referral after sign-up
+  const refSlug = searchParams.get("ref");
 
   const [step,         setStep]         = useState(1);
   const [data,         setData]         = useState<WizardData>(INITIAL_DATA);
@@ -979,7 +984,19 @@ export default function ProfessionalRegistrationPage() {
 
       if (subError) throw subError;
 
-      // 5. Success → redirect to dashboard
+      // 5. Claim referral if the user arrived via ?ref=SLUG
+      // Non-fatal: if the referral RPC fails we still redirect to dashboard.
+      if (refSlug) {
+        const { error: refError } = await supabase.rpc("claim_referral", {
+          ref_slug:   refSlug,
+          new_pro_id: professional.id,
+        });
+        if (refError) {
+          console.warn("[register] claim_referral error:", refError.message);
+        }
+      }
+
+      // 6. Success → redirect to dashboard
       router.push("/dashboard?welcome=1");
     } catch (err: unknown) {
       const message =

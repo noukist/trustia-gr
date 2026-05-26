@@ -26,6 +26,7 @@ import {
   CreditCard,
   Clock,
   Building2,
+  Share2,
   ExternalLink,
   LogOut,
 } from "lucide-react";
@@ -76,6 +77,13 @@ function buildNavItems(bookingMode: "contact" | "date" | "full"): NavItem[] {
       labelEl:     "Επιχείρηση",
       shortEl:     "Επιχ.",
       icon:        Building2,
+      placeholder: false,
+    },
+    {
+      id:          "referrals",
+      labelEl:     "Παραπομπές",
+      shortEl:     "Παραπ.",
+      icon:        Share2,
       placeholder: false,
     },
     {
