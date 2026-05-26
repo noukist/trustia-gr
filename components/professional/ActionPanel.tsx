@@ -33,8 +33,11 @@ import { useState }         from "react";
 import { Phone, Calendar, Copy, Check, X } from "lucide-react";
 import { useTranslations }   from "next-intl";
 import { createClient }      from "@/lib/supabase/client";
-import LoginPromptModal      from "@/components/ui/LoginPromptModal";
-import DateBookingForm       from "@/components/professional/DateBookingForm";
+import LoginPromptModal           from "@/components/ui/LoginPromptModal";
+import DateBookingForm            from "@/components/professional/DateBookingForm";
+import FullCalendarBookingForm, {
+  type ServiceItem,
+}                                 from "@/components/professional/FullCalendarBookingForm";
 
 // ── Props ──────────────────────────────────────────────────────
 interface ActionPanelProps {
@@ -43,6 +46,8 @@ interface ActionPanelProps {
   bookingMode:    "contact" | "date" | "full";
   bookingEnabled: boolean;
   proName:        string;
+  /** Service catalog — passed through to FullCalendarBookingForm */
+  services?:      ServiceItem[];
 }
 
 // ── Booking placeholder ──────────────────────────────────────
@@ -137,6 +142,7 @@ export default function ActionPanel({
   bookingMode,
   bookingEnabled,
   proName,
+  services = [],
 }: ActionPanelProps) {
   const t = useTranslations("profile");
 
@@ -474,10 +480,12 @@ export default function ActionPanel({
           onClose={() => setModal(null)}
         />
       )}
-      {/* Full calendar — placeholder until Phase 2 */}
+      {/* Full calendar booking form */}
       {modal === "booking" && bookingMode === "full" && (
-        <BookingPlaceholder
-          mode="full"
+        <FullCalendarBookingForm
+          professionalId={professionalId}
+          proName={proName}
+          services={services}
           onClose={() => setModal(null)}
         />
       )}

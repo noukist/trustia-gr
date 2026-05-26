@@ -1139,6 +1139,7 @@ export default async function ProfessionalProfilePage({
               bookingMode={pro.booking_mode}
               bookingEnabled={pro.booking_enabled}
               proName={name}
+              services={services}
             />
           </div>
         </div>
