@@ -34,7 +34,7 @@ export default async function RootLayout({
   const locale = headersList.get("x-next-intl-locale") ?? "el";
 
   return (
-    <html lang={locale} className={dmSans.variable}>
+    <html lang={locale} className={dmSans.variable} data-scroll-behavior="smooth">
       <body className={`${dmSans.className} antialiased`}>
         {children}
       </body>
