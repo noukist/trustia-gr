@@ -691,7 +691,7 @@ export default async function ProfessionalProfilePage({
                 </span>
               )}
 
-              {/* Vacation notice */}
+              {/* Vacation notice — shows badge + "Returns DD/MM" when vacation_end is set */}
               {onVacation && (
                 <span
                   style={{
@@ -708,6 +708,16 @@ export default async function ProfessionalProfilePage({
                   }}
                 >
                   {t("onVacationBadge")}
+                  {pro.vacation_end && (
+                    <>
+                      {" · "}
+                      {t("onVacationUntil")}{" "}
+                      {new Date(pro.vacation_end).toLocaleDateString(
+                        locale === "en" ? "en-GB" : "el-GR",
+                        { day: "numeric", month: "short" },
+                      )}
+                    </>
+                  )}
                 </span>
               )}
 
