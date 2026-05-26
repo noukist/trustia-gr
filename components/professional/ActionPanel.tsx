@@ -37,6 +37,7 @@ import LoginPromptModal      from "@/components/ui/LoginPromptModal";
 
 // ── Props ──────────────────────────────────────────────────────
 interface ActionPanelProps {
+  professionalId: string;          // needed for phone-reveal tracking
   phone:          string;
   bookingMode:    "contact" | "date" | "full";
   bookingEnabled: boolean;
@@ -130,6 +131,7 @@ function BookingPlaceholder({
 
 // ── Main component ────────────────────────────────────────────
 export default function ActionPanel({
+  professionalId,
   phone,
   bookingMode,
   bookingEnabled,
@@ -157,6 +159,15 @@ export default function ActionPanel({
       return;
     }
     setPhoneState("revealed");
+
+    // Fire-and-forget: increment phone_reveals counter via SECURITY DEFINER RPC.
+    // Non-fatal — UI is never blocked by this call.
+    const supabase = createClient();
+    supabase
+      .rpc("increment_phone_reveal", { prof_id: professionalId })
+      .then(({ error }) => {
+        if (error) console.warn("[ActionPanel] phone reveal track:", error.message);
+      });
   }
 
   async function handleBookClick() {

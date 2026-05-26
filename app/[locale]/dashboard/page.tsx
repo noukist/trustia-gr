@@ -73,6 +73,8 @@ interface DbProfessional {
   booking_mode:    "contact" | "date" | "full";
   rating:          number;
   review_count:    number;
+  profile_views:   number;   // lifetime profile page views (browser-only)
+  phone_reveals:   number;   // lifetime phone-reveal clicks by logged-in users
   profile_complete:boolean;
   status:          string;
   created_at:      string;
@@ -255,10 +257,12 @@ function OverviewTab({
   pro,
   sub,
   showWelcome,
+  bookingsCount,
 }: {
-  pro:         DbProfessional;
-  sub:         DbSubscription | null;
-  showWelcome: boolean;
+  pro:           DbProfessional;
+  sub:           DbSubscription | null;
+  showWelcome:   boolean;
+  bookingsCount: number;
 }) {
   const t          = useTranslations("dashboard");
   const cat        = CATEGORIES.find((c) => c.id === pro.category_id);
@@ -343,10 +347,10 @@ function OverviewTab({
           gap:                 "0.875rem",
         }}
       >
-        <StatCard icon={Eye}      label={t("overview.stats.views")}    value={0}                sub={t("overview.stats.last30Days")} />
-        <StatCard icon={Phone}    label={t("overview.stats.calls")}    value={0}                sub={t("overview.stats.last30Days")} />
-        <StatCard icon={Calendar} label={t("overview.stats.bookings")} value={0}                sub={t("overview.stats.total")} />
-        <StatCard icon={Star}     label={t("overview.stats.rating")}   value={pro.review_count} sub={pro.rating > 0 ? `★ ${pro.rating.toFixed(1)}` : "—"} />
+        <StatCard icon={Eye}      label={t("overview.stats.views")}    value={pro.profile_views}  sub={t("overview.stats.total")} />
+        <StatCard icon={Phone}    label={t("overview.stats.calls")}    value={pro.phone_reveals}  sub={t("overview.stats.total")} />
+        <StatCard icon={Calendar} label={t("overview.stats.bookings")} value={bookingsCount}      sub={t("overview.stats.total")} />
+        <StatCard icon={Star}     label={t("overview.stats.rating")}   value={pro.review_count}   sub={pro.rating > 0 ? `★ ${pro.rating.toFixed(1)}` : "—"} />
       </div>
 
       {/* ── Profile completion ── */}
@@ -1024,7 +1028,7 @@ export default async function DashboardPage({
     .select(
       "id, slug, first_name, last_name, phone, email, avatar_url, " +
       "category_id, tier, city, lat, lng, bio, price_text, booking_mode, " +
-      "rating, review_count, profile_complete, status, created_at",
+      "rating, review_count, profile_views, phone_reveals, profile_complete, status, created_at",
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -1033,6 +1037,12 @@ export default async function DashboardPage({
   if (!proRaw) redirect(locale === "en" ? "/en" : "/");
 
   const pro = proRaw as unknown as DbProfessional;
+
+  // ── Bookings count (queried directly — always accurate) ───
+  const { count: bookingsCount } = await supabase
+    .from("bookings")
+    .select("id", { count: "exact", head: true })
+    .eq("professional_id", pro.id);
 
   // ── Fetch latest subscription ─────────────────────────────
   const { data: subRaw } = await supabase
@@ -1145,7 +1155,7 @@ export default async function DashboardPage({
         ) : tab === "reviews" ? (
           <ReviewsTab professionalId={pro.id} />
         ) : (
-          <OverviewTab pro={pro} sub={sub} showWelcome={showWelcome} />
+          <OverviewTab pro={pro} sub={sub} showWelcome={showWelcome} bookingsCount={bookingsCount ?? 0} />
         )}
       </main>
     </div>

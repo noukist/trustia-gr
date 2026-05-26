@@ -35,6 +35,7 @@ import { useTranslations, useLocale }          from "next-intl";
 import { CATEGORIES }                          from "@/lib/constants";
 import ActionPanel                             from "@/components/professional/ActionPanel";
 import ShareButton                             from "@/components/professional/ShareButton";
+import ProfileViewTracker                      from "@/components/professional/ProfileViewTracker";
 
 // ── Next.js 16: params is a Promise ──────────────────────────
 type PageParams = Promise<{ locale: string; slug: string }>;
@@ -489,6 +490,8 @@ export default async function ProfessionalProfilePage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      {/* ── Profile view tracker (client-only, renders null) ── */}
+      <ProfileViewTracker professionalId={pro.id} />
       {/* ── Topbar: Back + Share ── */}
       <div
         style={{
@@ -1092,6 +1095,7 @@ export default async function ProfessionalProfilePage({
             style={{ width: "300px", flexShrink: 0 }}
           >
             <ActionPanel
+              professionalId={pro.id}
               phone={pro.phone}
               bookingMode={pro.booking_mode}
               bookingEnabled={pro.booking_enabled}
@@ -1103,6 +1107,7 @@ export default async function ProfessionalProfilePage({
         {/* ── Mobile ActionPanel (fixed bottom bar, hidden on desktop) ── */}
         <div className="md:hidden">
           <ActionPanel
+            professionalId={pro.id}
             phone={pro.phone}
             bookingMode={pro.booking_mode}
             bookingEnabled={pro.booking_enabled}
