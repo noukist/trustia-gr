@@ -895,6 +895,15 @@
     "save": "Save",
     "unsave": "Remove from saved"
   },
+  "business": {
+    "backToProfile": "← Profile",
+    "about":         "About us",
+    "team":          "Our team",
+    "portfolio":     "Portfolio",
+    "bookNow":       "Book now",
+    "ctaTitle":      "Book with {name}",
+    "ctaSub":        "Verified professional on Trustia.gr"
+  },
   "invite": {
     "invalidTitle": "Link unavailable",
     "invalidHint": "This invitation link has expired, reached its usage limit, or is no longer valid. Ask the professional to send you a new link.",
