@@ -75,9 +75,11 @@ interface DbProfessional {
   review_count:    number;
   profile_views:   number;   // lifetime profile page views (browser-only)
   phone_reveals:   number;   // lifetime phone-reveal clicks by logged-in users
-  profile_complete:boolean;
-  status:          string;
-  created_at:      string;
+  profile_complete: boolean;
+  status:           string;
+  created_at:       string;
+  vacation_start:   string | null;
+  vacation_end:     string | null;
 }
 
 interface DbSubscription {
@@ -1028,7 +1030,8 @@ export default async function DashboardPage({
     .select(
       "id, slug, first_name, last_name, phone, email, avatar_url, " +
       "category_id, tier, city, lat, lng, bio, price_text, booking_mode, " +
-      "rating, review_count, profile_views, phone_reveals, profile_complete, status, created_at",
+      "rating, review_count, profile_views, phone_reveals, profile_complete, status, created_at, " +
+      "vacation_start, vacation_end",
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -1140,8 +1143,10 @@ export default async function DashboardPage({
                 lng:             pro.lng,
                 bio:             pro.bio,
                 price_text:      pro.price_text,
-                booking_mode:    pro.booking_mode,
+                booking_mode:     pro.booking_mode,
                 profile_complete: pro.profile_complete,
+                vacation_start:   pro.vacation_start,
+                vacation_end:     pro.vacation_end,
               }}
               isOAuthAccount={isOAuthAccount}
             />

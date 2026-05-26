@@ -638,28 +638,55 @@ export default async function ServicesPage({
     return (Array.isArray(v) ? v[0] : v) ?? "";
   }
 
-  const categoryId = str("category");
-  const location   = str("location");
-  const latRaw     = str("lat");
-  const lngRaw     = str("lng");
-  const minRating  = str("rating");
-  const modeFilter = str("mode");
+  const categoryId  = str("category");
+  const location    = str("location");
+  const latRaw      = str("lat");
+  const lngRaw      = str("lng");
+  const minRating   = str("rating");
+  const modeFilter  = str("mode");
   const reviewsOnly = str("reviews") === "1";
-  const maxDistRaw = str("distance");
-  const availToday = str("available") === "1";
-  const sortBy     = str("sort") || "reviews";
+  const maxDistRaw  = str("distance");
+  const availToday  = str("available") === "1";
+  const sortBy      = str("sort") || "reviews";
+  /** Free-text service name search (matches name_el OR name_en) */
+  const serviceQ    = str("q").trim();
 
-  const userLat = latRaw ? parseFloat(latRaw) : null;
-  const userLng = lngRaw ? parseFloat(lngRaw) : null;
+  const userLat     = latRaw ? parseFloat(latRaw) : null;
+  const userLng     = lngRaw ? parseFloat(lngRaw) : null;
   const hasLocation = userLat !== null && userLng !== null;
 
   // ── 2. No params → show browse mode ─────────────────────
-  if (!categoryId && !location) {
+  if (!categoryId && !location && !serviceQ) {
     return <BrowseMode />;
   }
 
   // ── 3. Fetch professionals from Supabase ─────────────────
   const supabase = await createClient();
+
+  // When a service-name query is present, first find the professional_ids
+  // that have a matching service (name_el ILIKE %q% OR name_en ILIKE %q%).
+  // We do two separate .ilike() calls and union the IDs in JS because
+  // PostgREST doesn't support OR across different columns in a single call.
+  let serviceMatchIds: string[] | null = null;
+  if (serviceQ) {
+    const [elResult, enResult] = await Promise.all([
+      supabase
+        .from("professional_services")
+        .select("professional_id")
+        .ilike("name_el", `%${serviceQ}%`)
+        .eq("active", true),
+      supabase
+        .from("professional_services")
+        .select("professional_id")
+        .ilike("name_en", `%${serviceQ}%`)
+        .eq("active", true),
+    ]);
+
+    const ids = new Set<string>();
+    for (const row of elResult.data ?? []) ids.add(row.professional_id);
+    for (const row of enResult.data ?? []) ids.add(row.professional_id);
+    serviceMatchIds = [...ids];
+  }
 
   let query = supabase
     .from("professionals")
@@ -675,6 +702,16 @@ export default async function ServicesPage({
   // ── DB-level filters (before TypeScript post-processing) ──
   if (categoryId) {
     query = query.eq("category_id", categoryId);
+  }
+
+  // When a service text search was performed, limit to matching professionals.
+  // An empty array means no professionals have that service name — return nothing.
+  if (serviceMatchIds !== null) {
+    if (serviceMatchIds.length === 0) {
+      query = query.in("id", ["00000000-0000-0000-0000-000000000000"]); // guaranteed empty
+    } else {
+      query = query.in("id", serviceMatchIds);
+    }
   }
 
   if (minRating) {
@@ -867,7 +904,7 @@ export default async function ServicesPage({
         }}
       >
         {/* ── Left: Filter sidebar (client) ── */}
-        <FiltersBar hasLocation={hasLocation} />
+        <FiltersBar hasLocation={hasLocation} serviceQ={serviceQ} />
 
         {/* ── Right: Results ── */}
         <div style={{ flex: 1, minWidth: 0 }}>

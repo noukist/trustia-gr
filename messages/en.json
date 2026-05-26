@@ -127,6 +127,9 @@
     "notifySent": "✓ We'll notify you!",
     "proRecruit": "Are you a",
     "proRecruitLink": "Register →",
+    "searchLabel": "Search service",
+    "searchPlaceholder": "e.g. haircut, cleaning…",
+    "searchClear": "Clear",
     "breadcrumbHome": "Home",
     "breadcrumbServices": "Services",
     "filtersTitle": "Filters",
@@ -284,6 +287,26 @@
       "facebookFailed": "Facebook sign-in failed. Please try again.",
       "resetFailed": "Failed to send email. Check the address and try again.",
       "alreadyRegistered": "An account with this email already exists. Log in or reset your password."
+    },
+    "resetPassword": {
+      "pageTitle": "New Password",
+      "title": "New Password",
+      "subtitle": "Enter your new password below.",
+      "newPasswordLabel": "New password *",
+      "confirmLabel": "Confirm password *",
+      "passwordPlaceholder": "At least 8 characters",
+      "confirmPlaceholder": "Repeat password",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "submit": "Change Password",
+      "back": "← Back to Sign In",
+      "successTitle": "Password changed!",
+      "successDesc": "You can now sign in with your new password.",
+      "successLink": "Sign in →",
+      "errorMinLength": "Password must be at least 8 characters.",
+      "errorMismatch": "Passwords do not match.",
+      "errorGeneric": "Error. Please try again.",
+      "mismatchInline": "Passwords do not match."
     }
   },
 
@@ -521,7 +544,15 @@
       "modeDateDesc": "Customers choose a date, you confirm.",
       "modeFullTitle": "Full Calendar",
       "modeFullDesc": "Service catalog, prices, schedule.",
-      "modeFullNote": "Requires a Business Page"
+      "modeFullNote": "Requires a Business Page",
+      "vacationTitle": "Vacation Mode",
+      "vacationDesc": "While on vacation you won't appear in search results.",
+      "vacationFrom": "From",
+      "vacationTo": "Until",
+      "vacationActive": "🏖️ Currently on vacation",
+      "vacationNone": "No vacation scheduled",
+      "vacationClear": "Clear",
+      "vacationSaveHint": "Press «Save Changes» to apply."
     }
   },
 

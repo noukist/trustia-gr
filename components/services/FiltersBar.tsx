@@ -24,16 +24,18 @@ import React, { useState } from "react";
 import { useRouter, usePathname } from "@/i18n/navigation";
 import { useSearchParams }        from "next/navigation";
 import { useTranslations } from "next-intl";
-import { SlidersHorizontal, X, RotateCcw } from "lucide-react";
+import { SlidersHorizontal, X, RotateCcw, Search } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────
 interface FiltersBarProps {
   /** Whether the user provided a geo-coded location (enables distance filter) */
   hasLocation: boolean;
+  /** Current service-name search query from URL (?q=…) */
+  serviceQ?:   string;
 }
 
 // ── Component ──────────────────────────────────────────────────
-export default function FiltersBar({ hasLocation }: FiltersBarProps) {
+export default function FiltersBar({ hasLocation, serviceQ = "" }: FiltersBarProps) {
   const t           = useTranslations("services");
   const router      = useRouter();
   const pathname    = usePathname();
@@ -65,6 +67,8 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
 
   // Mobile panel open/close state
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Local search input — initialised from the URL prop so it's in sync
+  const [searchDraft, setSearchDraft] = useState(serviceQ);
 
   // ── Read current values from URL ───────────────────────────
   const currentRating   = searchParams.get("rating")    ?? "";
@@ -74,12 +78,14 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
   const currentAvail    = searchParams.get("available") ?? "";
 
   // Count active filters (for badge on mobile button)
+  // Include serviceQ so the badge reflects an active text search too
   const activeCount = [
     currentRating,
     currentMode,
     currentReviews === "1" ? "1" : "",
     currentDistance,
     currentAvail === "1" ? "1" : "",
+    serviceQ,
   ].filter(Boolean).length;
 
   // ── Update a single URL param ──────────────────────────────
@@ -103,13 +109,94 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
       const v = searchParams.get(key);
       if (v) params.set(key, v);
     }
+    setSearchDraft("");
     router.push(`${pathname}?${params.toString()}`);
     setMobileOpen(false);
+  }
+
+  // ── Submit the service-name search ────────────────────────
+  function submitSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const params = new URLSearchParams(searchParams.toString());
+    if (searchDraft.trim()) {
+      params.set("q", searchDraft.trim());
+    } else {
+      params.delete("q");
+    }
+    params.delete("page");
+    router.push(`${pathname}?${params.toString()}`);
   }
 
   // ── Rendered filter controls (shared by sidebar + mobile panel)
   const filterContent = (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+
+      {/* ── Service name search ── */}
+      <form onSubmit={submitSearch} style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+        <p
+          style={{
+            fontSize:      "0.75rem",
+            fontWeight:    700,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            color:         "var(--color-text-muted)",
+            margin:        0,
+          }}
+        >
+          {t("searchLabel")}
+        </p>
+        <div style={{ position: "relative" }}>
+          <Search
+            size={14}
+            style={{
+              position:     "absolute",
+              left:         "0.625rem",
+              top:          "50%",
+              transform:    "translateY(-50%)",
+              color:        "var(--color-text-muted)",
+              pointerEvents:"none",
+            }}
+          />
+          <input
+            type="search"
+            value={searchDraft}
+            onChange={(e) => setSearchDraft(e.target.value)}
+            placeholder={t("searchPlaceholder")}
+            aria-label={t("searchLabel")}
+            style={{
+              width:        "100%",
+              padding:      "0.5rem 2rem 0.5rem 1.75rem",
+              border:       "1.5px solid var(--color-border)",
+              borderRadius: "8px",
+              fontSize:     "0.8375rem",
+              fontFamily:   "inherit",
+              outline:      "none",
+              boxSizing:    "border-box",
+              color:        "var(--color-text)",
+            }}
+          />
+          {searchDraft && (
+            <button
+              type="button"
+              onClick={() => { setSearchDraft(""); setFilter("q", ""); }}
+              style={{
+                position:  "absolute",
+                right:     "0.5rem",
+                top:       "50%",
+                transform: "translateY(-50%)",
+                background:"none",
+                border:    "none",
+                cursor:    "pointer",
+                padding:   0,
+                color:     "var(--color-text-muted)",
+                display:   "flex",
+              }}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      </form>
 
       {/* ── Rating ── */}
       <FilterGroup label={t("filterRating")}>

@@ -127,6 +127,9 @@
     "notifySent": "✓ Θα σας ειδοποιήσουμε!",
     "proRecruit": "Είσαι",
     "proRecruitLink": "Εγγραφή →",
+    "searchLabel": "Αναζήτηση υπηρεσίας",
+    "searchPlaceholder": "π.χ. κούρεμα, καθαρισμός…",
+    "searchClear": "Καθαρισμός",
     "breadcrumbHome": "Αρχική",
     "breadcrumbServices": "Υπηρεσίες",
     "filtersTitle": "Φίλτρα",
@@ -284,6 +287,26 @@
       "facebookFailed": "Η σύνδεση με Facebook απέτυχε. Δοκίμασε ξανά.",
       "resetFailed": "Αποτυχία αποστολής email. Έλεγξε τη διεύθυνση και δοκίμασε ξανά.",
       "alreadyRegistered": "Υπάρχει ήδη λογαριασμός με αυτό το email. Σύνδεσε ή ανάκτησε τον κωδικό σου."
+    },
+    "resetPassword": {
+      "pageTitle": "Νέος Κωδικός",
+      "title": "Νέος Κωδικός Πρόσβασης",
+      "subtitle": "Εισάγετε τον νέο σας κωδικό παρακάτω.",
+      "newPasswordLabel": "Νέος κωδικός *",
+      "confirmLabel": "Επιβεβαίωση κωδικού *",
+      "passwordPlaceholder": "Τουλάχιστον 8 χαρακτήρες",
+      "confirmPlaceholder": "Επαναλάβετε τον κωδικό",
+      "showPassword": "Εμφάνιση κωδικού",
+      "hidePassword": "Απόκρυψη κωδικού",
+      "submit": "Αλλαγή Κωδικού",
+      "back": "← Πίσω στη Σύνδεση",
+      "successTitle": "Ο κωδικός άλλαξε!",
+      "successDesc": "Μπορείτε τώρα να συνδεθείτε με τον νέο σας κωδικό.",
+      "successLink": "Σύνδεση →",
+      "errorMinLength": "Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες.",
+      "errorMismatch": "Οι κωδικοί δεν ταιριάζουν.",
+      "errorGeneric": "Σφάλμα. Δοκιμάστε ξανά.",
+      "mismatchInline": "Οι κωδικοί δεν ταιριάζουν."
     }
   },
 
@@ -521,7 +544,15 @@
       "modeDateDesc": "Οι πελάτες επιλέγουν ημερομηνία, εσείς επιβεβαιώνετε.",
       "modeFullTitle": "Πλήρες Ημερολόγιο",
       "modeFullDesc": "Κατάλογος υπηρεσιών, τιμές, ωράριο.",
-      "modeFullNote": "Απαιτεί Επιχειρηματική Σελίδα"
+      "modeFullNote": "Απαιτεί Επιχειρηματική Σελίδα",
+      "vacationTitle": "Λειτουργία Διακοπών",
+      "vacationDesc": "Όταν είστε σε διακοπές δεν εμφανίζεστε στα αποτελέσματα αναζήτησης.",
+      "vacationFrom": "Έναρξη",
+      "vacationTo": "Λήξη",
+      "vacationActive": "🏖️ Αυτή τη στιγμή βρίσκεστε σε διακοπές",
+      "vacationNone": "Δεν έχετε ορίσει διακοπές",
+      "vacationClear": "Καθαρισμός",
+      "vacationSaveHint": "Πατήστε «Αποθήκευση Αλλαγών» για να ισχύσει."
     }
   },
 

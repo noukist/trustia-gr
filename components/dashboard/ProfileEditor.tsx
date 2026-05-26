@@ -52,6 +52,9 @@ interface InitialData {
   price_text:       string | null;
   booking_mode:     "contact" | "date" | "full";
   profile_complete: boolean;
+  /** ISO date strings (YYYY-MM-DD) — null when no vacation scheduled */
+  vacation_start:   string | null;
+  vacation_end:     string | null;
 }
 
 interface ProfileEditorProps {
@@ -155,9 +158,12 @@ export default function ProfileEditor({
     city:         initialData.city ?? "",
     lat:          initialData.lat,
     lng:          initialData.lng,
-    bio:          initialData.bio ?? "",
-    price_text:   initialData.price_text ?? "",
-    booking_mode: initialData.booking_mode,
+    bio:            initialData.bio ?? "",
+    price_text:     initialData.price_text ?? "",
+    booking_mode:   initialData.booking_mode,
+    // Vacation: stored as YYYY-MM-DD in DB; empty string = not set
+    vacation_start: initialData.vacation_start ?? "",
+    vacation_end:   initialData.vacation_end   ?? "",
   });
 
   // ── UI states ─────────────────────────────────────────────
@@ -305,6 +311,9 @@ export default function ProfileEditor({
           booking_mode:     form.booking_mode,
           avatar_url:       form.avatar_url,
           profile_complete: isComplete,
+          // Store null in DB when the field is blank (means "no vacation")
+          vacation_start:   form.vacation_start  || null,
+          vacation_end:     form.vacation_end    || null,
           updated_at:       new Date().toISOString(),
         })
         .eq("id", professionalId);
@@ -837,6 +846,132 @@ export default function ProfileEditor({
                 );
               })}
             </div>
+          </div>
+
+          {/* ── Vacation mode ── */}
+          <div
+            style={{
+              backgroundColor: "#fff",
+              border:          "1.5px solid var(--color-border)",
+              borderRadius:    "14px",
+              padding:         "1.5rem",
+            }}
+          >
+            <p
+              style={{
+                fontWeight:    700,
+                fontSize:      "0.9375rem",
+                color:         "var(--color-text)",
+                margin:        "0 0 0.375rem",
+                paddingBottom: "0.75rem",
+                borderBottom:  "1px solid var(--color-border)",
+              }}
+            >
+              🏖️ {t("vacationTitle")}
+            </p>
+            <p style={{ fontSize: "0.8375rem", color: "var(--color-text-muted)", margin: "0 0 1rem" }}>
+              {t("vacationDesc")}
+            </p>
+
+            {/* Status banner when currently on vacation */}
+            {(() => {
+              const today = new Date().toISOString().slice(0, 10);
+              const onVacation =
+                form.vacation_start &&
+                form.vacation_end   &&
+                form.vacation_start <= today &&
+                today               <= form.vacation_end;
+              return onVacation ? (
+                <div
+                  style={{
+                    padding:         "0.625rem 0.875rem",
+                    backgroundColor: "rgba(212,160,57,0.1)",
+                    border:          "1px solid rgba(212,160,57,0.4)",
+                    borderRadius:    "8px",
+                    fontSize:        "0.8375rem",
+                    fontWeight:      600,
+                    color:           "#92400E",
+                    marginBottom:    "1rem",
+                  }}
+                >
+                  {t("vacationActive")}
+                </div>
+              ) : null;
+            })()}
+
+            {/* Date range inputs */}
+            <div style={{ display: "flex", gap: "0.875rem", flexWrap: "wrap", alignItems: "flex-end" }}>
+              <div style={{ flex: 1, minWidth: "140px", display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+                <label style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-text)" }}>
+                  {t("vacationFrom")}
+                </label>
+                <input
+                  type="date"
+                  value={form.vacation_start}
+                  onChange={(e) => setField("vacation_start", e.target.value)}
+                  style={{
+                    padding:      "0.5rem 0.75rem",
+                    border:       "1.5px solid var(--color-border)",
+                    borderRadius: "8px",
+                    fontSize:     "0.875rem",
+                    fontFamily:   "inherit",
+                    outline:      "none",
+                    color:        "var(--color-text)",
+                    width:        "100%",
+                    boxSizing:    "border-box",
+                  }}
+                />
+              </div>
+              <div style={{ flex: 1, minWidth: "140px", display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+                <label style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--color-text)" }}>
+                  {t("vacationTo")}
+                </label>
+                <input
+                  type="date"
+                  value={form.vacation_end}
+                  onChange={(e) => setField("vacation_end", e.target.value)}
+                  min={form.vacation_start || undefined}
+                  style={{
+                    padding:      "0.5rem 0.75rem",
+                    border:       "1.5px solid var(--color-border)",
+                    borderRadius: "8px",
+                    fontSize:     "0.875rem",
+                    fontFamily:   "inherit",
+                    outline:      "none",
+                    color:        "var(--color-text)",
+                    width:        "100%",
+                    boxSizing:    "border-box",
+                  }}
+                />
+              </div>
+              {/* Clear button — only shown when dates are set */}
+              {(form.vacation_start || form.vacation_end) && (
+                <button
+                  type="button"
+                  onClick={() => { setField("vacation_start", ""); setField("vacation_end", ""); }}
+                  style={{
+                    padding:     "0.5rem 0.875rem",
+                    border:      "1.5px solid var(--color-border)",
+                    borderRadius:"8px",
+                    fontSize:    "0.8125rem",
+                    fontWeight:  600,
+                    cursor:      "pointer",
+                    background:  "none",
+                    color:       "var(--color-text-muted)",
+                    fontFamily:  "inherit",
+                    whiteSpace:  "nowrap",
+                    alignSelf:   "flex-end",
+                  }}
+                >
+                  {t("vacationClear")}
+                </button>
+              )}
+            </div>
+            {(form.vacation_start || form.vacation_end) && (
+              <p style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", margin: "0.5rem 0 0" }}>
+                {t("vacationSaveHint")}
+              </p>
+            )}
           </div>
 
           {/* ── Category (read-only + change request) ── */}
