@@ -193,8 +193,18 @@ export default function WriteReviewModal({
           status:          "active",
         }));
 
-      // Note: used_count increment requires a SECURITY DEFINER RPC
-      // (customer doesn't own the invitation row). Tracked as future migration.
+      // ── Increment invitation used_count via SECURITY DEFINER RPC ──
+      // The customer cannot UPDATE review_invitations directly (RLS).
+      // increment_invitation_used_count() runs as the function owner,
+      // bypassing RLS for this one targeted UPDATE.
+      if (!error && isInvitation && inviteCode) {
+        const { error: rpcError } = await supabase
+          .rpc("increment_invitation_used_count", { invite_code: inviteCode });
+        if (rpcError) {
+          // Non-fatal: the review is saved. Log and continue.
+          console.warn("[WriteReviewModal] used_count increment failed:", rpcError.message);
+        }
+      }
     }
 
     if (error) {
