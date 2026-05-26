@@ -25,6 +25,7 @@ import {
   Star,
   CreditCard,
   Clock,
+  Share2,
   ExternalLink,
   LogOut,
 } from "lucide-react";
@@ -69,13 +70,22 @@ function buildNavItems(bookingMode: "contact" | "date" | "full"): NavItem[] {
       placeholder: false,
     });
   }
-  items.push({
-    id:          "subscription",
-    labelEl:     "Συνδρομή",
-    shortEl:     "Συνδρομή",
-    icon:        CreditCard,
-    placeholder: false,
-  });
+  items.push(
+    {
+      id:          "referrals",
+      labelEl:     "Παραπομπές",
+      shortEl:     "Παραπ.",
+      icon:        Share2,
+      placeholder: false,
+    },
+    {
+      id:          "subscription",
+      labelEl:     "Συνδρομή",
+      shortEl:     "Συνδρομή",
+      icon:        CreditCard,
+      placeholder: false,
+    },
+  );
   return items;
 }
 
