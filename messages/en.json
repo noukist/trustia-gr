@@ -893,7 +893,9 @@
     "browseBtn": "Browse Professionals",
     "remove": "Remove from saved",
     "save": "Save",
-    "unsave": "Remove from saved"
+    "unsave": "Remove from saved",
+    "recentTitle": "Recently viewed",
+    "recentSubtitle": "Professionals you visited recently"
   },
   "invite": {
     "invalidTitle": "Link unavailable",

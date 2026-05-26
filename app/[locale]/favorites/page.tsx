@@ -23,7 +23,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { revalidatePath }                    from "next/cache";
 import { createClient }                      from "@/lib/supabase/server";
 import { CATEGORIES }                        from "@/lib/constants";
-import { Heart, Star, MapPin, X }            from "lucide-react";
+import { Heart, Star, MapPin, X, Clock }     from "lucide-react";
 
 // ── Metadata ─────────────────────────────────────────────────
 export async function generateMetadata({ params }: { params: PageParams }): Promise<Metadata> {
@@ -51,6 +51,23 @@ async function removeFavorite(formData: FormData) {
 interface FavoriteRow {
   id:         string;
   created_at: string;
+  professionals: {
+    id:           string;
+    slug:         string | null;
+    first_name:   string;
+    last_name:    string;
+    avatar_url:   string | null;
+    category_id:  string;
+    city:         string | null;
+    rating:       number;
+    review_count: number;
+  };
+}
+
+// Recently-viewed row shape returned by Supabase join
+interface RecentlyViewedRow {
+  id:          string;
+  viewed_at:   string;
   professionals: {
     id:           string;
     slug:         string | null;
@@ -96,23 +113,45 @@ export default async function FavoritesPage({
     .maybeSingle();
 
   // Brand-new user with no customer row → empty state
-  const favorites: FavoriteRow[] = [];
+  const favorites:      FavoriteRow[]       = [];
+  const recentlyViewed: RecentlyViewedRow[] = [];
 
   if (customer) {
-    const { data } = await supabase
-      .from("favorites")
-      .select(
-        "id, created_at, " +
-        "professionals!favorites_professional_id_fkey(" +
-          "id, slug, first_name, last_name, avatar_url, " +
-          "category_id, city, rating, review_count" +
-        ")",
-      )
-      .eq("customer_id", customer.id)
-      .order("created_at", { ascending: false });
+    const [favData, recentData] = await Promise.all([
+      // Saved favorites
+      supabase
+        .from("favorites")
+        .select(
+          "id, created_at, " +
+          "professionals!favorites_professional_id_fkey(" +
+            "id, slug, first_name, last_name, avatar_url, " +
+            "category_id, city, rating, review_count" +
+          ")",
+        )
+        .eq("customer_id", customer.id)
+        .order("created_at", { ascending: false }),
 
-    if (data) favorites.push(...(data as unknown as FavoriteRow[]));
+      // Recently viewed — max 12, most recent first
+      supabase
+        .from("recently_viewed")
+        .select(
+          "id, viewed_at, " +
+          "professionals!recently_viewed_professional_id_fkey(" +
+            "id, slug, first_name, last_name, avatar_url, " +
+            "category_id, city, rating, review_count" +
+          ")",
+        )
+        .eq("customer_id", customer.id)
+        .order("viewed_at", { ascending: false })
+        .limit(12),
+    ]);
+
+    if (favData.data)    favorites.push(...(favData.data       as unknown as FavoriteRow[]));
+    if (recentData.data) recentlyViewed.push(...(recentData.data as unknown as RecentlyViewedRow[]));
   }
+
+  // PRD §34: only show "Recently Viewed" section after threshold of 3 profiles
+  const showRecent = recentlyViewed.length >= 3;
 
   // ── Render ────────────────────────────────────────────────
   return (
@@ -391,6 +430,162 @@ export default async function FavoritesPage({
             })}
           </div>
         )}
+        {/* ── Recently Viewed section (PRD §34 — threshold 3) ── */}
+        {showRecent && (
+          <div style={{ marginTop: "3rem" }}>
+
+            {/* Section header */}
+            <div
+              style={{
+                display:      "flex",
+                alignItems:   "center",
+                gap:          "0.625rem",
+                marginBottom: "1.25rem",
+              }}
+            >
+              <Clock size={20} style={{ color: "var(--color-text-muted)", flexShrink: 0 }} />
+              <div>
+                <h2
+                  style={{
+                    fontSize:      "1.125rem",
+                    fontWeight:    700,
+                    color:         "var(--color-text)",
+                    margin:        0,
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  {t("recentTitle")}
+                </h2>
+                <p style={{ color: "var(--color-text-muted)", margin: "0.15rem 0 0", fontSize: "0.85rem" }}>
+                  {t("recentSubtitle")}
+                </p>
+              </div>
+            </div>
+
+            {/* Recently viewed grid */}
+            <div
+              style={{
+                display:             "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                gap:                 "0.875rem",
+              }}
+            >
+              {recentlyViewed.map((rv) => {
+                const pro      = rv.professionals;
+                const name     = `${pro.first_name} ${pro.last_name}`;
+                const cat      = CATEGORIES.find((c) => c.id === pro.category_id);
+                const catName  = locale === "en" && cat?.nameEn ? cat.nameEn : cat?.nameEl ?? "";
+                const catEmoji = cat?.emoji ?? "🔧";
+                const slug     = pro.slug ?? pro.id;
+                const initials = (pro.first_name[0] + (pro.last_name[0] ?? "")).toUpperCase();
+
+                return (
+                  <Link
+                    key={rv.id}
+                    href={`/professional/${slug}`}
+                    style={{ textDecoration: "none", color: "inherit" }}
+                  >
+                    <div
+                      style={{
+                        backgroundColor: "#fff",
+                        border:          "1.5px solid var(--color-border)",
+                        borderRadius:    "12px",
+                        overflow:        "hidden",
+                        transition:      "box-shadow 0.15s",
+                        display:         "flex",
+                        alignItems:      "center",
+                        gap:             "0.75rem",
+                        padding:         "0.75rem",
+                      }}
+                    >
+                      {/* Avatar */}
+                      <div
+                        style={{
+                          width:           "48px",
+                          height:          "48px",
+                          borderRadius:    "50%",
+                          overflow:        "hidden",
+                          flexShrink:      0,
+                          backgroundColor: "var(--color-primary-bg)",
+                          display:         "flex",
+                          alignItems:      "center",
+                          justifyContent:  "center",
+                        }}
+                      >
+                        {pro.avatar_url ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={pro.avatar_url}
+                            alt={name}
+                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                          />
+                        ) : (
+                          <span
+                            style={{
+                              fontSize:   "1rem",
+                              fontWeight: 800,
+                              color:      "var(--color-primary)",
+                            }}
+                          >
+                            {initials}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <div style={{ minWidth: 0 }}>
+                        <p
+                          style={{
+                            fontWeight:   700,
+                            fontSize:     "0.875rem",
+                            color:        "var(--color-text)",
+                            margin:       "0 0 0.15rem",
+                            overflow:     "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace:   "nowrap",
+                          }}
+                        >
+                          {name}
+                        </p>
+                        <p
+                          style={{
+                            fontSize:     "0.775rem",
+                            color:        "var(--color-text-muted)",
+                            margin:       "0 0 0.2rem",
+                            overflow:     "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace:   "nowrap",
+                          }}
+                        >
+                          {catEmoji} {catName}
+                        </p>
+                        {/* Rating */}
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.2rem" }}>
+                          <Star
+                            size={11}
+                            fill={pro.rating > 0 ? "#F59E0B" : "none"}
+                            style={{ color: pro.rating > 0 ? "#F59E0B" : "var(--color-border)" }}
+                          />
+                          <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--color-text)" }}>
+                            {pro.rating > 0 ? pro.rating.toFixed(1) : "—"}
+                          </span>
+                          {pro.city && (
+                            <>
+                              <span style={{ color: "var(--color-border)", fontSize: "0.7rem" }}>·</span>
+                              <MapPin size={9} style={{ color: "var(--color-text-muted)" }} />
+                              <span style={{ fontSize: "0.7rem", color: "var(--color-text-muted)" }}>{pro.city}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
       </div>
     </main>
   );
