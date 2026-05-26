@@ -373,7 +373,11 @@
       "errorDelete": "Σφάλμα κατά τη διαγραφή. Δοκιμάστε ξανά.",
       "colService": "Υπηρεσία",
       "colDuration": "Διάρκεια",
-      "colPrice": "Τιμή"
+      "colPrice": "Τιμή",
+      "nameEnLabel": "Ονομασία αγγλιστί",
+      "nameEnPlaceholder": "π.χ. Men's Haircut",
+      "nameEnHint": "Προαιρετικό — εμφανίζεται στους Αγγλόφωνους χρήστες.",
+      "noEnName": "Χωρίς αγγλική ονομασία"
     },
     "bookings": {
       "title": "Κρατήσεις ({count})",

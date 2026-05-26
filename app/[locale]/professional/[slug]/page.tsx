@@ -69,6 +69,7 @@ interface DbProfessional {
 interface DbService {
   id:               string;
   name_el:          string;
+  name_en:          string | null;   // optional English name for bilingual display
   duration_minutes: number;
   price:            number;
   sort_order:       number;
@@ -384,7 +385,7 @@ export default async function ProfessionalProfilePage({
     // Services catalog (required for "full" booking mode)
     supabase
       .from("professional_services")
-      .select("id, name_el, duration_minutes, price, sort_order")
+      .select("id, name_el, name_en, duration_minutes, price, sort_order")
       .eq("professional_id", pro.id)
       .eq("active", true)
       .is("deleted_at", null)
@@ -827,7 +828,8 @@ export default async function ProfessionalProfilePage({
                           fontWeight: 500,
                         }}
                       >
-                        {svc.name_el}
+                        {/* Show English name on EN locale if available, else Greek */}
+                        {locale === "en" && svc.name_en ? svc.name_en : svc.name_el}
                       </span>
                       <span
                         style={{

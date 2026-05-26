@@ -353,7 +353,11 @@
       "errorDelete": "Error deleting. Please try again.",
       "colService": "Service",
       "colDuration": "Duration",
-      "colPrice": "Price"
+      "colPrice": "Price",
+      "nameEnLabel": "Name (English)",
+      "nameEnPlaceholder": "e.g. Men's Haircut",
+      "nameEnHint": "Optional — shown to English-speaking users.",
+      "noEnName": "No English name set"
     },
     "portfolio": {
       "title": "Photo Portfolio",
