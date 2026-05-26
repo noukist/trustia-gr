@@ -25,6 +25,7 @@ import {
   Star,
   CreditCard,
   Clock,
+  Building2,
   Share2,
   ExternalLink,
   LogOut,
@@ -71,6 +72,13 @@ function buildNavItems(bookingMode: "contact" | "date" | "full"): NavItem[] {
     });
   }
   items.push(
+    {
+      id:          "business",
+      labelEl:     "Επιχείρηση",
+      shortEl:     "Επιχ.",
+      icon:        Building2,
+      placeholder: false,
+    },
     {
       id:          "referrals",
       labelEl:     "Παραπομπές",

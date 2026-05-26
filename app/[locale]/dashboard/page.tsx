@@ -42,6 +42,7 @@ import PortfolioEditor from "@/components/dashboard/PortfolioEditor";
 import BookingsTab          from "@/components/dashboard/BookingsTab";
 import ReviewsTab           from "@/components/dashboard/ReviewsTab";
 import AvailabilityEditor   from "@/components/dashboard/AvailabilityEditor";
+import BusinessPageEditor  from "@/components/dashboard/BusinessPageEditor";
 import ReferralsTab         from "@/components/dashboard/ReferralsTab";
 
 // ── Next.js 16: params/searchParams are Promises ─────────────
@@ -1081,6 +1082,7 @@ export default async function DashboardPage({
     bookings:     t("tabs.bookings"),
     reviews:      t("tabs.reviews"),
     availability: "Διαθεσιμότητα",
+    business:     "Σελίδα Επιχείρησης",
     referrals:    "Παραπομπές",
     subscription: t("tabs.subscription"),
   };
@@ -1166,6 +1168,8 @@ export default async function DashboardPage({
           <ReviewsTab professionalId={pro.id} proSlug={pro.slug} />
         ) : tab === "availability" ? (
           <AvailabilityEditor professionalId={pro.id} />
+        ) : tab === "business" ? (
+          <BusinessPageEditor professionalId={pro.id} />
         ) : tab === "referrals" ? (
           <ReferralsTab proId={pro.id} proSlug={pro.slug} />
         ) : (

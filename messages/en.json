@@ -865,7 +865,15 @@
     "paymentPending": "Pending",
     "paymentVerified": "Verified",
     "paymentFailed": "Failed",
-    "paymentRefunded": "Refunded"
+    "paymentRefunded": "Refunded",
+    "tabOverview": "Overview",
+    "tabProfessionals": "Professionals",
+    "tabReports": "Reports",
+    "tabAnnouncements": "Announcements",
+    "tabSettings": "Settings",
+    "proFilterAll": "All",
+    "proFilterPending": "Pending Payments",
+    "proFilterBanned": "Banned"
   },
 
   "notFound": {
@@ -893,7 +901,38 @@
     "browseBtn": "Browse Professionals",
     "remove": "Remove from saved",
     "save": "Save",
-    "unsave": "Remove from saved"
+    "unsave": "Remove from saved",
+    "recentTitle": "Recently viewed",
+    "recentSubtitle": "Professionals you visited recently"
+  },
+  "report": {
+    "btnLabel":          "Report",
+    "title":             "Report professional",
+    "close":             "Close",
+    "reasonLabel":       "Reason for report",
+    "selectReason":      "Please select a reason to continue",
+    "reason_fake_info":  "Fake or misleading information",
+    "reason_inappropriate": "Inappropriate content or behaviour",
+    "reason_scam":       "Scam or fraud",
+    "reason_spam":       "Spam",
+    "reason_other":      "Other",
+    "detailsLabel":      "Additional details",
+    "optional":          "optional",
+    "detailsPlaceholder": "Briefly describe what happened…",
+    "submit":            "Submit report",
+    "sending":           "Sending…",
+    "error":             "Something went wrong. Please try again.",
+    "successTitle":      "Report submitted",
+    "successHint":       "Our team will review it as soon as possible. Thank you for helping keep the platform trustworthy."
+  },
+  "business": {
+    "backToProfile": "← Profile",
+    "about":         "About us",
+    "team":          "Our team",
+    "portfolio":     "Portfolio",
+    "bookNow":       "Book now",
+    "ctaTitle":      "Book with {name}",
+    "ctaSub":        "Verified professional on Trustia.gr"
   },
   "invite": {
     "invalidTitle": "Link unavailable",
