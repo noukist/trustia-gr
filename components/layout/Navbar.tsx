@@ -26,7 +26,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useRouter, usePathname } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { Menu, X, LogIn, LayoutDashboard, LogOut, ChevronDown, User as UserIcon, Shield } from "lucide-react";
+import { Menu, X, LogIn, LayoutDashboard, LogOut, ChevronDown, User as UserIcon, Shield, CalendarDays } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import Logo         from "@/components/ui/Logo";
 import Button       from "@/components/ui/Button";
@@ -586,6 +586,13 @@ function UserMenu({ user, isPro, isAdmin, t }: { user: User; isPro: boolean; isA
                 onClick={() => setOpen(false)}
               />
             )}
+            {/* My Bookings — visible to all logged-in users (customers AND professionals) */}
+            <DropdownItem
+              href="/my-bookings"
+              icon={<CalendarDays size={15} />}
+              label={t("myBookings")}
+              onClick={() => setOpen(false)}
+            />
             <div style={{ height: "1px", backgroundColor: "var(--color-border)", margin: "0.375rem 0" }} />
             <button
               type="button"

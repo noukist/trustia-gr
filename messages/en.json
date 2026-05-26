@@ -22,6 +22,7 @@
     "login": "Log In",
     "dashboard": "Dashboard",
     "myProfile": "My Profile",
+    "myBookings": "My Bookings",
     "adminPanel": "Admin Panel",
     "logout": "Log Out",
     "openMenu": "Open menu",
@@ -822,5 +823,15 @@
     "title": "Page not found",
     "description": "The page you are looking for does not exist or has been moved.",
     "backHome": "← Back to Home"
+  },
+
+  "myBookings": {
+    "pageTitle": "My Bookings",
+    "title": "My Bookings",
+    "subtitle": "All booking requests you have submitted to professionals.",
+    "empty": "No bookings yet",
+    "emptyHint": "When you request an appointment with a professional, it will appear here.",
+    "browseBtn": "Browse Professionals",
+    "unknownPro": "Professional"
   }
 }

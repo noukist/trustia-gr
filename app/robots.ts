@@ -27,6 +27,9 @@ export default function robots(): MetadataRoute.Robots {
           // Profile management
           "/profile",
           "/en/profile",
+          // Customer bookings (private)
+          "/my-bookings",
+          "/en/my-bookings",
           // Internal API routes
           "/api/",
         ],
