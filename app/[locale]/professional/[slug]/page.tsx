@@ -36,6 +36,7 @@ import { CATEGORIES }                          from "@/lib/constants";
 import ActionPanel                             from "@/components/professional/ActionPanel";
 import ShareButton                             from "@/components/professional/ShareButton";
 import ProfileViewTracker                      from "@/components/professional/ProfileViewTracker";
+import ReviewActions                           from "@/components/reviews/ReviewActions";
 
 // ── Next.js 16: params is a Promise ──────────────────────────
 type PageParams = Promise<{ locale: string; slug: string }>;
@@ -420,7 +421,51 @@ export default async function ProfessionalProfilePage({
   const portfolio = (portfolioResult.data ?? []) as unknown as DbPortfolioPhoto[];
   const reviews   = (reviewsResult.data   ?? []) as unknown as DbReview[];
 
-  // ── 3. Derived values ────────────────────────────────────
+  // ── 3. Auth context for review CTA ──────────────────────
+  // Non-blocking — anonymous users can still view the page.
+  // We need: customer row, completed booking with this pro, existing review.
+  const { data: { user } } = await supabase.auth.getUser();
+
+  let reviewCustomerId:     string | null = null;
+  let reviewCompletedBookingId: string | null = null;
+  let reviewExisting: { id: string; rating: number; text: string | null; type: string } | null = null;
+
+  if (user) {
+    // Step 1: get customer row for this user
+    const { data: custRow } = await supabase
+      .from("customers")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (custRow) {
+      reviewCustomerId = custRow.id;
+
+      // Step 2: parallel — completed booking + existing review
+      const [bookingRes, reviewRes] = await Promise.all([
+        supabase
+          .from("bookings")
+          .select("id")
+          .eq("professional_id", pro.id)
+          .eq("customer_id", custRow.id)
+          .eq("status", "completed")
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("reviews")
+          .select("id, rating, text, type")
+          .eq("professional_id", pro.id)
+          .eq("customer_id", custRow.id)
+          .is("deleted_at", null)
+          .maybeSingle(),
+      ]);
+
+      reviewCompletedBookingId = bookingRes.data?.id ?? null;
+      reviewExisting = reviewRes.data ?? null;
+    }
+  }
+
+  // ── 4. Derived values ────────────────────────────────────
   const t   = await getTranslations("profile");
   const cat = CATEGORIES.find((c) => c.id === pro.category_id);
   // Locale-aware category name
@@ -444,7 +489,7 @@ export default async function ProfessionalProfilePage({
       ? today >= new Date(pro.vacation_start) && today <= new Date(pro.vacation_end)
       : false;
 
-  // ── 4. Build JSON-LD structured data ────────────────────
+  // ── 5. Build JSON-LD structured data ────────────────────
   // Schema.org LocalBusiness / Person markup for rich search results.
   // Helps Google show the professional in local search with rating stars.
   const jsonLd = {
@@ -989,23 +1034,14 @@ export default async function ProfessionalProfilePage({
                   <p style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", margin: "0 0 1rem" }}>
                     {t("noReviews")}
                   </p>
-                  <Link
-                    href="/login"
-                    style={{
-                      display:         "inline-flex",
-                      alignItems:      "center",
-                      gap:             "0.375rem",
-                      padding:         "0.5rem 1rem",
-                      backgroundColor: "var(--color-primary)",
-                      color:           "#fff",
-                      borderRadius:    "8px",
-                      fontWeight:      600,
-                      fontSize:        "0.875rem",
-                      textDecoration:  "none",
-                    }}
-                  >
-                    {t("leaveReview")}
-                  </Link>
+                  <ReviewActions
+                    professionalId={pro.id}
+                    professionalName={name}
+                    professionalSlug={pro.slug ?? slug}
+                    customerId={reviewCustomerId}
+                    existingReview={reviewExisting}
+                    completedBookingId={reviewCompletedBookingId}
+                  />
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
@@ -1075,25 +1111,16 @@ export default async function ProfessionalProfilePage({
                     </article>
                   ))}
 
-                  {/* "Leave review" CTA at the bottom */}
+                  {/* "Leave / edit review" CTA at the bottom */}
                   <div style={{ textAlign: "center", paddingTop: "0.5rem" }}>
-                    <Link
-                      href="/login"
-                      style={{
-                        display:         "inline-flex",
-                        alignItems:      "center",
-                        gap:             "0.375rem",
-                        padding:         "0.5rem 1.25rem",
-                        border:          "1.5px solid var(--color-primary)",
-                        color:           "var(--color-primary)",
-                        borderRadius:    "8px",
-                        fontWeight:      600,
-                        fontSize:        "0.875rem",
-                        textDecoration:  "none",
-                      }}
-                    >
-                      {t("leaveReview")}
-                    </Link>
+                    <ReviewActions
+                      professionalId={pro.id}
+                      professionalName={name}
+                      professionalSlug={pro.slug ?? slug}
+                      customerId={reviewCustomerId}
+                      existingReview={reviewExisting}
+                      completedBookingId={reviewCompletedBookingId}
+                    />
                   </div>
                 </div>
               )}
