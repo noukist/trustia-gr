@@ -26,6 +26,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { X, CheckCircle2, ChevronLeft, Loader2 }   from "lucide-react";
 import { useTranslations, useLocale }               from "next-intl";
 import { createClient }                             from "@/lib/supabase/client";
+import { sendBookingEmails }                        from "@/app/actions/emailActions";
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -289,7 +290,7 @@ export default function FullCalendarBookingForm({
         price:      Number(s.price),
       }));
 
-      const { error: bookingErr } = await supabase
+      const { data: newBooking, error: bookingErr } = await supabase
         .from("bookings")
         .insert({
           professional_id: professionalId,
@@ -302,9 +303,19 @@ export default function FullCalendarBookingForm({
           services:        servicesPayload,
           total_price:     totalPrice,
           description:     description.trim() || null,
-        });
+        })
+        .select("id")
+        .single();
 
       if (bookingErr) throw bookingErr;
+
+      // Send confirmation + alert emails (non-blocking)
+      if (newBooking?.id) {
+        sendBookingEmails(newBooking.id).catch((e) =>
+          console.warn("[FullCalendarBookingForm] email send failed:", e),
+        );
+      }
+
       setSuccess(true);
     } catch (err: unknown) {
       console.error("[FullCalendarBookingForm] submit error:", err);

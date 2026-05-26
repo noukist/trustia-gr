@@ -22,6 +22,7 @@ import React, { useState }  from "react";
 import { X, CalendarDays, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { useTranslations }   from "next-intl";
 import { createClient }      from "@/lib/supabase/client";
+import { sendBookingEmails } from "@/app/actions/emailActions";
 
 // ── Props ──────────────────────────────────────────────────────
 interface DateBookingFormProps {
@@ -103,7 +104,7 @@ export default function DateBookingForm({
       }
 
       // ── Step 2: Insert the booking ────────────────────────
-      const { error: bookingErr } = await supabase
+      const { data: newBooking, error: bookingErr } = await supabase
         .from("bookings")
         .insert({
           professional_id: professionalId,
@@ -112,9 +113,18 @@ export default function DateBookingForm({
           booking_mode:    "date",
           description:     description.trim() || null,
           status:          "pending",
-        });
+        })
+        .select("id")
+        .single();
 
       if (bookingErr) throw bookingErr;
+
+      // ── Step 3: Send confirmation + alert emails (non-blocking) ──
+      if (newBooking?.id) {
+        sendBookingEmails(newBooking.id).catch((e) =>
+          console.warn("[DateBookingForm] email send failed:", e),
+        );
+      }
 
       setSuccess(true);
     } catch (err: unknown) {
