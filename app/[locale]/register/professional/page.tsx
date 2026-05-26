@@ -742,7 +742,7 @@ function Step5({
           Αποδέχομαι τους{" "}
           <a href="/terms" target="_blank" style={styles.link}>Όρους Χρήσης</a>
           {" "}και τη{" "}
-          <a href="/subscription-agreement" target="_blank" style={styles.link}>
+          <a href="/terms" target="_blank" style={styles.link}>
             Συμφωνία Συνδρομής
           </a>
           {" "}
