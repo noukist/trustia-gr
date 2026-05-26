@@ -917,6 +917,15 @@
     "successTitle":      "Report submitted",
     "successHint":       "Our team will review it as soon as possible. Thank you for helping keep the platform trustworthy."
   },
+  "business": {
+    "backToProfile": "← Profile",
+    "about":         "About us",
+    "team":          "Our team",
+    "portfolio":     "Portfolio",
+    "bookNow":       "Book now",
+    "ctaTitle":      "Book with {name}",
+    "ctaSub":        "Verified professional on Trustia.gr"
+  },
   "invite": {
     "invalidTitle": "Link unavailable",
     "invalidHint": "This invitation link has expired, reached its usage limit, or is no longer valid. Ask the professional to send you a new link.",
