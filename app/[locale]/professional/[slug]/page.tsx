@@ -38,6 +38,7 @@ import ShareButton                             from "@/components/professional/S
 import ProfileViewTracker                      from "@/components/professional/ProfileViewTracker";
 import ReviewActions                           from "@/components/reviews/ReviewActions";
 import FavoriteButton                         from "@/components/professional/FavoriteButton";
+import ReportButton                            from "@/components/professional/ReportButton";
 
 // ── Next.js 16: params and searchParams are Promises ─────────
 type PageParams       = Promise<{ locale: string; slug: string }>;
@@ -591,7 +592,7 @@ export default async function ProfessionalProfilePage({
             {t("back")}
           </Link>
 
-          {/* Right group: Favorite + Share */}
+          {/* Right group: Favorite + Share + Report */}
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <FavoriteButton
               professionalId={pro.id}
@@ -601,6 +602,12 @@ export default async function ProfessionalProfilePage({
             <ShareButton
               proName={name}
               categoryEl={catDispName}
+            />
+            {/* Report button — hidden for anonymous visitors (userId null) */}
+            <ReportButton
+              professionalId={pro.id}
+              professionalName={name}
+              userId={user?.id ?? null}
             />
           </div>
         </div>
