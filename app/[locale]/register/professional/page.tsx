@@ -163,7 +163,8 @@ function Step1({
           <p style={styles.tierLabel}>{TIER_META[tier].labelEl}</p>
 
           {/* Responsive grid: 3 cols desktop, 2 cols mobile */}
-          <div style={styles.categoryGrid}>
+          {/* pro-category-grid class provides the responsive 2→3 column breakpoint */}
+          <div className="pro-category-grid" style={{ gap: "0.5rem" }}>
             {byTier(tier).map((cat) => {
               const isSelected = data.categoryId === cat.id;
               return (
@@ -1022,6 +1023,17 @@ export default function ProfessionalRegistrationPage() {
         padding:         "2rem 1rem 4rem",
       }}
     >
+      {/* Responsive overrides — category grid: 2-col on mobile, 3-col on wider */}
+      <style>{`
+        .pro-category-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.5rem;
+        }
+        @media (min-width: 480px) {
+          .pro-category-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+      `}</style>
       <div style={{ maxWidth: "680px", margin: "0 auto" }}>
 
         {/* ── Header ── */}

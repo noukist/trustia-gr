@@ -203,7 +203,11 @@ export default function RegisterPage() {
           alignItems: "center",
           justifyContent: "center",
           padding: "2rem 1rem",
-          backgroundColor: "var(--color-bg-light)",
+          background: [
+            "radial-gradient(ellipse 70% 50% at 70% 20%, rgba(42,143,143,0.10) 0%, transparent 70%)",
+            "radial-gradient(ellipse 60% 50% at 15% 85%, rgba(212,160,57,0.08) 0%, transparent 65%)",
+            "var(--color-bg-light)",
+          ].join(", "),
         }}
       >
         <div
@@ -296,6 +300,7 @@ export default function RegisterPage() {
         .spin { animation: spin 0.9s linear infinite; }
       `}</style>
 
+      {/* Full-height centred wrapper — brand gradient fills the background */}
       <div
         style={{
           minHeight: "calc(100vh - 64px)",
@@ -303,7 +308,11 @@ export default function RegisterPage() {
           alignItems: "center",
           justifyContent: "center",
           padding: "2rem 1rem",
-          backgroundColor: "var(--color-bg-light)",
+          background: [
+            "radial-gradient(ellipse 70% 50% at 70% 20%, rgba(42,143,143,0.10) 0%, transparent 70%)",
+            "radial-gradient(ellipse 60% 50% at 15% 85%, rgba(212,160,57,0.08) 0%, transparent 65%)",
+            "var(--color-bg-light)",
+          ].join(", "),
         }}
       >
         <div

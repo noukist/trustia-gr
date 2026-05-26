@@ -300,7 +300,7 @@ export default function AvailabilityEditor({
         style={{
           backgroundColor: "#fff",
           border:          "1.5px solid var(--color-border)",
-          borderRadius:    "16px",
+          borderRadius:    "14px",
           overflow:        "hidden",
         }}
       >
@@ -523,7 +523,7 @@ export default function AvailabilityEditor({
         style={{
           backgroundColor: "#fff",
           border:          "1.5px solid var(--color-border)",
-          borderRadius:    "16px",
+          borderRadius:    "14px",
           overflow:        "hidden",
         }}
       >

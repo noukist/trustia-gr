@@ -234,8 +234,8 @@ export default function AnnouncementsTab({ announcements: initial }: Announcemen
             />
           </div>
 
-          {/* Date range */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.875rem", marginBottom: "0.875rem" }}>
+          {/* Date range — stacks to 1-col on narrow screens */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.875rem", marginBottom: "0.875rem" }}>
             <div>
               <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, color: "var(--color-text-muted)", marginBottom: "0.3rem" }}>
                 Έναρξη (προαιρετικό)
