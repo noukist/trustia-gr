@@ -47,6 +47,57 @@ async function updateBookingStatus(formData: FormData) {
     .update(update)
     .eq("id", bookingId);
 
+  // ── Post-completion: notify customer to leave a review ───────
+  // Only fires when the professional marks a booking as completed.
+  // Silently swallows errors so the status update is never blocked.
+  if (newStatus === "completed") {
+    try {
+      // Step 1: fetch customer_id + professional_id from the booking
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: bk } = await (supabase as any)
+        .from("bookings")
+        .select("customer_id, professional_id")
+        .eq("id", bookingId)
+        .single() as { data: { customer_id: string; professional_id: string } | null };
+
+      if (bk?.customer_id && bk?.professional_id) {
+        // Step 2: parallel — customer user_id + professional name/slug
+        const [custRes, proRes] = await Promise.all([
+          supabase
+            .from("customers")
+            .select("user_id")
+            .eq("id", bk.customer_id)
+            .single(),
+          supabase
+            .from("professionals")
+            .select("slug, first_name, last_name")
+            .eq("id", bk.professional_id)
+            .single(),
+        ]);
+
+        if (custRes.data?.user_id) {
+          const proName = proRes.data
+            ? `${proRes.data.first_name} ${proRes.data.last_name}`
+            : "τον επαγγελματία";
+          const proLink = proRes.data?.slug
+            ? `/professional/${proRes.data.slug}`
+            : null;
+
+          await supabase.from("notifications").insert({
+            user_id: custRes.data.user_id,
+            title:   `⭐ Αξιολόγησε τον/την ${proName}`,
+            body:    "Πώς πήγε η συνεργασία; Μοιράσου την εμπειρία σου.",
+            link:    proLink,
+            channel: "inbox",
+          });
+        }
+      }
+    } catch (err) {
+      // Non-fatal — review prompt is best-effort
+      console.error("[BookingsTab] failed to send review notification:", err);
+    }
+  }
+
   // Revalidate the dashboard for both locales so the list refreshes
   revalidatePath("/el/dashboard");
   revalidatePath("/en/dashboard");
