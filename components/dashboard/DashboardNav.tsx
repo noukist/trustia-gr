@@ -24,6 +24,7 @@ import {
   Calendar,
   Star,
   CreditCard,
+  Clock,
   ExternalLink,
   LogOut,
 } from "lucide-react";
@@ -43,17 +44,40 @@ interface DashboardNavProps {
   proFirstName: string;
   proSlug:      string | null;
   avatarUrl:    string | null;
-  initials:     string;      // Two-letter initials (pre-computed server-side)
+  initials:     string;
+  /** booking_mode from the professionals row — shows Availability tab only for "full" */
+  bookingMode:  "contact" | "date" | "full";
 }
 
-// ── Nav items ─────────────────────────────────────────────────
-const NAV_ITEMS: NavItem[] = [
-  { id: "overview",      labelEl: "Επισκόπηση",  shortEl: "Αρχική",    icon: LayoutDashboard, placeholder: false },
-  { id: "profile",       labelEl: "Προφίλ",       shortEl: "Προφίλ",    icon: User,            placeholder: false },
-  { id: "bookings",      labelEl: "Κρατήσεις",   shortEl: "Κρατήσεις", icon: Calendar,        placeholder: true  },
-  { id: "reviews",       labelEl: "Κριτικές",    shortEl: "Κριτικές",  icon: Star,            placeholder: true  },
-  { id: "subscription",  labelEl: "Συνδρομή",    shortEl: "Συνδρομή",  icon: CreditCard,      placeholder: false },
-];
+// ── Nav items builder ──────────────────────────────────────────
+// Availability tab is only shown for professionals using full-calendar
+// booking mode since it's the only mode that reads availability_slots.
+function buildNavItems(bookingMode: "contact" | "date" | "full"): NavItem[] {
+  const items: NavItem[] = [
+    { id: "overview",      labelEl: "Επισκόπηση", shortEl: "Αρχική",    icon: LayoutDashboard, placeholder: false },
+    { id: "profile",       labelEl: "Προφίλ",      shortEl: "Προφίλ",    icon: User,            placeholder: false },
+    { id: "bookings",      labelEl: "Κρατήσεις",  shortEl: "Κρατήσεις", icon: Calendar,        placeholder: false },
+    { id: "reviews",       labelEl: "Κριτικές",   shortEl: "Κριτικές",  icon: Star,            placeholder: false },
+  ];
+  // Insert availability tab before subscription only for full-calendar mode
+  if (bookingMode === "full") {
+    items.push({
+      id:          "availability",
+      labelEl:     "Διαθεσιμότητα",
+      shortEl:     "Ώρες",
+      icon:        Clock,
+      placeholder: false,
+    });
+  }
+  items.push({
+    id:          "subscription",
+    labelEl:     "Συνδρομή",
+    shortEl:     "Συνδρομή",
+    icon:        CreditCard,
+    placeholder: false,
+  });
+  return items;
+}
 
 // ── Component ──────────────────────────────────────────────────
 export default function DashboardNav({
@@ -62,7 +86,9 @@ export default function DashboardNav({
   proSlug,
   avatarUrl,
   initials,
+  bookingMode,
 }: DashboardNavProps) {
+  const NAV_ITEMS = buildNavItems(bookingMode);
   const router      = useRouter();
   const pathname    = usePathname();
   const searchParams = useSearchParams();

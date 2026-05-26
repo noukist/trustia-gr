@@ -39,8 +39,9 @@ import Button          from "@/components/ui/Button";
 import ProfileEditor   from "@/components/dashboard/ProfileEditor";
 import ServicesEditor  from "@/components/dashboard/ServicesEditor";
 import PortfolioEditor from "@/components/dashboard/PortfolioEditor";
-import BookingsTab     from "@/components/dashboard/BookingsTab";
-import ReviewsTab      from "@/components/dashboard/ReviewsTab";
+import BookingsTab          from "@/components/dashboard/BookingsTab";
+import ReviewsTab           from "@/components/dashboard/ReviewsTab";
+import AvailabilityEditor   from "@/components/dashboard/AvailabilityEditor";
 
 // ── Next.js 16: params/searchParams are Promises ─────────────
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -1078,6 +1079,7 @@ export default async function DashboardPage({
     profile:      t("tabs.profile"),
     bookings:     t("tabs.bookings"),
     reviews:      t("tabs.reviews"),
+    availability: "Διαθεσιμότητα",
     subscription: t("tabs.subscription"),
   };
 
@@ -1097,6 +1099,7 @@ export default async function DashboardPage({
         proSlug={pro.slug}
         avatarUrl={pro.avatar_url}
         initials={proInitials}
+        bookingMode={pro.booking_mode}
       />
 
       {/* ── Main content area ── */}
@@ -1159,6 +1162,8 @@ export default async function DashboardPage({
           <BookingsTab professionalId={pro.id} />
         ) : tab === "reviews" ? (
           <ReviewsTab professionalId={pro.id} />
+        ) : tab === "availability" ? (
+          <AvailabilityEditor professionalId={pro.id} />
         ) : (
           <OverviewTab pro={pro} sub={sub} showWelcome={showWelcome} bookingsCount={bookingsCount ?? 0} />
         )}
