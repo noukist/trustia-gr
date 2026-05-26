@@ -865,7 +865,15 @@
     "paymentPending": "Pending",
     "paymentVerified": "Verified",
     "paymentFailed": "Failed",
-    "paymentRefunded": "Refunded"
+    "paymentRefunded": "Refunded",
+    "tabOverview": "Overview",
+    "tabProfessionals": "Professionals",
+    "tabReports": "Reports",
+    "tabAnnouncements": "Announcements",
+    "tabSettings": "Settings",
+    "proFilterAll": "All",
+    "proFilterPending": "Pending Payments",
+    "proFilterBanned": "Banned"
   },
 
   "notFound": {

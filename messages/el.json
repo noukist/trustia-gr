@@ -865,7 +865,15 @@
     "paymentPending": "Εκκρεμεί",
     "paymentVerified": "Επαληθευμένη",
     "paymentFailed": "Αποτυχία",
-    "paymentRefunded": "Επιστροφή"
+    "paymentRefunded": "Επιστροφή",
+    "tabOverview": "Επισκόπηση",
+    "tabProfessionals": "Επαγγελματίες",
+    "tabReports": "Αναφορές",
+    "tabAnnouncements": "Ανακοινώσεις",
+    "tabSettings": "Ρυθμίσεις",
+    "proFilterAll": "Όλοι",
+    "proFilterPending": "Εκκρεμείς Πληρωμές",
+    "proFilterBanned": "Αποκλεισμένοι"
   },
 
   "notFound": {
