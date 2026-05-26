@@ -15,11 +15,20 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: "/",
         disallow: [
-          "/api/",
-          "/dashboard",
-          "/profile",
-          "/admin",
+          // Auth routes (password reset, callback, etc.)
           "/auth/",
+          "/en/auth/",
+          // Private dashboards
+          "/dashboard",
+          "/en/dashboard",
+          // Admin panel
+          "/admin",
+          "/en/admin",
+          // Profile management
+          "/profile",
+          "/en/profile",
+          // Internal API routes
+          "/api/",
         ],
       },
     ],

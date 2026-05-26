@@ -34,6 +34,7 @@ import { Phone, Calendar, Copy, Check, X } from "lucide-react";
 import { useTranslations }   from "next-intl";
 import { createClient }      from "@/lib/supabase/client";
 import LoginPromptModal      from "@/components/ui/LoginPromptModal";
+import DateBookingForm       from "@/components/professional/DateBookingForm";
 
 // ── Props ──────────────────────────────────────────────────────
 interface ActionPanelProps {
@@ -465,9 +466,18 @@ export default function ActionPanel({
           onClose={() => setModal(null)}
         />
       )}
-      {modal === "booking" && bookingMode !== "contact" && (
+      {/* Date mode — real booking form */}
+      {modal === "booking" && bookingMode === "date" && (
+        <DateBookingForm
+          professionalId={professionalId}
+          proName={proName}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {/* Full calendar — placeholder until Phase 2 */}
+      {modal === "booking" && bookingMode === "full" && (
         <BookingPlaceholder
-          mode={bookingMode as "date" | "full"}
+          mode="full"
           onClose={() => setModal(null)}
         />
       )}

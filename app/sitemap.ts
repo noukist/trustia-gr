@@ -18,6 +18,7 @@
 
 import type { MetadataRoute } from "next";
 import { createClient }       from "@/lib/supabase/server";
+import { CATEGORIES }         from "@/lib/constants";
 
 const BASE = "https://trustia.gr";
 
@@ -25,12 +26,15 @@ const BASE = "https://trustia.gr";
 // Paths that don't have locale prefix for Greek (defaultLocale).
 // English always gets /en prefix.
 const STATIC_PATHS = [
-  { path: "/",          priority: 1.0, changeFrequency: "weekly"  as const },
-  { path: "/services",  priority: 0.9, changeFrequency: "daily"   as const },
-  { path: "/contact",   priority: 0.6, changeFrequency: "monthly" as const },
-  { path: "/terms",     priority: 0.3, changeFrequency: "yearly"  as const },
-  { path: "/privacy",   priority: 0.3, changeFrequency: "yearly"  as const },
-  { path: "/cookies",   priority: 0.3, changeFrequency: "yearly"  as const },
+  { path: "/",                       priority: 1.0, changeFrequency: "weekly"  as const },
+  { path: "/services",               priority: 0.9, changeFrequency: "daily"   as const },
+  { path: "/how-it-works",           priority: 0.7, changeFrequency: "monthly" as const },
+  { path: "/register",               priority: 0.6, changeFrequency: "monthly" as const },
+  { path: "/register/professional",  priority: 0.7, changeFrequency: "monthly" as const },
+  { path: "/contact",                priority: 0.5, changeFrequency: "monthly" as const },
+  { path: "/terms",                  priority: 0.2, changeFrequency: "yearly"  as const },
+  { path: "/privacy",                priority: 0.2, changeFrequency: "yearly"  as const },
+  { path: "/cookies",                priority: 0.2, changeFrequency: "yearly"  as const },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -87,5 +91,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Supabase unavailable at build time — return static entries only
   }
 
-  return [...staticEntries, ...proEntries];
+  // ── Category service pages ────────────────────────────────
+  // /services?category=X are key landing pages for SEO — one per category.
+  // Query-param URLs are valid in sitemaps (RFC 7230).
+  const categoryEntries: MetadataRoute.Sitemap = CATEGORIES.flatMap((cat) => [
+    {
+      url:             `${BASE}/services?category=${encodeURIComponent(cat.id)}`,
+      lastModified:    new Date(),
+      changeFrequency: "weekly" as const,
+      priority:        0.8,
+    },
+    {
+      url:             `${BASE}/en/services?category=${encodeURIComponent(cat.id)}`,
+      lastModified:    new Date(),
+      changeFrequency: "weekly" as const,
+      priority:        0.7,
+    },
+  ]);
+
+  return [...staticEntries, ...categoryEntries, ...proEntries];
 }
