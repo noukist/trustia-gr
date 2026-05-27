@@ -13,13 +13,39 @@
 // =============================================================
 
 import { test, expect } from "@playwright/test";
+import { createClient }  from "@supabase/supabase-js";
 import { registerCustomer } from "./helpers";
 
 // Use a timestamp suffix so each test run uses a fresh email
 const UNIQUE_EMAIL = `e2e.reg.${Date.now()}@mailinator.com`;
 const PASSWORD = "TestPass123!";
 
+// ── Cleanup helper ────────────────────────────────────────────
+// Deletes the test user from Supabase after the suite runs so
+// test accounts don't pile up in the Auth dashboard.
+// Requires SUPABASE_SERVICE_ROLE_KEY env var — skips silently if not set.
+async function deleteTestUser(email: string) {
+  const url     = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const roleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !roleKey) return; // secret not set — skip cleanup
+
+  const admin = createClient(url, roleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  const { data } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  const user = data?.users?.find((u) => u.email === email);
+  if (user) {
+    await admin.auth.admin.deleteUser(user.id);
+  }
+}
+
 test.describe("Customer registration", () => {
+
+  // Delete the generated test user once the whole suite finishes
+  test.afterAll(async () => {
+    await deleteTestUser(UNIQUE_EMAIL);
+  });
 
   test("happy path — valid email shows verify screen or rate-limit error (not a 500)", async ({ page }) => {
     await registerCustomer(page, UNIQUE_EMAIL, PASSWORD);

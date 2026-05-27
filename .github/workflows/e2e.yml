@@ -46,6 +46,8 @@ jobs:
       E2E_CUSTOMER_PASSWORD: ${{ secrets.E2E_CUSTOMER_PASSWORD }}
       E2E_PRO1_EMAIL:        ${{ secrets.E2E_PRO1_EMAIL }}
       E2E_PRO1_PASSWORD:     ${{ secrets.E2E_PRO1_PASSWORD }}
+      # Service role key — used only to delete test users after registration tests
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
     steps:
       # ── 1. Checkout ──────────────────────────────────────────
