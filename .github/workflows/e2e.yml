@@ -1,0 +1,97 @@
+# =============================================================
+# .github/workflows/e2e.yml
+# =============================================================
+# Runs Playwright E2E tests on every push to main/develop
+# and on every pull request targeting main.
+#
+# Required GitHub Secrets (Settings → Secrets → Actions):
+#   NEXT_PUBLIC_SUPABASE_URL       — e.g. https://xyz.supabase.co
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY  — public anon key from Supabase
+#
+# Optional secrets (unlock the skipped credential-gated tests):
+#   E2E_CUSTOMER_EMAIL     — confirmed customer account
+#   E2E_CUSTOMER_PASSWORD  — password for above
+#   E2E_PRO1_EMAIL         — confirmed professional account
+#   E2E_PRO1_PASSWORD      — password for above
+# =============================================================
+
+name: E2E Tests
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+
+# Cancel in-flight runs for the same branch/PR to save minutes
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Playwright E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      # Supabase connection — required for the app to start
+      NEXT_PUBLIC_SUPABASE_URL:      ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      # Optional: credential-gated tests (skip gracefully if not set)
+      E2E_CUSTOMER_EMAIL:    ${{ secrets.E2E_CUSTOMER_EMAIL }}
+      E2E_CUSTOMER_PASSWORD: ${{ secrets.E2E_CUSTOMER_PASSWORD }}
+      E2E_PRO1_EMAIL:        ${{ secrets.E2E_PRO1_EMAIL }}
+      E2E_PRO1_PASSWORD:     ${{ secrets.E2E_PRO1_PASSWORD }}
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Node.js setup ─────────────────────────────────────
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      # ── 3. Install dependencies ───────────────────────────────
+      - name: Install npm dependencies
+        run: npm ci
+
+      # ── 4. Install Playwright + Chromium ─────────────────────
+      # Only installs Chromium — keeps the step fast.
+      # Add --with-deps to install OS-level browser dependencies.
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      # ── 5. Run E2E tests ──────────────────────────────────────
+      # playwright.config.ts has webServer configured:
+      # it starts `npm run dev` automatically and waits for :3000.
+      - name: Run Playwright tests
+        run: npx playwright test
+        env:
+          CI: "true"
+
+      # ── 6. Upload HTML report as artifact ────────────────────
+      # Always runs so you can inspect failures even when the job fails.
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ github.run_number }}
+          path: playwright-report/
+          retention-days: 14
+
+      # ── 7. Upload test results (traces / screenshots) ─────────
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results-${{ github.run_number }}
+          path: test-results/
+          retention-days: 7

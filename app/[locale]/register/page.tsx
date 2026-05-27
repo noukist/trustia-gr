@@ -152,6 +152,24 @@ export default function RegisterPage() {
       return;
     }
 
+    // ── Duplicate email detection (email-confirmation ON) ────────
+    // Supabase silently swallows duplicate signups to prevent
+    // user-enumeration attacks, but the response shape differs:
+    //
+    //   Confirmed duplicate:   user=null, session=null, error=null
+    //   Unconfirmed duplicate: user={ identities:[] }, session=null, error=null
+    //
+    // In both cases we show the "already registered" error instead
+    // of the misleading "check your email" success screen.
+    const isConfirmedDuplicate   = !data.user && !data.session;
+    const isUnconfirmedDuplicate = data.user != null && (data.user.identities?.length ?? 0) === 0;
+
+    if (isConfirmedDuplicate || isUnconfirmedDuplicate) {
+      setError(t("errors.alreadyRegistered"));
+      setLoadingEmail(false);
+      return;
+    }
+
     setSuccessEmail(email.trim());
 
     if (data.session && data.user) {
