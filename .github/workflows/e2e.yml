@@ -20,11 +20,11 @@ name: E2E Tests
 on:
   push:
     branches:
-      - main
-      - develop
+      - master
+      - dev
   pull_request:
     branches:
-      - main
+      - master
 
 # Cancel in-flight runs for the same branch/PR to save minutes
 concurrency:
