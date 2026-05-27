@@ -21,6 +21,7 @@ import { getMessages, setRequestLocale }     from "next-intl/server";
 import { routing }         from "@/i18n/routing";
 import Navbar              from "@/components/layout/Navbar";
 import Footer              from "@/components/layout/Footer";
+import AnnouncementBar     from "@/components/layout/AnnouncementBar";
 
 // ── Metadata (locale-aware) ───────────────────────────────────
 export async function generateMetadata({
@@ -78,6 +79,7 @@ export default async function LocaleLayout({ children, params }: Props) {
     // NextIntlClientProvider makes messages available to all
     // client components nested under this layout (e.g. Navbar, forms).
     <NextIntlClientProvider locale={locale} messages={messages}>
+      <AnnouncementBar locale={locale} />
       <Navbar />
       <main style={{ minHeight: "calc(100vh - 64px)" }}>{children}</main>
       <Footer />

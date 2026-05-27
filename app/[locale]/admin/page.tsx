@@ -472,23 +472,42 @@ export default async function AdminPage({
                     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
                       <thead>
                         <tr style={{ backgroundColor: "var(--color-bg-light)", borderBottom: "1.5px solid var(--color-border)" }}>
-                          {["Όνομα", "Email", "Κατηγορία", "Κατάσταση", "Συνδρομή", "Πληρωμή", "Κρατήσεις", "Εγγραφή", ""].map((col, i) => (
-                            <th
-                              key={i}
-                              style={{
-                                padding:       "0.875rem 0.875rem",
-                                textAlign:     "left",
-                                fontWeight:    700,
-                                color:         "var(--color-text-muted)",
-                                fontSize:      "0.725rem",
-                                textTransform: "uppercase",
-                                letterSpacing: "0.06em",
-                                whiteSpace:    "nowrap",
-                              }}
-                            >
-                              {col}
-                            </th>
-                          ))}
+                          {/* Name — always visible */}
+                          <th style={{ padding: "0.875rem", textAlign: "left", fontWeight: 700, color: "var(--color-text-muted)", fontSize: "0.725rem", textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                            Όνομα
+                          </th>
+                          {/* Email — hidden on mobile */}
+                          <th className="hidden sm:table-cell" style={{ padding: "0.875rem", textAlign: "left", fontWeight: 700, color: "var(--color-text-muted)", fontSize: "0.725rem", textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                            Email
+                          </th>
+                          {/* Category — hidden on mobile */}
+                          <th className="hidden sm:table-cell" style={{ padding: "0.875rem", textAlign: "left", fontWeight: 700, color: "var(--color-text-muted)", fontSize: "0.725rem", textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                            Κατηγορία
+                          </th>
+                          {/* Status — always visible */}
+                          <th style={{ padding: "0.875rem", textAlign: "left", fontWeight: 700, color: "var(--color-text-muted)", fontSize: "0.725rem", textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                            Κατάσταση
+                          </th>
+                          {/* Subscription — hidden on mobile */}
+                          <th className="hidden md:table-cell" style={{ padding: "0.875rem", textAlign: "left", fontWeight: 700, color: "var(--color-text-muted)", fontSize: "0.725rem", textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                            Συνδρομή
+                          </th>
+                          {/* Payment — hidden on mobile */}
+                          <th className="hidden sm:table-cell" style={{ padding: "0.875rem", textAlign: "left", fontWeight: 700, color: "var(--color-text-muted)", fontSize: "0.725rem", textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                            Πληρωμή
+                          </th>
+                          {/* Rating — hidden on mobile */}
+                          <th className="hidden md:table-cell" style={{ padding: "0.875rem", textAlign: "left", fontWeight: 700, color: "var(--color-text-muted)", fontSize: "0.725rem", textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                            Κρατήσεις
+                          </th>
+                          {/* Date — hidden on mobile */}
+                          <th className="hidden md:table-cell" style={{ padding: "0.875rem", textAlign: "left", fontWeight: 700, color: "var(--color-text-muted)", fontSize: "0.725rem", textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                            Εγγραφή
+                          </th>
+                          {/* Actions — always visible */}
+                          <th style={{ padding: "0.875rem", textAlign: "left", fontWeight: 700, color: "var(--color-text-muted)", fontSize: "0.725rem", textTransform: "uppercase", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                            &nbsp;
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -505,8 +524,8 @@ export default async function AdminPage({
                               key={pro.id}
                               style={{ borderBottom: isLast ? "none" : "1px solid var(--color-border)" }}
                             >
-                              {/* Name + profile link */}
-                              <td style={{ padding: "0.875rem 0.875rem", fontWeight: 600, color: "var(--color-text)", whiteSpace: "nowrap" }}>
+                              {/* Name + profile link — always visible */}
+                              <td style={{ padding: "0.875rem", fontWeight: 600, color: "var(--color-text)", whiteSpace: "nowrap" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
                                   {pro.first_name} {pro.last_name}
                                   {pro.slug && (
@@ -522,18 +541,18 @@ export default async function AdminPage({
                                 </div>
                               </td>
 
-                              {/* Email */}
-                              <td style={{ padding: "0.875rem 0.875rem", color: "var(--color-text-muted)", fontSize: "0.8rem" }}>
+                              {/* Email — hidden on mobile */}
+                              <td className="hidden sm:table-cell" style={{ padding: "0.875rem", color: "var(--color-text-muted)", fontSize: "0.8rem" }}>
                                 {pro.email}
                               </td>
 
-                              {/* Category */}
-                              <td style={{ padding: "0.875rem 0.875rem", color: "var(--color-text-muted)", whiteSpace: "nowrap", fontSize: "0.8rem" }}>
+                              {/* Category — hidden on mobile */}
+                              <td className="hidden sm:table-cell" style={{ padding: "0.875rem", color: "var(--color-text-muted)", whiteSpace: "nowrap", fontSize: "0.8rem" }}>
                                 {cat?.emoji} {cat?.nameEl ?? pro.category_id}
                               </td>
 
-                              {/* Status badge */}
-                              <td style={{ padding: "0.875rem 0.875rem", whiteSpace: "nowrap" }}>
+                              {/* Status badge — always visible */}
+                              <td style={{ padding: "0.875rem", whiteSpace: "nowrap" }}>
                                 <span
                                   style={{
                                     padding:         "0.2rem 0.55rem",
@@ -548,13 +567,13 @@ export default async function AdminPage({
                                 </span>
                               </td>
 
-                              {/* Subscription */}
-                              <td style={{ padding: "0.875rem 0.875rem", color: "var(--color-text-muted)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                              {/* Subscription — hidden on mobile */}
+                              <td className="hidden md:table-cell" style={{ padding: "0.875rem", color: "var(--color-text-muted)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
                                 {sub ? `${sub.tier} · ${sub.billing_plan}${sub.is_founding ? " ★" : ""}` : "—"}
                               </td>
 
-                              {/* Payment badge */}
-                              <td style={{ padding: "0.875rem 0.875rem" }}>
+                              {/* Payment badge — hidden on mobile */}
+                              <td className="hidden sm:table-cell" style={{ padding: "0.875rem" }}>
                                 {pbadge ? (
                                   <span
                                     style={{
@@ -572,20 +591,20 @@ export default async function AdminPage({
                                 ) : "—"}
                               </td>
 
-                              {/* Review count / rating */}
-                              <td style={{ padding: "0.875rem 0.875rem", color: "var(--color-text-muted)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                              {/* Rating — hidden on mobile */}
+                              <td className="hidden md:table-cell" style={{ padding: "0.875rem", color: "var(--color-text-muted)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
                                 {pro.review_count > 0
                                   ? `★ ${pro.rating.toFixed(1)} (${pro.review_count})`
                                   : "—"}
                               </td>
 
-                              {/* Date */}
-                              <td style={{ padding: "0.875rem 0.875rem", color: "var(--color-text-muted)", fontSize: "0.775rem", whiteSpace: "nowrap" }}>
+                              {/* Date — hidden on mobile */}
+                              <td className="hidden md:table-cell" style={{ padding: "0.875rem", color: "var(--color-text-muted)", fontSize: "0.775rem", whiteSpace: "nowrap" }}>
                                 {new Date(pro.created_at).toLocaleDateString("el-GR")}
                               </td>
 
-                              {/* Actions column */}
-                              <td style={{ padding: "0.875rem 0.875rem", whiteSpace: "nowrap" }}>
+                              {/* Actions — always visible */}
+                              <td style={{ padding: "0.875rem", whiteSpace: "nowrap" }}>
                                 <div style={{ display: "flex", gap: "0.4rem" }}>
                                   {/* Verify payment */}
                                   {sub && payStatus === "pending" && (

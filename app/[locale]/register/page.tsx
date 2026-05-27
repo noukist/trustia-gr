@@ -152,6 +152,24 @@ export default function RegisterPage() {
       return;
     }
 
+    // ── Duplicate email detection (email-confirmation ON) ────────
+    // Supabase silently swallows duplicate signups to prevent
+    // user-enumeration attacks, but the response shape differs:
+    //
+    //   Confirmed duplicate:   user=null, session=null, error=null
+    //   Unconfirmed duplicate: user={ identities:[] }, session=null, error=null
+    //
+    // In both cases we show the "already registered" error instead
+    // of the misleading "check your email" success screen.
+    const isConfirmedDuplicate   = !data.user && !data.session;
+    const isUnconfirmedDuplicate = data.user != null && (data.user.identities?.length ?? 0) === 0;
+
+    if (isConfirmedDuplicate || isUnconfirmedDuplicate) {
+      setError(t("errors.alreadyRegistered"));
+      setLoadingEmail(false);
+      return;
+    }
+
     setSuccessEmail(email.trim());
 
     if (data.session && data.user) {
@@ -203,7 +221,11 @@ export default function RegisterPage() {
           alignItems: "center",
           justifyContent: "center",
           padding: "2rem 1rem",
-          backgroundColor: "var(--color-bg-light)",
+          background: [
+            "radial-gradient(ellipse 70% 50% at 70% 20%, rgba(42,143,143,0.10) 0%, transparent 70%)",
+            "radial-gradient(ellipse 60% 50% at 15% 85%, rgba(212,160,57,0.08) 0%, transparent 65%)",
+            "var(--color-bg-light)",
+          ].join(", "),
         }}
       >
         <div
@@ -296,6 +318,7 @@ export default function RegisterPage() {
         .spin { animation: spin 0.9s linear infinite; }
       `}</style>
 
+      {/* Full-height centred wrapper — brand gradient fills the background */}
       <div
         style={{
           minHeight: "calc(100vh - 64px)",
@@ -303,7 +326,11 @@ export default function RegisterPage() {
           alignItems: "center",
           justifyContent: "center",
           padding: "2rem 1rem",
-          backgroundColor: "var(--color-bg-light)",
+          background: [
+            "radial-gradient(ellipse 70% 50% at 70% 20%, rgba(42,143,143,0.10) 0%, transparent 70%)",
+            "radial-gradient(ellipse 60% 50% at 15% 85%, rgba(212,160,57,0.08) 0%, transparent 65%)",
+            "var(--color-bg-light)",
+          ].join(", "),
         }}
       >
         <div

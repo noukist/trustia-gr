@@ -268,7 +268,7 @@
     "bookingErrorDate": "Επιλέξτε ημερομηνία.",
     "bookingErrorPast": "Επιλέξτε μελλοντική ημερομηνία.",
     "bookingErrorFail": "Σφάλμα. Παρακαλώ δοκιμάστε ξανά.",
-    "contactWith": "Επικοινωνία με τον {firstName}",
+    "contactWith": "Επικοινωνία με {firstName}",
     "zeroCommission": "Χωρίς προμήθεια — 100% πηγαίνει στον επαγγελματία",
     "copyNumber": "Αντιγραφή αριθμού",
     "copyAction": "Αντιγραφή",

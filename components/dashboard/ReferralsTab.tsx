@@ -105,12 +105,17 @@ export default function ReferralsTab({ proId, proSlug }: ReferralsTabProps) {
   // ── Render ─────────────────────────────────────────────────
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+      {/* Ensure the referral URL input has good contrast for placeholder + value */}
+      <style>{`
+        .referral-url-input::placeholder { color: #9CA3AF; }
+        .referral-url-input:focus       { outline: 2px solid rgba(255,255,255,0.6); outline-offset: 1px; }
+      `}</style>
 
       {/* ── Referral link card ── */}
       <div
         style={{
           backgroundColor: "var(--color-primary)",
-          borderRadius:    "16px",
+          borderRadius:    "14px",
           padding:         "1.75rem",
           color:           "#fff",
         }}
@@ -131,17 +136,19 @@ export default function ReferralsTab({ proId, proSlug }: ReferralsTabProps) {
             <input
               readOnly
               value={referralUrl}
+              className="referral-url-input"
+              placeholder="trustia.gr/register/professional?ref=…"
               style={{
-                flex:         1,
-                padding:      "0.6rem 0.875rem",
-                borderRadius: "8px",
-                border:       "none",
-                fontSize:     "0.8375rem",
-                fontFamily:   "inherit",
-                color:        "var(--color-text)",
+                flex:            1,
+                padding:         "0.6rem 0.875rem",
+                borderRadius:    "8px",
+                border:          "1.5px solid rgba(255,255,255,0.25)",
+                fontSize:        "0.8375rem",
+                fontFamily:      "inherit",
+                color:           "#1F2937",
                 backgroundColor: "#fff",
-                outline:      "none",
-                minWidth:     0,
+                outline:         "none",
+                minWidth:        0,
               }}
             />
             <button
@@ -205,7 +212,7 @@ export default function ReferralsTab({ proId, proSlug }: ReferralsTabProps) {
             style={{
               backgroundColor: "#fff",
               border:          "1.5px solid var(--color-border)",
-              borderRadius:    "12px",
+              borderRadius:    "14px",
               padding:         "1.125rem 1.25rem",
             }}
           >

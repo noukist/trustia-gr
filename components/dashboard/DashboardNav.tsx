@@ -4,19 +4,18 @@
 // Navigation for the professional dashboard.
 //
 // LAYOUT
-//   Desktop (md+):  sticky left sidebar, 220 px wide, with teal
-//                   active-state pill and professional info header.
-//   Mobile:         fixed bottom tab bar with icon + short label.
-//
-// Each nav item updates the `tab` URL search param via router.push()
-// which causes the Server Component page to re-render with the
-// new tab's content — no client-side data fetching needed.
+//   Desktop (md+):  sticky left sidebar, 220 px wide.
+//   Mobile:         fixed bottom bar — always exactly 5 slots:
+//                   Overview · Profile · Bookings · Reviews · More(⋯)
+//                   "More" opens a slide-up sheet listing every
+//                   remaining tab plus sign-out. This caps the bar
+//                   at 5 items regardless of how many tabs exist.
 // =============================================================
 
 "use client";
 
-import React             from "react";
-import Link              from "next/link";
+import React, { useState }  from "react";
+import Link                  from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
   LayoutDashboard,
@@ -29,6 +28,8 @@ import {
   Share2,
   ExternalLink,
   LogOut,
+  MoreHorizontal,
+  X,
 } from "lucide-react";
 import { signOut } from "@/lib/auth/helpers";
 
@@ -36,9 +37,9 @@ import { signOut } from "@/lib/auth/helpers";
 interface NavItem {
   id:          string;
   labelEl:     string;
-  shortEl:     string;      // Short label for mobile tabs
+  shortEl:     string;
   icon:        React.ComponentType<{ size?: number }>;
-  placeholder: boolean;     // True = show "Σύντομα" badge
+  placeholder: boolean;
 }
 
 interface DashboardNavProps {
@@ -47,54 +48,96 @@ interface DashboardNavProps {
   proSlug:      string | null;
   avatarUrl:    string | null;
   initials:     string;
-  /** booking_mode from the professionals row — shows Availability tab only for "full" */
   bookingMode:  "contact" | "date" | "full";
 }
 
 // ── Nav items builder ──────────────────────────────────────────
-// Availability tab is only shown for professionals using full-calendar
-// booking mode since it's the only mode that reads availability_slots.
+// Returns ALL items; mobile renders only the first 4 + a "More" button.
 function buildNavItems(bookingMode: "contact" | "date" | "full"): NavItem[] {
   const items: NavItem[] = [
-    { id: "overview",      labelEl: "Επισκόπηση", shortEl: "Αρχική",    icon: LayoutDashboard, placeholder: false },
-    { id: "profile",       labelEl: "Προφίλ",      shortEl: "Προφίλ",    icon: User,            placeholder: false },
-    { id: "bookings",      labelEl: "Κρατήσεις",  shortEl: "Κρατήσεις", icon: Calendar,        placeholder: false },
-    { id: "reviews",       labelEl: "Κριτικές",   shortEl: "Κριτικές",  icon: Star,            placeholder: false },
+    { id: "overview",  labelEl: "Επισκόπηση", shortEl: "Αρχική",    icon: LayoutDashboard, placeholder: false },
+    { id: "profile",   labelEl: "Προφίλ",      shortEl: "Προφίλ",    icon: User,            placeholder: false },
+    { id: "bookings",  labelEl: "Κρατήσεις",  shortEl: "Κρατήσεις", icon: Calendar,        placeholder: false },
+    { id: "reviews",   labelEl: "Κριτικές",   shortEl: "Κριτικές",  icon: Star,            placeholder: false },
   ];
-  // Insert availability tab before subscription only for full-calendar mode
   if (bookingMode === "full") {
-    items.push({
-      id:          "availability",
-      labelEl:     "Διαθεσιμότητα",
-      shortEl:     "Ώρες",
-      icon:        Clock,
-      placeholder: false,
-    });
+    items.push({ id: "availability", labelEl: "Διαθεσιμότητα", shortEl: "Ώρες",     icon: Clock,     placeholder: false });
   }
   items.push(
-    {
-      id:          "business",
-      labelEl:     "Επιχείρηση",
-      shortEl:     "Επιχ.",
-      icon:        Building2,
-      placeholder: false,
-    },
-    {
-      id:          "referrals",
-      labelEl:     "Παραπομπές",
-      shortEl:     "Παραπ.",
-      icon:        Share2,
-      placeholder: false,
-    },
-    {
-      id:          "subscription",
-      labelEl:     "Συνδρομή",
-      shortEl:     "Συνδρομή",
-      icon:        CreditCard,
-      placeholder: false,
-    },
+    { id: "business",     labelEl: "Επιχείρηση", shortEl: "Επιχ.",    icon: Building2, placeholder: false },
+    { id: "referrals",    labelEl: "Παραπομπές", shortEl: "Παραπ.",   icon: Share2,    placeholder: false },
+    { id: "subscription", labelEl: "Συνδρομή",   shortEl: "Συνδρομή", icon: CreditCard,placeholder: false },
   );
   return items;
+}
+
+// ── Shared sidebar button ──────────────────────────────────────
+function SidebarItem({
+  item,
+  active,
+  onClick,
+}: {
+  item:    NavItem;
+  active:  boolean;
+  onClick: () => void;
+}) {
+  const Icon = item.icon;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display:         "flex",
+        alignItems:      "center",
+        gap:             "0.75rem",
+        width:           "100%",
+        padding:         "0.625rem 0.875rem",
+        borderRadius:    "10px",
+        border:          "none",
+        cursor:          "pointer",
+        backgroundColor: active ? "var(--color-primary-bg)" : "transparent",
+        color:           active ? "var(--color-primary)" : "var(--color-text-muted)",
+        fontWeight:      active ? 700 : 500,
+        fontSize:        "0.9rem",
+        fontFamily:      "inherit",
+        textAlign:       "left",
+        transition:      "background-color 0.12s, color 0.12s",
+        position:        "relative",
+      }}
+    >
+      {active && (
+        <span
+          style={{
+            position:        "absolute",
+            left:            0,
+            top:             "20%",
+            bottom:          "20%",
+            width:           "3px",
+            backgroundColor: "var(--color-primary)",
+            borderRadius:    "0 3px 3px 0",
+          }}
+        />
+      )}
+      <Icon size={17} />
+      {item.labelEl}
+      {item.placeholder && !active && (
+        <span
+          style={{
+            marginLeft:      "auto",
+            backgroundColor: "var(--color-bg-light)",
+            border:          "1px solid var(--color-border)",
+            borderRadius:    "4px",
+            padding:         "0 4px",
+            fontSize:        "0.65rem",
+            color:           "var(--color-text-muted)",
+            fontWeight:      500,
+          }}
+        >
+          Σύντομα
+        </span>
+      )}
+    </button>
+  );
 }
 
 // ── Component ──────────────────────────────────────────────────
@@ -106,86 +149,34 @@ export default function DashboardNav({
   initials,
   bookingMode,
 }: DashboardNavProps) {
-  const NAV_ITEMS = buildNavItems(bookingMode);
-  const router      = useRouter();
-  const pathname    = usePathname();
+  const NAV_ITEMS    = buildNavItems(bookingMode);
+  const router       = useRouter();
+  const pathname     = usePathname();
   const searchParams = useSearchParams();
+
+  // Mobile "More" sheet state
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  // The 4 primary tabs always shown in the mobile bar
+  const PRIMARY_TABS = NAV_ITEMS.slice(0, 4);
+  // Everything else goes into the "More" sheet
+  const OVERFLOW_TABS = NAV_ITEMS.slice(4);
+
+  // Whether the active tab is hidden in the overflow group
+  const activeIsOverflow = OVERFLOW_TABS.some((i) => i.id === tab);
 
   function navigate(id: string) {
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", id);
-    // Clear the welcome banner when navigating away from overview
     if (id !== "overview") params.delete("welcome");
     router.push(`${pathname}?${params.toString()}`);
+    setMoreOpen(false);
   }
 
   async function handleSignOut() {
     await signOut();
     router.push("/");
     router.refresh();
-  }
-
-  // ── Sidebar item renderer ─────────────────────────────────
-  function SidebarItem({ item }: { item: NavItem }) {
-    const active = tab === item.id;
-    const Icon   = item.icon;
-    return (
-      <button
-        type="button"
-        onClick={() => navigate(item.id)}
-        style={{
-          display:         "flex",
-          alignItems:      "center",
-          gap:             "0.75rem",
-          width:           "100%",
-          padding:         "0.625rem 0.875rem",
-          borderRadius:    "10px",
-          border:          "none",
-          cursor:          "pointer",
-          backgroundColor: active ? "var(--color-primary-bg)" : "transparent",
-          color:           active ? "var(--color-primary)" : "var(--color-text-muted)",
-          fontWeight:      active ? 700 : 500,
-          fontSize:        "0.9rem",
-          fontFamily:      "inherit",
-          textAlign:       "left",
-          transition:      "background-color 0.12s, color 0.12s",
-          position:        "relative",
-        }}
-      >
-        {/* Active left bar */}
-        {active && (
-          <span
-            style={{
-              position:        "absolute",
-              left:            0,
-              top:             "20%",
-              bottom:          "20%",
-              width:           "3px",
-              backgroundColor: "var(--color-primary)",
-              borderRadius:    "0 3px 3px 0",
-            }}
-          />
-        )}
-        <Icon size={17} />
-        {item.labelEl}
-        {item.placeholder && !active && (
-          <span
-            style={{
-              marginLeft:      "auto",
-              backgroundColor: "var(--color-bg-light)",
-              border:          "1px solid var(--color-border)",
-              borderRadius:    "4px",
-              padding:         "0 4px",
-              fontSize:        "0.65rem",
-              color:           "var(--color-text-muted)",
-              fontWeight:      500,
-            }}
-          >
-            Σύντομα
-          </span>
-        )}
-      </button>
-    );
   }
 
   // ── Avatar ────────────────────────────────────────────────
@@ -217,7 +208,6 @@ export default function DashboardNav({
         fontSize:        "0.8rem",
         fontWeight:      800,
         flexShrink:      0,
-        border:          "2px solid var(--color-primary)",
       }}
     >
       {initials}
@@ -236,7 +226,7 @@ export default function DashboardNav({
           flexShrink:      0,
           flexDirection:   "column",
           position:        "sticky",
-          top:             "64px",          // Below the ~64px sticky Navbar
+          top:             "64px",
           height:          "calc(100vh - 64px)",
           overflowY:       "auto",
           backgroundColor: "#fff",
@@ -258,92 +248,44 @@ export default function DashboardNav({
         >
           {avatar}
           <div style={{ minWidth: 0 }}>
-            <p
-              style={{
-                margin:       0,
-                fontWeight:   700,
-                fontSize:     "0.875rem",
-                color:        "var(--color-text)",
-                overflow:     "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace:   "nowrap",
-              }}
-            >
+            <p style={{ margin: 0, fontWeight: 700, fontSize: "0.875rem", color: "var(--color-text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {proFirstName}
             </p>
-            <p
-              style={{
-                margin:   "0.1rem 0 0",
-                fontSize: "0.7rem",
-                color:    "var(--color-text-muted)",
-              }}
-            >
+            <p style={{ margin: "0.1rem 0 0", fontSize: "0.7rem", color: "var(--color-text-muted)" }}>
               Επαγγελματίας
             </p>
           </div>
         </div>
 
-        {/* Nav items */}
+        {/* All nav items on desktop */}
         <nav style={{ display: "flex", flexDirection: "column", gap: "0.125rem", flex: 1 }}>
           {NAV_ITEMS.map((item) => (
-            <SidebarItem key={item.id} item={item} />
+            <SidebarItem
+              key={item.id}
+              item={item}
+              active={tab === item.id}
+              onClick={() => navigate(item.id)}
+            />
           ))}
         </nav>
 
         {/* Bottom actions */}
-        <div
-          style={{
-            borderTop:  "1px solid var(--color-border)",
-            paddingTop: "0.75rem",
-            marginTop:  "0.75rem",
-            display:    "flex",
-            flexDirection: "column",
-            gap:        "0.125rem",
-          }}
-        >
-          {/* Preview profile link */}
+        <div style={{ borderTop: "1px solid var(--color-border)", paddingTop: "0.75rem", marginTop: "0.75rem", display: "flex", flexDirection: "column", gap: "0.125rem" }}>
           {proSlug && (
             <Link
               href={`/professional/${proSlug}`}
               target="_blank"
               rel="noopener noreferrer"
-              style={{
-                display:     "flex",
-                alignItems:  "center",
-                gap:         "0.75rem",
-                padding:     "0.625rem 0.875rem",
-                borderRadius:"10px",
-                color:       "var(--color-text-muted)",
-                fontSize:    "0.875rem",
-                fontWeight:  500,
-                textDecoration: "none",
-              }}
+              style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.625rem 0.875rem", borderRadius: "10px", color: "var(--color-text-muted)", fontSize: "0.875rem", fontWeight: 500, textDecoration: "none" }}
             >
               <ExternalLink size={16} />
               Προεπισκόπηση
             </Link>
           )}
-
-          {/* Sign out */}
           <button
             type="button"
             onClick={handleSignOut}
-            style={{
-              display:     "flex",
-              alignItems:  "center",
-              gap:         "0.75rem",
-              padding:     "0.625rem 0.875rem",
-              borderRadius:"10px",
-              border:      "none",
-              cursor:      "pointer",
-              backgroundColor: "transparent",
-              color:       "var(--color-text-muted)",
-              fontSize:    "0.875rem",
-              fontWeight:  500,
-              fontFamily:  "inherit",
-              textAlign:   "left",
-              width:       "100%",
-            }}
+            style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.625rem 0.875rem", borderRadius: "10px", border: "none", cursor: "pointer", backgroundColor: "transparent", color: "var(--color-text-muted)", fontSize: "0.875rem", fontWeight: 500, fontFamily: "inherit", textAlign: "left", width: "100%" }}
           >
             <LogOut size={16} />
             Αποσύνδεση
@@ -352,7 +294,8 @@ export default function DashboardNav({
       </aside>
 
       {/* ══════════════════════════════════════════════════════
-          MOBILE BOTTOM TABS (hidden on desktop)
+          MOBILE BOTTOM BAR — exactly 5 slots (hidden on desktop)
+          Slots: Overview · Profile · Bookings · Reviews · More
       ══════════════════════════════════════════════════════ */}
       <nav
         className="md:hidden"
@@ -369,7 +312,8 @@ export default function DashboardNav({
           height:          "58px",
         }}
       >
-        {NAV_ITEMS.map((item) => {
+        {/* 4 primary tabs */}
+        {PRIMARY_TABS.map((item) => {
           const active = tab === item.id;
           const Icon   = item.icon;
           return (
@@ -400,7 +344,152 @@ export default function DashboardNav({
             </button>
           );
         })}
+
+        {/* "More ⋯" button — highlighted when active tab is in overflow */}
+        <button
+          type="button"
+          onClick={() => setMoreOpen((v) => !v)}
+          style={{
+            flex:            1,
+            display:         "flex",
+            flexDirection:   "column",
+            alignItems:      "center",
+            justifyContent:  "center",
+            gap:             "0.2rem",
+            border:          "none",
+            cursor:          "pointer",
+            backgroundColor: "transparent",
+            color:           (moreOpen || activeIsOverflow) ? "var(--color-primary)" : "var(--color-text-muted)",
+            fontFamily:      "inherit",
+            padding:         "0.25rem",
+            transition:      "color 0.12s",
+            position:        "relative",
+          }}
+        >
+          <MoreHorizontal size={20} />
+          <span style={{ fontSize: "0.6rem", fontWeight: (moreOpen || activeIsOverflow) ? 700 : 400, lineHeight: 1 }}>
+            Περισσότερα
+          </span>
+          {/* Dot indicator when active tab is hidden in overflow */}
+          {activeIsOverflow && !moreOpen && (
+            <span
+              style={{
+                position:        "absolute",
+                top:             "6px",
+                right:           "calc(50% - 14px)",
+                width:           "6px",
+                height:          "6px",
+                borderRadius:    "50%",
+                backgroundColor: "var(--color-primary)",
+              }}
+            />
+          )}
+        </button>
       </nav>
+
+      {/* ══════════════════════════════════════════════════════
+          MOBILE "MORE" SLIDE-UP SHEET
+      ══════════════════════════════════════════════════════ */}
+      {moreOpen && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="md:hidden"
+            onClick={() => setMoreOpen(false)}
+            style={{
+              position:        "fixed",
+              inset:           0,
+              zIndex:          99,
+              backgroundColor: "rgba(0,0,0,0.35)",
+            }}
+          />
+
+          {/* Sheet */}
+          <div
+            className="md:hidden"
+            style={{
+              position:        "fixed",
+              bottom:          "58px",   // sits above the bottom bar
+              left:            0,
+              right:           0,
+              zIndex:          100,
+              backgroundColor: "#fff",
+              borderRadius:    "16px 16px 0 0",
+              boxShadow:       "0 -4px 24px rgba(0,0,0,0.12)",
+              padding:         "1rem 0.75rem 1.25rem",
+            }}
+          >
+            {/* Handle + close */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem", padding: "0 0.25rem" }}>
+              <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 700, color: "var(--color-text-muted)", textTransform: "uppercase", letterSpacing: "0.07em" }}>
+                Περισσότερα
+              </p>
+              <button
+                type="button"
+                onClick={() => setMoreOpen(false)}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", padding: "0.25rem" }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Overflow nav items */}
+            {OVERFLOW_TABS.map((item) => {
+              const Icon   = item.icon;
+              const active = tab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => navigate(item.id)}
+                  style={{
+                    display:         "flex",
+                    alignItems:      "center",
+                    gap:             "0.875rem",
+                    width:           "100%",
+                    padding:         "0.75rem 0.875rem",
+                    borderRadius:    "10px",
+                    border:          "none",
+                    cursor:          "pointer",
+                    backgroundColor: active ? "var(--color-primary-bg)" : "transparent",
+                    color:           active ? "var(--color-primary)" : "var(--color-text)",
+                    fontWeight:      active ? 700 : 500,
+                    fontSize:        "0.9375rem",
+                    fontFamily:      "inherit",
+                    textAlign:       "left",
+                  }}
+                >
+                  <Icon size={20} />
+                  {item.labelEl}
+                </button>
+              );
+            })}
+
+            <div style={{ borderTop: "1px solid var(--color-border)", marginTop: "0.5rem", paddingTop: "0.5rem" }}>
+              {proSlug && (
+                <Link
+                  href={`/professional/${proSlug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setMoreOpen(false)}
+                  style={{ display: "flex", alignItems: "center", gap: "0.875rem", padding: "0.75rem 0.875rem", borderRadius: "10px", color: "var(--color-text-muted)", fontSize: "0.9375rem", fontWeight: 500, textDecoration: "none" }}
+                >
+                  <ExternalLink size={20} />
+                  Προεπισκόπηση προφίλ
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={handleSignOut}
+                style={{ display: "flex", alignItems: "center", gap: "0.875rem", width: "100%", padding: "0.75rem 0.875rem", borderRadius: "10px", border: "none", cursor: "pointer", backgroundColor: "transparent", color: "var(--color-text-muted)", fontSize: "0.9375rem", fontWeight: 500, fontFamily: "inherit", textAlign: "left" }}
+              >
+                <LogOut size={20} />
+                Αποσύνδεση
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }
