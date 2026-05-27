@@ -57,7 +57,7 @@ export async function registerCustomer(
   email: string,
   password: string
 ) {
-  await page.goto("/el/register");
+  await page.goto("/register");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Κωδικός").fill(password);
   await page.getByLabel("Επιβεβαίωση κωδικού").fill(password);
@@ -71,7 +71,7 @@ export async function registerCustomer(
  * Waits for a redirect away from /login.
  */
 export async function loginAs(page: Page, email: string, password: string) {
-  await page.goto("/el/login");
+  await page.goto("/login");
   await page.getByLabel("Email").fill(email);
   await page.getByLabel("Κωδικός").fill(password);
   await page.getByRole("button", { name: "Σύνδεση" }).click();

@@ -17,31 +17,31 @@ import { test, expect } from "@playwright/test";
 
 // ── All public routes ─────────────────────────────────────────
 const PUBLIC_PAGES = [
-  { path: "/el",                      name: "Homepage"              },
-  { path: "/el/services",             name: "Services / Categories" },
-  { path: "/el/services?category=plumber", name: "Services — plumber category" },
-  { path: "/el/how-it-works",         name: "How It Works"          },
-  { path: "/el/register",             name: "Customer Register"     },
-  { path: "/el/register/professional",name: "Pro Register (step 1)" },
-  { path: "/el/login",                name: "Login"                 },
-  { path: "/el/terms",                name: "Terms of Service"      },
-  { path: "/el/privacy",              name: "Privacy Policy"        },
-  { path: "/el/cookies",              name: "Cookie Policy"         },
-  { path: "/el/contact",              name: "Contact"               },
+  { path: "/",                         name: "Homepage"              },
+  { path: "/services",                 name: "Services / Categories" },
+  { path: "/services?category=plumber", name: "Services — plumber category" },
+  { path: "/how-it-works",             name: "How It Works"          },
+  { path: "/register",                 name: "Customer Register"     },
+  { path: "/register/professional",    name: "Pro Register (step 1)" },
+  { path: "/login",                    name: "Login"                 },
+  { path: "/terms",                    name: "Terms of Service"      },
+  { path: "/privacy",                  name: "Privacy Policy"        },
+  { path: "/cookies",                  name: "Cookie Policy"         },
+  { path: "/contact",                  name: "Contact"               },
   // English variants
-  { path: "/en",                      name: "Homepage (EN)"         },
-  { path: "/en/services",             name: "Services (EN)"         },
-  { path: "/en/how-it-works",         name: "How It Works (EN)"     },
-  { path: "/en/register",             name: "Customer Register (EN)"},
-  { path: "/en/login",                name: "Login (EN)"            },
+  { path: "/en",                       name: "Homepage (EN)"         },
+  { path: "/en/services",              name: "Services (EN)"         },
+  { path: "/en/how-it-works",          name: "How It Works (EN)"     },
+  { path: "/en/register",              name: "Customer Register (EN)"},
+  { path: "/en/login",                 name: "Login (EN)"            },
 ];
 
 // ── Protected pages that must redirect — NOT show content ─────
 const PROTECTED_PAGES = [
-  { path: "/el/dashboard",   name: "Dashboard (must → login)" },
-  { path: "/el/my-bookings", name: "My Bookings (must → login)"},
-  { path: "/el/profile",     name: "Profile (must → login)"   },
-  { path: "/el/favorites",   name: "Favorites (must → login)" },
+  { path: "/dashboard",   name: "Dashboard (must → login)" },
+  { path: "/my-bookings", name: "My Bookings (must → login)"},
+  { path: "/profile",     name: "Profile (must → login)"   },
+  { path: "/favorites",   name: "Favorites (must → login)" },
 ];
 
 // ── Special pages ──────────────────────────────────────────────

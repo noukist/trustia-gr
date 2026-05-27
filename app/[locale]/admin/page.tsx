@@ -36,7 +36,7 @@ import AnnouncementsTab  from "@/components/admin/AnnouncementsTab";
 import SettingsTab       from "@/components/admin/SettingsTab";
 
 export const metadata: Metadata = {
-  title: "Admin | Trustia.gr",
+  title: "Admin",
 };
 
 // ── Params types ──────────────────────────────────────────────

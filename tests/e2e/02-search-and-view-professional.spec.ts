@@ -21,7 +21,7 @@ test.describe("Search and view professional", () => {
   test("category page → professional card → profile page", async ({ page }) => {
     // ── 1. Go directly to a category with seed professionals ──
     // "plumber" has at least 1 seed professional (Νίκος Παπαδόπουλος)
-    await page.goto("/el/services?category=plumber");
+    await page.goto("/services?category=plumber");
     await expect(page).toHaveURL(/category=plumber/);
 
     // ── 2. At least one professional card link should appear ───
@@ -59,7 +59,7 @@ test.describe("Search and view professional", () => {
   });
 
   test("filter by category — plumber results contain plumber cards", async ({ page }) => {
-    await page.goto("/el/services?category=plumber");
+    await page.goto("/services?category=plumber");
 
     // Results should load
     const cards = page.locator("a[href*='/el/pro/']");
@@ -69,7 +69,7 @@ test.describe("Search and view professional", () => {
   });
 
   test("non-existent professional slug shows 404", async ({ page }) => {
-    await page.goto("/el/professional/this-professional-does-not-exist-xyz123");
+    await page.goto("/professional/this-professional-does-not-exist-xyz123");
 
     // Wait for the page to finish loading before checking
     await page.waitForLoadState("networkidle").catch(() => {});
@@ -95,7 +95,7 @@ test.describe("Search and view professional", () => {
 
   test("direct URL to services page — no login required", async ({ page }) => {
     // Fully public — should NOT redirect to login
-    await page.goto("/el/services");
+    await page.goto("/services");
     await expect(page).not.toHaveURL(/\/login/);
     await expect(page.locator("body")).toBeVisible();
   });
