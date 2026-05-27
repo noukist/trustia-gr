@@ -28,7 +28,7 @@ const PRO_PASSWORD = process.env.E2E_PRO1_PASSWORD ?? "your-password-here";
 test.describe("Professional dashboard", () => {
 
   test("unauthenticated /dashboard → redirects to login", async ({ page }) => {
-    await page.goto("/el/dashboard");
+    await page.goto("/dashboard");
 
     await page.waitForURL((url) =>
       url.pathname.includes("/login") || url.pathname.includes("/register"),
@@ -55,7 +55,7 @@ test.describe("Professional dashboard", () => {
 
     try { await loginAs(page, PRO_EMAIL, PRO_PASSWORD); }
     catch { test.skip(true, "Login failed — check E2E_PRO1_EMAIL / E2E_PRO1_PASSWORD"); return; }
-    await page.goto("/el/dashboard");
+    await page.goto("/dashboard");
 
     // Should show the overview tab content — stats cards
     await expect(page.locator("body")).toBeVisible();
@@ -71,7 +71,7 @@ test.describe("Professional dashboard", () => {
 
     try { await loginAs(page, PRO_EMAIL, PRO_PASSWORD); }
     catch { test.skip(true, "Login failed — check E2E_PRO1_EMAIL / E2E_PRO1_PASSWORD"); return; }
-    await page.goto("/el/dashboard?tab=profile");
+    await page.goto("/dashboard?tab=profile");
 
     await expect(page).not.toHaveTitle(/500|error/i);
     // Profile editor should have at least one input
@@ -85,7 +85,7 @@ test.describe("Professional dashboard", () => {
 
     try { await loginAs(page, PRO_EMAIL, PRO_PASSWORD); }
     catch { test.skip(true, "Login failed — check E2E_PRO1_EMAIL / E2E_PRO1_PASSWORD"); return; }
-    await page.goto("/el/dashboard?tab=bookings");
+    await page.goto("/dashboard?tab=bookings");
 
     await expect(page).not.toHaveTitle(/500|error/i);
     await expect(page.locator("body")).toBeVisible();
@@ -97,7 +97,7 @@ test.describe("Professional dashboard", () => {
 
     try { await loginAs(page, PRO_EMAIL, PRO_PASSWORD); }
     catch { test.skip(true, "Login failed — check E2E_PRO1_EMAIL / E2E_PRO1_PASSWORD"); return; }
-    await page.goto("/el/dashboard?tab=reviews");
+    await page.goto("/dashboard?tab=reviews");
 
     await expect(page).not.toHaveTitle(/500|error/i);
     await expect(page.locator("body")).toBeVisible();
@@ -108,7 +108,7 @@ test.describe("Professional dashboard", () => {
 
     try { await loginAs(page, PRO_EMAIL, PRO_PASSWORD); }
     catch { test.skip(true, "Login failed — check E2E_PRO1_EMAIL / E2E_PRO1_PASSWORD"); return; }
-    await page.goto("/el/dashboard?tab=subscription");
+    await page.goto("/dashboard?tab=subscription");
 
     await expect(page).not.toHaveTitle(/500|error/i);
     await expect(page.locator("body")).toBeVisible();

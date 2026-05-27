@@ -27,7 +27,7 @@ import { test, expect } from "@playwright/test";
 test.describe("Professional registration (5 steps)", () => {
 
   test("step 1: category selection page renders", async ({ page }) => {
-    await page.goto("/el/register/professional");
+    await page.goto("/register/professional");
 
     // Must not crash
     await expect(page).not.toHaveTitle(/500|error/i);
@@ -51,7 +51,7 @@ test.describe("Professional registration (5 steps)", () => {
   });
 
   test("step 1: clicking a category advances to step 2", async ({ page }) => {
-    await page.goto("/el/register/professional");
+    await page.goto("/register/professional");
 
     await expect(page).not.toHaveTitle(/500|error/i);
 
@@ -77,7 +77,7 @@ test.describe("Professional registration (5 steps)", () => {
   });
 
   test("full happy-path walkthrough (steps 1–5)", async ({ page }) => {
-    await page.goto("/el/register/professional");
+    await page.goto("/register/professional");
 
     await expect(page).not.toHaveTitle(/500|error/i);
 

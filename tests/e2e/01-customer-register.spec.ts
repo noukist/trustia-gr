@@ -72,7 +72,7 @@ test.describe("Customer registration", () => {
   });
 
   test("short password shows error", async ({ page }) => {
-    await page.goto("/el/register");
+    await page.goto("/register");
     await page.getByLabel("Email").fill(`short.${Date.now()}@mailinator.com`);
     await page.getByLabel("Κωδικός").fill("abc");
     await page.getByLabel("Επιβεβαίωση κωδικού").fill("abc");
@@ -93,7 +93,7 @@ test.describe("Customer registration", () => {
   });
 
   test("mismatched passwords shows error", async ({ page }) => {
-    await page.goto("/el/register");
+    await page.goto("/register");
     await page.getByLabel("Email").fill(`mismatch.${Date.now()}@mailinator.com`);
     await page.getByLabel("Κωδικός").fill("TestPass123!");
     await page.getByLabel("Επιβεβαίωση κωδικού").fill("DifferentPass123!");
@@ -106,7 +106,7 @@ test.describe("Customer registration", () => {
   });
 
   test("terms not accepted blocks submission", async ({ page }) => {
-    await page.goto("/el/register");
+    await page.goto("/register");
     await page.getByLabel("Email").fill(`terms.${Date.now()}@mailinator.com`);
     await page.getByLabel("Κωδικός").fill(PASSWORD);
     await page.getByLabel("Επιβεβαίωση κωδικού").fill(PASSWORD);

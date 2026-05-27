@@ -17,7 +17,7 @@ test("duplicate email shows 'already registered' error — not a success screen"
   const dupEmail = `e2e.dup.${Date.now()}@mailinator.com`;
 
   // ── Step 1: First registration — should show verify screen ───
-  await page.goto("/el/register");
+  await page.goto("/register");
   await page.getByLabel("Email").fill(dupEmail);
   await page.getByLabel("Κωδικός").fill("TestPass123!");
   await page.getByLabel("Επιβεβαίωση κωδικού").fill("TestPass123!");
@@ -37,7 +37,7 @@ test("duplicate email shows 'already registered' error — not a success screen"
   }
 
   // ── Step 2: Second registration with the SAME email ───────────
-  await page.goto("/el/register");
+  await page.goto("/register");
   await page.getByLabel("Email").fill(dupEmail);
   await page.getByLabel("Κωδικός").fill("TestPass123!");
   await page.getByLabel("Επιβεβαίωση κωδικού").fill("TestPass123!");
@@ -60,7 +60,7 @@ test("duplicate email shows 'already registered' error — not a success screen"
 
 // ── B: Forgot password ────────────────────────────────────────
 test("forgot password link opens reset panel and accepts email", async ({ page }) => {
-  await page.goto("/el/login");
+  await page.goto("/login");
 
   // The link should be visible on the login page
   const forgotLink = page.getByRole("button", { name: /ξέχασες|forgot/i });
@@ -93,7 +93,7 @@ test("forgot password link opens reset panel and accepts email", async ({ page }
 // Find any professional with booking_mode = 'full' via the services page
 test("full-calendar professional profile shows 3-step booking form", async ({ page }) => {
   // Go to the services page and look for any professional
-  await page.goto("/el/services?category=plumber");
+  await page.goto("/services?category=plumber");
   await expect(page).not.toHaveTitle(/500|error/i);
 
   // Check if any professional card exists
