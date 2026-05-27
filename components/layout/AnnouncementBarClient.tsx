@@ -38,7 +38,7 @@ export default function AnnouncementBarClient({ id, text, linkUrl }: Props) {
     <div
       role="banner"
       style={{
-        backgroundColor: "var(--color-primary)",
+        backgroundColor: "var(--color-accent)",
         color:           "#fff",
         padding:         "0.55rem 1rem",
         display:         "flex",
