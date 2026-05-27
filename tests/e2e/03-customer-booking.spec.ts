@@ -27,7 +27,7 @@ import { loginAs } from "./helpers";
 // Update these if you use a different test account.
 // Read from env var (GitHub Actions secret) or fall back to placeholder.
 // Set E2E_CUSTOMER_EMAIL / E2E_CUSTOMER_PASSWORD in .env.test.local locally.
-const CUSTOMER_EMAIL    = process.env.E2E_CUSTOMER_EMAIL    ?? "noukist@gmail.com";
+const CUSTOMER_EMAIL    = process.env.E2E_CUSTOMER_EMAIL    ?? "admin@gmail.com";
 const CUSTOMER_PASSWORD = process.env.E2E_CUSTOMER_PASSWORD ?? "your-password-here";
 
 // Slug of a seed professional with booking_mode = "date"

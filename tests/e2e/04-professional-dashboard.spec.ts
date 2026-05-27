@@ -22,7 +22,7 @@ import { loginAs } from "./helpers";
 
 // Read from env var (GitHub Actions secret) or fall back to placeholder.
 // Set E2E_PRO1_EMAIL / E2E_PRO1_PASSWORD in .env.test.local locally.
-const PRO_EMAIL    = process.env.E2E_PRO1_EMAIL    ?? "noukist@gmail.com";
+const PRO_EMAIL    = process.env.E2E_PRO1_EMAIL    ?? "admin@gmail.com";
 const PRO_PASSWORD = process.env.E2E_PRO1_PASSWORD ?? "your-password-here";
 
 test.describe("Professional dashboard", () => {
