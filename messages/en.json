@@ -889,7 +889,9 @@
     "empty": "No bookings yet",
     "emptyHint": "When you request an appointment with a professional, it will appear here.",
     "browseBtn": "Browse Professionals",
-    "unknownPro": "Professional"
+    "unknownPro": "Professional",
+    "cancelBtn": "Cancel booking",
+    "cancelConfirm": "Are you sure you want to cancel this booking?"
   },
 
   "favorites": {

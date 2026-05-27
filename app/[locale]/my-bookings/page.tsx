@@ -20,14 +20,46 @@
 
 import type { Metadata }      from "next";
 import { redirect }            from "next/navigation";
+import { revalidatePath }      from "next/cache";
 import { setRequestLocale, getTranslations } from "next-intl/server";
 import { CalendarDays }        from "lucide-react";
 import { Link }                from "@/i18n/navigation";
 import { createClient }        from "@/lib/supabase/server";
 import { CATEGORIES }          from "@/lib/constants";
+import CancelBookingButton     from "./CancelBookingButton";
 
 // ── Next.js 16: params are a Promise ─────────────────────────
 type PageParams = Promise<{ locale: string }>;
+
+// ── Server Action: cancel a pending booking ───────────────────
+async function cancelBooking(formData: FormData) {
+  "use server";
+  const bookingId = formData.get("bookingId") as string;
+  if (!bookingId) return;
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  // Resolve customer row so we only cancel our own bookings (defence-in-depth on top of RLS)
+  const { data: customer } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!customer) return;
+
+  await supabase
+    .from("bookings")
+    .update({ status: "cancelled" })
+    .eq("id", bookingId)
+    .eq("customer_id", customer.id)
+    .eq("status", "pending"); // only cancel pending bookings
+
+  revalidatePath("/my-bookings");
+  revalidatePath("/el/my-bookings");
+  revalidatePath("/en/my-bookings");
+}
 
 export async function generateMetadata({ params }: { params: PageParams }): Promise<Metadata> {
   const { locale } = await params;
@@ -360,11 +392,22 @@ export default async function MyBookingsPage({ params }: { params: PageParams })
                   </p>
                 )}
 
-                {/* ── Submitted on ── */}
-                <p style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", margin: 0 }}>
-                  {tStatuses("submittedOn")}{" "}
-                  {new Date(booking.created_at).toLocaleDateString(dateLocale)}
-                </p>
+                {/* ── Submitted on + cancel ── */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
+                  <p style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", margin: 0 }}>
+                    {tStatuses("submittedOn")}{" "}
+                    {new Date(booking.created_at).toLocaleDateString(dateLocale)}
+                  </p>
+
+                  {isPending && (
+                    <CancelBookingButton
+                      bookingId={booking.id}
+                      action={cancelBooking}
+                      label={t("cancelBtn")}
+                      confirmMsg={t("cancelConfirm")}
+                    />
+                  )}
+                </div>
               </div>
             );
           })}
