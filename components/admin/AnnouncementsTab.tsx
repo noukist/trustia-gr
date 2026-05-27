@@ -3,21 +3,15 @@
 // =============================================================
 // Admin tab: manage announcement bar messages.
 //
-// Supports:
-//   - List all announcements (active first)
-//   - Create new announcement (text_el required, text_en optional,
-//     link_url optional, starts_at/ends_at optional)
-//   - Toggle active/inactive
-//   - Delete
-//
-// CLIENT COMPONENT — all mutations go directly to Supabase.
+// Simple model: create → live immediately, delete → gone.
+// No scheduling, no active toggle.
 // =============================================================
 
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Plus, Trash2, ToggleLeft, ToggleRight, Megaphone } from "lucide-react";
+import { Plus, Trash2, Megaphone } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────
 interface Announcement {
@@ -25,9 +19,6 @@ interface Announcement {
   text_el:    string;
   text_en:    string | null;
   link_url:   string | null;
-  active:     boolean;
-  starts_at:  string | null;
-  ends_at:    string | null;
   created_at: string;
 }
 
@@ -35,13 +26,7 @@ interface AnnouncementsTabProps {
   announcements: Announcement[];
 }
 
-const EMPTY_FORM = {
-  text_el:   "",
-  text_en:   "",
-  link_url:  "",
-  starts_at: "",
-  ends_at:   "",
-};
+const EMPTY_FORM = { text_el: "", text_en: "", link_url: "" };
 
 // ── Component ──────────────────────────────────────────────────
 export default function AnnouncementsTab({ announcements: initial }: AnnouncementsTabProps) {
@@ -49,8 +34,8 @@ export default function AnnouncementsTab({ announcements: initial }: Announcemen
   const [showForm, setShowForm] = useState(false);
   const [form, setForm]         = useState(EMPTY_FORM);
   const [saving, setSaving]     = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError]       = useState<string | null>(null);
-  const [, startTrans]          = useTransition();
 
   const supabase = createClient();
 
@@ -66,10 +51,8 @@ export default function AnnouncementsTab({ announcements: initial }: Announcemen
       text_el: form.text_el.trim(),
       active:  true,
     };
-    if (form.text_en.trim())   payload.text_en   = form.text_en.trim();
-    if (form.link_url.trim())  payload.link_url  = form.link_url.trim();
-    if (form.starts_at.trim()) payload.starts_at = form.starts_at.trim();
-    if (form.ends_at.trim())   payload.ends_at   = form.ends_at.trim();
+    if (form.text_en.trim())  payload.text_en  = form.text_en.trim();
+    if (form.link_url.trim()) payload.link_url = form.link_url.trim();
 
     const { data, error: err } = await supabase
       .from("announcements")
@@ -88,27 +71,25 @@ export default function AnnouncementsTab({ announcements: initial }: Announcemen
     setSaving(false);
   }
 
-  // ── Toggle active ───────────────────────────────────────────
-  function toggleActive(id: string, current: boolean) {
-    // Optimistic
-    setItems((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, active: !current } : a))
-    );
-    startTrans(async () => {
-      await supabase
-        .from("announcements")
-        .update({ active: !current })
-        .eq("id", id);
-    });
-  }
-
   // ── Delete ──────────────────────────────────────────────────
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     if (!confirm("Διαγραφή ανακοίνωσης;")) return;
+
+    setDeleting(id);
+    const snapshot = items;
     setItems((prev) => prev.filter((a) => a.id !== id));
-    startTrans(async () => {
-      await supabase.from("announcements").delete().eq("id", id);
-    });
+
+    const { error: err } = await supabase
+      .from("announcements")
+      .delete()
+      .eq("id", id);
+
+    if (err) {
+      setItems(snapshot);
+      setError(`Σφάλμα διαγραφής: ${err.message}`);
+    }
+
+    setDeleting(null);
   }
 
   return (
@@ -212,7 +193,7 @@ export default function AnnouncementsTab({ announcements: initial }: Announcemen
           </div>
 
           {/* Link URL */}
-          <div style={{ marginBottom: "0.875rem" }}>
+          <div style={{ marginBottom: "1rem" }}>
             <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, color: "var(--color-text-muted)", marginBottom: "0.3rem" }}>
               Link URL (προαιρετικό)
             </label>
@@ -232,50 +213,6 @@ export default function AnnouncementsTab({ announcements: initial }: Announcemen
                 outline:      "none",
               }}
             />
-          </div>
-
-          {/* Date range — stacks to 1-col on narrow screens */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.875rem", marginBottom: "0.875rem" }}>
-            <div>
-              <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, color: "var(--color-text-muted)", marginBottom: "0.3rem" }}>
-                Έναρξη (προαιρετικό)
-              </label>
-              <input
-                type="datetime-local"
-                value={form.starts_at}
-                onChange={(e) => setForm((f) => ({ ...f, starts_at: e.target.value }))}
-                style={{
-                  width:        "100%",
-                  boxSizing:    "border-box",
-                  padding:      "0.6rem 0.875rem",
-                  border:       "1.5px solid var(--color-border)",
-                  borderRadius: "8px",
-                  fontSize:     "0.875rem",
-                  fontFamily:   "inherit",
-                  outline:      "none",
-                }}
-              />
-            </div>
-            <div>
-              <label style={{ display: "block", fontSize: "0.8rem", fontWeight: 700, color: "var(--color-text-muted)", marginBottom: "0.3rem" }}>
-                Λήξη (προαιρετικό)
-              </label>
-              <input
-                type="datetime-local"
-                value={form.ends_at}
-                onChange={(e) => setForm((f) => ({ ...f, ends_at: e.target.value }))}
-                style={{
-                  width:        "100%",
-                  boxSizing:    "border-box",
-                  padding:      "0.6rem 0.875rem",
-                  border:       "1.5px solid var(--color-border)",
-                  borderRadius: "8px",
-                  fontSize:     "0.875rem",
-                  fontFamily:   "inherit",
-                  outline:      "none",
-                }}
-              />
-            </div>
           </div>
 
           {error && (
@@ -324,6 +261,13 @@ export default function AnnouncementsTab({ announcements: initial }: Announcemen
         </form>
       )}
 
+      {/* Error banner (outside form, for delete errors) */}
+      {error && !showForm && (
+        <p style={{ color: "#DC2626", fontSize: "0.85rem", marginBottom: "0.75rem" }}>
+          {error}
+        </p>
+      )}
+
       {/* Announcements list */}
       {items.length === 0 ? (
         <div
@@ -346,7 +290,7 @@ export default function AnnouncementsTab({ announcements: initial }: Announcemen
               key={a.id}
               style={{
                 backgroundColor: "#fff",
-                border:          `1.5px solid ${a.active ? "var(--color-primary)" : "var(--color-border)"}`,
+                border:          "1.5px solid var(--color-primary)",
                 borderRadius:    "14px",
                 padding:         "1.125rem 1.25rem",
                 display:         "flex",
@@ -361,11 +305,9 @@ export default function AnnouncementsTab({ announcements: initial }: Announcemen
                   <span style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--color-text)" }}>
                     {a.text_el}
                   </span>
-                  {a.active && (
-                    <span style={{ padding: "0.15rem 0.5rem", borderRadius: "99px", backgroundColor: "#D1FAE5", color: "#059669", fontSize: "0.7rem", fontWeight: 700 }}>
-                      Ενεργή
-                    </span>
-                  )}
+                  <span style={{ padding: "0.15rem 0.5rem", borderRadius: "99px", backgroundColor: "#D1FAE5", color: "#059669", fontSize: "0.7rem", fontWeight: 700 }}>
+                    Ενεργή
+                  </span>
                 </div>
                 {a.text_en && (
                   <p style={{ margin: "0 0 0.25rem", fontSize: "0.8rem", color: "var(--color-text-muted)" }}>
@@ -379,56 +321,32 @@ export default function AnnouncementsTab({ announcements: initial }: Announcemen
                 )}
                 <p style={{ margin: 0, fontSize: "0.75rem", color: "var(--color-text-muted)" }}>
                   {new Date(a.created_at).toLocaleDateString("el-GR")}
-                  {a.ends_at && ` · Λήγει ${new Date(a.ends_at).toLocaleDateString("el-GR")}`}
                 </p>
               </div>
 
-              {/* Actions */}
-              <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0, alignItems: "center" }}>
-                <button
-                  type="button"
-                  onClick={() => toggleActive(a.id, a.active)}
-                  title={a.active ? "Απενεργοποίηση" : "Ενεργοποίηση"}
-                  style={{
-                    display:         "flex",
-                    alignItems:      "center",
-                    gap:             "0.35rem",
-                    padding:         "0.375rem 0.75rem",
-                    border:          "1.5px solid var(--color-border)",
-                    borderRadius:    "8px",
-                    backgroundColor: "transparent",
-                    color:           a.active ? "#D97706" : "#059669",
-                    fontSize:        "0.8rem",
-                    fontWeight:      700,
-                    fontFamily:      "inherit",
-                    cursor:          "pointer",
-                  }}
-                >
-                  {a.active
-                    ? <><ToggleRight size={15} /> Απενεργ.</>
-                    : <><ToggleLeft  size={15} /> Ενεργοπ.</>
-                  }
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(a.id)}
-                  title="Διαγραφή"
-                  style={{
-                    display:         "flex",
-                    alignItems:      "center",
-                    justifyContent:  "center",
-                    width:           "34px",
-                    height:          "34px",
-                    border:          "1.5px solid #FEE2E2",
-                    borderRadius:    "8px",
-                    backgroundColor: "transparent",
-                    color:           "#DC2626",
-                    cursor:          "pointer",
-                  }}
-                >
-                  <Trash2 size={15} />
-                </button>
-              </div>
+              {/* Delete action */}
+              <button
+                type="button"
+                onClick={() => handleDelete(a.id)}
+                disabled={deleting === a.id}
+                title="Διαγραφή"
+                style={{
+                  display:         "flex",
+                  alignItems:      "center",
+                  justifyContent:  "center",
+                  width:           "34px",
+                  height:          "34px",
+                  flexShrink:      0,
+                  border:          "1.5px solid #FEE2E2",
+                  borderRadius:    "8px",
+                  backgroundColor: "transparent",
+                  color:           "#DC2626",
+                  cursor:          deleting === a.id ? "not-allowed" : "pointer",
+                  opacity:         deleting === a.id ? 0.5 : 1,
+                }}
+              >
+                <Trash2 size={15} />
+              </button>
             </div>
           ))}
         </div>

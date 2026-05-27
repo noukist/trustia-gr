@@ -86,9 +86,6 @@ interface DbAnnouncement {
   text_el:    string;
   text_en:    string | null;
   link_url:   string | null;
-  active:     boolean;
-  starts_at:  string | null;
-  ends_at:    string | null;
   created_at: string;
 }
 
@@ -231,8 +228,7 @@ export default async function AdminPage({
   if (tab === "announcements") {
     const { data } = await supabase
       .from("announcements")
-      .select("id, text_el, text_en, link_url, active, starts_at, ends_at, created_at")
-      .order("active", { ascending: false })
+      .select("id, text_el, text_en, link_url, created_at")
       .order("created_at", { ascending: false });
     announcements = (data ?? []) as DbAnnouncement[];
   }
