@@ -14,15 +14,12 @@ import AnnouncementBarClient from "./AnnouncementBarClient";
 
 export default async function AnnouncementBar({ locale }: { locale: string }) {
   const supabase = await createClient();
-  const now      = new Date().toISOString();
 
-  // Fetch the most recent active announcement within its time window
+  // Fetch the most recent active announcement
   const { data } = await supabase
     .from("announcements")
     .select("id, text_el, text_en, link_url")
     .eq("active", true)
-    .or(`starts_at.is.null,starts_at.lte.${now}`)
-    .or(`ends_at.is.null,ends_at.gte.${now}`)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
