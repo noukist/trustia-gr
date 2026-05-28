@@ -30,7 +30,7 @@
 "use client";
 
 import { useState }         from "react";
-import { Phone, Calendar, Copy, Check, X } from "lucide-react";
+import { Phone, Calendar, Copy, Check } from "lucide-react";
 import { useTranslations }   from "next-intl";
 import { createClient }      from "@/lib/supabase/client";
 import LoginPromptModal           from "@/components/ui/LoginPromptModal";
@@ -48,91 +48,6 @@ interface ActionPanelProps {
   proName:        string;
   /** Service catalog — passed through to FullCalendarBookingForm */
   services?:      ServiceItem[];
-}
-
-// ── Booking placeholder ──────────────────────────────────────
-function BookingPlaceholder({
-  mode,
-  onClose,
-}: {
-  mode:    "date" | "full";
-  onClose: () => void;
-}) {
-  const t  = useTranslations("profile");
-  const tc = useTranslations("common");
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position:        "fixed",
-        inset:           0,
-        backgroundColor: "rgba(0,0,0,0.5)",
-        zIndex:          500,
-        display:         "flex",
-        alignItems:      "center",
-        justifyContent:  "center",
-        padding:         "1rem",
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          backgroundColor: "#fff",
-          borderRadius:    "16px",
-          padding:         "2rem",
-          maxWidth:        "420px",
-          width:           "100%",
-          position:        "relative",
-          boxShadow:       "0 20px 60px rgba(0,0,0,0.25)",
-          textAlign:       "center",
-        }}
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label={tc("close")}
-          style={{
-            position:  "absolute",
-            top:       "1rem",
-            right:     "1rem",
-            background:"none",
-            border:    "none",
-            cursor:    "pointer",
-            color:     "var(--color-text-muted)",
-            display:   "flex",
-          }}
-        >
-          <X size={20} />
-        </button>
-
-        <span style={{ fontSize: "2.5rem" }}>
-          {mode === "full" ? "🗓️" : "📅"}
-        </span>
-
-        <h2
-          style={{
-            fontSize:     "1.125rem",
-            fontWeight:   700,
-            color:        "var(--color-text)",
-            margin:       "0.75rem 0 0.5rem",
-          }}
-        >
-          {mode === "full" ? t("bookingFullTitle") : t("bookingDateTitle")}
-        </h2>
-        <p
-          style={{
-            fontSize:  "0.875rem",
-            color:     "var(--color-text-muted)",
-            lineHeight: 1.6,
-          }}
-        >
-          {t("bookingComingSoon1")}
-          <br />
-          {t("bookingComingSoon2")}
-        </p>
-      </div>
-    </div>
-  );
 }
 
 // ── Main component ────────────────────────────────────────────

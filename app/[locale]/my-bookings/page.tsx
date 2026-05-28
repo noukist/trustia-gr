@@ -75,6 +75,11 @@ interface DbBooking {
   booking_mode: string;
   status:       string;
   description:  string | null;
+  // Full-calendar mode extras
+  start_time:   string | null;
+  end_time:     string | null;
+  total_price:  number | null;
+  services:     Array<{ name: string; duration: number; price: number }> | null;
   created_at:   string;
   professionals: {
     first_name:  string;
@@ -124,7 +129,8 @@ export default async function MyBookingsPage({ params }: { params: PageParams })
     const { data, error } = await supabase
       .from("bookings")
       .select(
-        "id, booking_date, booking_mode, status, description, created_at, " +
+        "id, booking_date, booking_mode, status, description, " +
+        "start_time, end_time, total_price, services, created_at, " +
         "professionals(first_name, last_name, slug, category_id, avatar_url)",
       )
       .eq("customer_id", customer.id)
@@ -373,6 +379,58 @@ export default async function MyBookingsPage({ params }: { params: PageParams })
                 >
                   📅 {dateLabel}
                 </p>
+
+                {/* ── Time slot (full-calendar mode only) ── */}
+                {booking.booking_mode === "full" && booking.start_time && booking.end_time && (
+                  <p
+                    style={{
+                      fontSize:  "0.875rem",
+                      color:     "var(--color-text)",
+                      margin:    0,
+                      fontWeight: 600,
+                    }}
+                  >
+                    ⏰ {booking.start_time.slice(0, 5)} – {booking.end_time.slice(0, 5)}
+                  </p>
+                )}
+
+                {/* ── Services list (full-calendar mode only) ── */}
+                {booking.booking_mode === "full" && booking.services && booking.services.length > 0 && (
+                  <div
+                    style={{
+                      backgroundColor: "var(--color-bg-light)",
+                      borderRadius:    "8px",
+                      padding:         "0.5rem 0.75rem",
+                      borderLeft:      "3px solid var(--color-primary)",
+                    }}
+                  >
+                    {booking.services.map((svc, i) => (
+                      <p
+                        key={i}
+                        style={{
+                          fontSize: "0.8rem",
+                          color:    "var(--color-text)",
+                          margin:   i === 0 ? 0 : "0.2rem 0 0",
+                        }}
+                      >
+                        • {svc.name} — {svc.duration} λεπτά
+                        {svc.price > 0 && ` · €${Number(svc.price).toFixed(2)}`}
+                      </p>
+                    ))}
+                    {booking.total_price != null && (
+                      <p
+                        style={{
+                          fontSize:   "0.85rem",
+                          fontWeight: 700,
+                          color:      "var(--color-primary)",
+                          margin:     "0.4rem 0 0",
+                        }}
+                      >
+                        Σύνολο: €{Number(booking.total_price).toFixed(2)}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 {/* ── Customer note / description ── */}
                 {booking.description && (
