@@ -297,6 +297,8 @@ export default function FullCalendarBookingForm({
           booking_date:    selectedDate,
           start_time:      selectedSlot,
           end_time:        endTime,
+          // booking_time mirrors start_time — column exists in live DB without a migration
+          booking_time:    selectedSlot,
           booking_mode:    "full",
           status:          "pending",
           services:        servicesPayload,
