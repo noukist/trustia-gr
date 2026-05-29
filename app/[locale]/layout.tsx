@@ -43,9 +43,23 @@ export async function generateMetadata({
       : "Find trusted professionals for every need in Greece. Plumbers, electricians, cleaning, renovation and more.",
     metadataBase: new URL("https://trustia.gr"),
     openGraph: {
-      siteName:  "Trustia.gr",
-      locale:    isEl ? "el_GR" : "en_US",
-      type:      "website",
+      siteName: "Trustia.gr",
+      locale:   isEl ? "el_GR" : "en_US",
+      type:     "website",
+      images: [
+        {
+          url:    `/api/og?locale=${locale}`,
+          width:  1200,
+          height: 630,
+          alt:    isEl
+            ? "Trustia.gr — Βρες τον ειδικό για κάθε ανάγκη"
+            : "Trustia.gr — Find the expert for every need",
+        },
+      ],
+    },
+    twitter: {
+      card:   "summary_large_image",
+      images: [`/api/og?locale=${locale}`],
     },
   };
 }

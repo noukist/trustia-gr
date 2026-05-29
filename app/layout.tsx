@@ -13,6 +13,7 @@
 import React          from "react";
 import { headers }    from "next/headers";
 import { DM_Sans }    from "next/font/google";
+import Script         from "next/script";
 import "./globals.css";
 
 // DM Sans — latin-ext covers the extended Unicode range used by Greek
@@ -33,10 +34,27 @@ export default async function RootLayout({
   const headersList = await headers();
   const locale = headersList.get("x-next-intl-locale") ?? "el";
 
+  // Google Analytics — only loads when NEXT_PUBLIC_GA_ID is set.
+  // Add G-XXXXXXXXXX to Vercel Environment Variables to activate.
+  const gaId = process.env.NEXT_PUBLIC_GA_ID;
+
   return (
     <html lang={locale} className={dmSans.variable} data-scroll-behavior="smooth">
       <body className={`${dmSans.className} antialiased`}>
         {children}
+
+        {/* ── Google Analytics 4 ── */}
+        {gaId && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
+              strategy="afterInteractive"
+            />
+            <Script id="ga-init" strategy="afterInteractive">
+              {`window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}gtag('js',new Date());gtag('config','${gaId}',{page_path:window.location.pathname});`}
+            </Script>
+          </>
+        )}
       </body>
     </html>
   );

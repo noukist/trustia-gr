@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Link } from "@/i18n/navigation";
 import { Mail, MapPin, Clock } from "lucide-react";
 import { setRequestLocale } from "next-intl/server";
+import ContactForm from "@/components/contact/ContactForm";
 
 export async function generateMetadata({
   params,
@@ -193,43 +194,10 @@ export default async function ContactPage({
         </div>
       </div>
 
-      {/* For professionals */}
-      <div
-        style={{
-          backgroundColor: "var(--color-primary-bg)",
-          border:          "1.5px solid var(--color-primary)",
-          borderRadius:    "14px",
-          padding:         "1.5rem",
-          marginBottom:    "2.5rem",
-        }}
-      >
-        <p style={{ fontWeight: 700, color: "var(--color-text)", margin: "0 0 0.5rem", fontSize: "0.9375rem" }}>
-          Για Επαγγελματίες
-        </p>
-        <p style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", margin: "0 0 1rem", lineHeight: 1.6 }}>
-          Ερωτήσεις για εγγραφή, τιμολόγηση ή αλλαγή κατηγορίας;
-        </p>
-        <a
-          href="mailto:support@trustia.gr"
-          style={{
-            display:         "inline-flex",
-            alignItems:      "center",
-            gap:             "0.375rem",
-            padding:         "0.5rem 1rem",
-            backgroundColor: "var(--color-primary)",
-            color:           "#fff",
-            borderRadius:    "8px",
-            fontWeight:      600,
-            fontSize:        "0.875rem",
-            textDecoration:  "none",
-          }}
-        >
-          <Mail size={14} />
-          support@trustia.gr
-        </a>
-      </div>
+      {/* Contact form */}
+      <ContactForm locale={locale} />
 
-      <div style={{ paddingTop: "1.5rem", borderTop: "1px solid var(--color-border)" }}>
+      <div style={{ paddingTop: "1.5rem", borderTop: "1px solid var(--color-border)", marginTop: "1.5rem" }}>
         <Link href="/" style={{ color: "var(--color-primary)", fontWeight: 600, fontSize: "0.9rem", textDecoration: "none" }}>
           ← Αρχική
         </Link>
