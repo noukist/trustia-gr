@@ -32,7 +32,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import Stripe                        from "stripe";
-import stripe                        from "@/lib/stripe";
+import { getStripe }                 from "@/lib/stripe";
 import { createServiceClient }       from "@/lib/supabase/service";
 
 // Next.js App Router: disable body parsing so we can read the raw bytes
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
   // ── Verify signature ────────────────────────────────────────
   let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(body, signature, secret);
+    event = getStripe().webhooks.constructEvent(body, signature, secret);
   } catch (err) {
     console.error("[webhook] signature verification failed:", err);
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });

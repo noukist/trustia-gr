@@ -24,7 +24,7 @@
 // =============================================================
 
 import { NextRequest, NextResponse } from "next/server";
-import stripe                         from "@/lib/stripe";
+import { getStripe }                  from "@/lib/stripe";
 import { createClient }               from "@/lib/supabase/server";
 
 // Auth-only endpoint — must be logged in
@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
     const localePrefix = locale === "en" ? "/en" : "";
 
     // ── Create Stripe Checkout Session ───────────────────────
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       mode:    "payment",          // One-time payment (not recurring subscription)
       currency: "eur",
 

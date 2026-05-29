@@ -1028,7 +1028,7 @@ export default function ProfessionalRegistrationPage() {
       if (!checkoutRes.ok) {
         const err = await checkoutRes.json().catch(() => ({}));
         // If Stripe is not configured, go straight to dashboard
-        if (err.error === "STRIPE_SECRET_KEY is not set. Add it to .env.local.") {
+        if (typeof err.error === "string" && err.error.startsWith("STRIPE_SECRET_KEY is not set")) {
           console.warn("[register] Stripe not configured — skipping payment");
           router.push("/dashboard?welcome=1");
           return;
