@@ -27,6 +27,7 @@ import { Link }                from "@/i18n/navigation";
 import { createClient }        from "@/lib/supabase/server";
 import { CATEGORIES }          from "@/lib/constants";
 import CancelBookingButton     from "./CancelBookingButton";
+import ReviewButton            from "./ReviewButton";
 
 // ── Next.js 16: params are a Promise ─────────────────────────
 type PageParams = Promise<{ locale: string }>;
@@ -70,11 +71,12 @@ export async function generateMetadata({ params }: { params: PageParams }): Prom
 // ── DB row types ──────────────────────────────────────────────
 
 interface DbBooking {
-  id:           string;
-  booking_date: string;
-  booking_mode: string;
-  status:       string;
-  description:  string | null;
+  id:              string;
+  professional_id: string;
+  booking_date:    string;
+  booking_mode:    string;
+  status:          string;
+  description:     string | null;
   // Full-calendar mode extras
   start_time:   string | null;
   end_time:     string | null;
@@ -129,7 +131,7 @@ export default async function MyBookingsPage({ params }: { params: PageParams })
     const { data, error } = await supabase
       .from("bookings")
       .select(
-        "id, booking_date, booking_mode, status, description, " +
+        "id, professional_id, booking_date, booking_mode, status, description, " +
         "start_time, end_time, total_price, services, created_at, " +
         "professionals(first_name, last_name, slug, category_id, avatar_url)",
       )
@@ -450,21 +452,34 @@ export default async function MyBookingsPage({ params }: { params: PageParams })
                   </p>
                 )}
 
-                {/* ── Submitted on + cancel ── */}
+                {/* ── Submitted on + action buttons ── */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
                   <p style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", margin: 0 }}>
                     {tStatuses("submittedOn")}{" "}
                     {new Date(booking.created_at).toLocaleDateString(dateLocale)}
                   </p>
 
-                  {isPending && (
-                    <CancelBookingButton
-                      bookingId={booking.id}
-                      action={cancelBooking}
-                      label={t("cancelBtn")}
-                      confirmMsg={t("cancelConfirm")}
-                    />
-                  )}
+                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                    {/* Cancel — only for pending bookings */}
+                    {isPending && (
+                      <CancelBookingButton
+                        bookingId={booking.id}
+                        action={cancelBooking}
+                        label={t("cancelBtn")}
+                        confirmMsg={t("cancelConfirm")}
+                      />
+                    )}
+
+                    {/* Review — only for completed bookings where we have a pro */}
+                    {booking.status === "completed" && pro && customer && (
+                      <ReviewButton
+                        bookingId={booking.id}
+                        professionalId={booking.professional_id}
+                        professionalName={`${pro.first_name} ${pro.last_name}`}
+                        customerId={customer.id}
+                      />
+                    )}
+                  </div>
                 </div>
               </div>
             );

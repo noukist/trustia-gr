@@ -690,6 +690,19 @@ export default async function ServicesPage({
     serviceMatchIds = [...ids];
   }
 
+  // ── Subscription expiry filter ───────────────────────────
+  // Fetch professional IDs whose subscription is verified but expired.
+  // These pros paid at some point but their plan period has ended.
+  // Pros with payment_status='pending' (pre-payment / trial) are NOT excluded.
+  const now = new Date().toISOString();
+  const { data: expiredSubs } = await supabase
+    .from("subscriptions")
+    .select("professional_id")
+    .eq("payment_status", "verified")
+    .lt("ends_at", now);
+
+  const expiredProIds = (expiredSubs ?? []).map((s) => s.professional_id);
+
   let query = supabase
     .from("professionals")
     .select(
@@ -700,6 +713,11 @@ export default async function ServicesPage({
     .eq("status",           "active")
     .eq("profile_complete", true)
     .is("deleted_at",       null);
+
+  // Exclude pros with an expired paid subscription
+  if (expiredProIds.length > 0) {
+    query = query.not("id", "in", `(${expiredProIds.join(",")})`);
+  }
 
   // ── DB-level filters (before TypeScript post-processing) ──
   if (categoryId) {
@@ -805,7 +823,7 @@ export default async function ServicesPage({
   let nearbyPros: ProfessionalWithDistance[] = [];
 
   if (results.length === 0 && categoryId && hasLocation) {
-    const { data: nearby } = await supabase
+    let nearbyQuery = supabase
       .from("professionals")
       .select(
         "id, slug, first_name, last_name, avatar_url, category_id, tier, city, lat, lng, " +
@@ -818,6 +836,12 @@ export default async function ServicesPage({
       .eq("category_id",      categoryId)
       .order("review_count",  { ascending: false })
       .limit(12);
+
+    if (expiredProIds.length > 0) {
+      nearbyQuery = nearbyQuery.not("id", "in", `(${expiredProIds.join(",")})`);
+    }
+
+    const { data: nearby } = await nearbyQuery;
 
     nearbyPros = ((nearby ?? []) as unknown as DbProfessional[])
       .map((pro) => ({

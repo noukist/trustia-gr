@@ -30,6 +30,7 @@ import {
   LogOut,
   MoreHorizontal,
   X,
+  MapPin,
 } from "lucide-react";
 import { signOut } from "@/lib/auth/helpers";
 
@@ -64,6 +65,7 @@ function buildNavItems(bookingMode: "contact" | "date" | "full"): NavItem[] {
     items.push({ id: "availability", labelEl: "Διαθεσιμότητα", shortEl: "Ώρες",     icon: Clock,     placeholder: false });
   }
   items.push(
+    { id: "areas",        labelEl: "Περιοχές",   shortEl: "Περιοχές", icon: MapPin,    placeholder: false },
     { id: "business",     labelEl: "Επιχείρηση", shortEl: "Επιχ.",    icon: Building2, placeholder: false },
     { id: "referrals",    labelEl: "Παραπομπές", shortEl: "Παραπ.",   icon: Share2,    placeholder: false },
     { id: "subscription", labelEl: "Συνδρομή",   shortEl: "Συνδρομή", icon: CreditCard,placeholder: false },

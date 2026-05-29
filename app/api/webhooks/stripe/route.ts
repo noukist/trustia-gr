@@ -84,27 +84,44 @@ export async function POST(req: NextRequest) {
       // update the subscription regardless of auth session.
       const supabase = createServiceClient();
 
-      const { error } = await supabase
+      const paymentIntentId =
+        typeof session.payment_intent === "string"
+          ? session.payment_intent
+          : (session.payment_intent?.id ?? null);
+
+      // ── 1. Mark subscription as verified ─────────────────
+      const { error: subErr } = await supabase
         .from("subscriptions")
         .update({
-          payment_status:      "verified",
-          payment_method:      "stripe",
-          payment_verified_at: new Date().toISOString(),
-          stripe_payment_intent_id:
-            typeof session.payment_intent === "string"
-              ? session.payment_intent
-              : (session.payment_intent?.id ?? null),
+          payment_status:           "verified",
+          payment_method:           "stripe",
+          payment_verified_at:      new Date().toISOString(),
+          stripe_payment_intent_id: paymentIntentId,
         })
         .eq("id",              subscriptionId)
         .eq("professional_id", professionalId);
 
-      if (error) {
-        console.error("[webhook] DB update failed:", error.message);
-        // Return 500 so Stripe retries the event
+      if (subErr) {
+        console.error("[webhook] subscription update failed:", subErr.message);
         return NextResponse.json({ error: "DB update failed" }, { status: 500 });
       }
 
-      console.log(`[webhook] subscription ${subscriptionId} marked as verified`);
+      // ── 2. Activate the professional ─────────────────────
+      // Sets status → 'active' so they appear in search results.
+      // booking_enabled remains false until profile_complete = true
+      // (the dashboard overview guides them through completion).
+      const { error: proErr } = await supabase
+        .from("professionals")
+        .update({ status: "active" })
+        .eq("id",     professionalId)
+        .in("status", ["pending", "inactive"]); // don't overwrite 'banned'
+
+      if (proErr) {
+        // Non-fatal — subscription is already verified; admin can manually activate
+        console.error("[webhook] professional activation failed:", proErr.message);
+      }
+
+      console.log(`[webhook] subscription ${subscriptionId} verified, professional ${professionalId} activated`);
       break;
     }
 

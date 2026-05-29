@@ -45,6 +45,7 @@ import AvailabilityEditor   from "@/components/dashboard/AvailabilityEditor";
 import BusinessPageEditor  from "@/components/dashboard/BusinessPageEditor";
 import ReferralsTab         from "@/components/dashboard/ReferralsTab";
 import PayNowButton         from "@/components/dashboard/PayNowButton";
+import AreasEditor          from "@/components/dashboard/AreasEditor";
 
 // ── Next.js 16: params/searchParams are Promises ─────────────
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -1214,6 +1215,8 @@ export default async function DashboardPage({
           <ReviewsTab professionalId={pro.id} proSlug={pro.slug} />
         ) : tab === "availability" ? (
           <AvailabilityEditor professionalId={pro.id} />
+        ) : tab === "areas" ? (
+          <AreasEditor professionalId={pro.id} />
         ) : tab === "business" ? (
           <BusinessPageEditor professionalId={pro.id} />
         ) : tab === "referrals" ? (
