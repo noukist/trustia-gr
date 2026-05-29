@@ -253,28 +253,38 @@ export default function FullCalendarBookingForm({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("not authenticated");
 
-      // Resolve / create customer row
+      // Resolve / create customer row.
+      // Also fetch display_name + phone so we can stamp the booking
+      // record — the professional's BookingsTab reads these columns
+      // to show who made the booking.
       const { data: existing } = await supabase
         .from("customers")
-        .select("id")
+        .select("id, display_name, phone")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      let customerId: string;
+      let customerId:    string;
+      let customerName:  string | null = null;
+      let customerPhone: string | null = null;
+
       if (existing) {
-        customerId = existing.id;
+        customerId    = existing.id;
+        customerName  = existing.display_name ?? null;
+        customerPhone = existing.phone ?? null;
       } else {
+        const nameFromMeta = user.user_metadata?.full_name ?? null;
         const { data: created, error: createErr } = await supabase
           .from("customers")
           .insert({
             user_id:      user.id,
             email:        user.email ?? null,
-            display_name: user.user_metadata?.full_name ?? null,
+            display_name: nameFromMeta,
           })
           .select("id")
           .single();
         if (createErr || !created) throw createErr ?? new Error("customer create failed");
-        customerId = created.id;
+        customerId   = created.id;
+        customerName = nameFromMeta;
       }
 
       // Calculate end time from selected slot + total duration
@@ -294,6 +304,11 @@ export default function FullCalendarBookingForm({
         .insert({
           professional_id: professionalId,
           customer_id:     customerId,
+          // Stamp customer contact so the professional can see who booked
+          // without needing a JOIN to the customers table.
+          customer_name:   customerName,
+          customer_phone:  customerPhone,
+          customer_email:  user.email ?? null,
           booking_date:    selectedDate,
           start_time:      selectedSlot,
           end_time:        endTime,

@@ -75,31 +75,38 @@ export default function DateBookingForm({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("not authenticated");
 
-      // Try to get existing customer row first
+      // Try to get existing customer row — also fetch display_name + phone
+      // so we can stamp the booking record for the professional's dashboard.
       const { data: existing } = await supabase
         .from("customers")
-        .select("id")
+        .select("id, display_name, phone")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      let customerId: string;
+      let customerId:    string;
+      let customerName:  string | null = null;
+      let customerPhone: string | null = null;
 
       if (existing) {
-        customerId = existing.id;
+        customerId    = existing.id;
+        customerName  = existing.display_name ?? null;
+        customerPhone = existing.phone ?? null;
       } else {
         // Create customer row (happens when a professional books someone else's service)
+        const nameFromMeta = user.user_metadata?.full_name ?? null;
         const { data: created, error: createErr } = await supabase
           .from("customers")
           .insert({
             user_id:      user.id,
             email:        user.email ?? null,
-            display_name: user.user_metadata?.full_name ?? null,
+            display_name: nameFromMeta,
           })
           .select("id")
           .single();
 
         if (createErr || !created) throw createErr ?? new Error("customer create failed");
-        customerId = created.id;
+        customerId   = created.id;
+        customerName = nameFromMeta;
       }
 
       // ── Step 2: Insert the booking ────────────────────────
@@ -108,6 +115,10 @@ export default function DateBookingForm({
         .insert({
           professional_id: professionalId,
           customer_id:     customerId,
+          // Stamp customer contact so the professional sees who booked
+          customer_name:   customerName,
+          customer_phone:  customerPhone,
+          customer_email:  user.email ?? null,
           booking_date:    date,
           booking_mode:    "date",
           description:     description.trim() || null,

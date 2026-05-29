@@ -468,7 +468,9 @@
       "statusCompleted": "Completed",
       "statusDeclined": "Declined",
       "statusCancelled": "Cancelled",
-      "statusNoShow": "No Show"
+      "statusNoShow": "No Show",
+      "servicesLabel": "Services",
+      "minutes": "min"
     },
     "reviews": {
       "empty": "No reviews yet",

@@ -106,6 +106,14 @@ async function updateBookingStatus(formData: FormData) {
 
 // ── DB row type ───────────────────────────────────────────────
 
+// Shape of each entry in the services JSONB column
+interface BookingService {
+  service_id?: string;
+  name:        string;
+  duration:    number;   // minutes
+  price:       number;
+}
+
 interface DbBooking {
   id:             string;
   booking_date:   string;
@@ -117,6 +125,7 @@ interface DbBooking {
   customer_phone: string | null;
   customer_email: string | null;
   total_price:    number | null;
+  services:       BookingService[] | null;  // JSONB — populated for "full" mode bookings
   created_at:     string;
 }
 
@@ -192,7 +201,7 @@ export default async function BookingsTab({
     .select(
       "id, booking_date, start_time, booking_mode, status, " +
       "description, customer_name, customer_phone, customer_email, " +
-      "total_price, created_at",
+      "total_price, services, created_at",
     )
     .eq("professional_id", professionalId)
     .order("booking_date", { ascending: false })
@@ -396,6 +405,58 @@ export default async function BookingsTab({
                     ✉ {booking.customer_email}
                   </a>
                 )}
+              </div>
+            )}
+
+            {/* Services breakdown (full-calendar mode only) */}
+            {booking.services && booking.services.length > 0 && (
+              <div
+                style={{
+                  backgroundColor: "var(--color-bg-light)",
+                  border:          "1px solid var(--color-border)",
+                  borderRadius:    "8px",
+                  padding:         "0.625rem 0.875rem",
+                  display:         "flex",
+                  flexDirection:   "column",
+                  gap:             "0.375rem",
+                }}
+              >
+                {/* Header */}
+                <p
+                  style={{
+                    fontSize:   "0.75rem",
+                    fontWeight: 600,
+                    color:      "var(--color-text-muted)",
+                    margin:     0,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  {t("servicesLabel")}
+                </p>
+                {/* Service rows */}
+                {booking.services.map((svc, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display:        "flex",
+                      justifyContent: "space-between",
+                      alignItems:     "center",
+                      fontSize:       "0.875rem",
+                      color:          "var(--color-text)",
+                    }}
+                  >
+                    <span>
+                      {svc.name}
+                      <span style={{ color: "var(--color-text-muted)", marginLeft: "0.375rem" }}>
+                        ({svc.duration} {t("minutes")})
+                      </span>
+                    </span>
+                    <span style={{ fontWeight: 600 }}>
+                      €{Number(svc.price).toFixed(2)}
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
 

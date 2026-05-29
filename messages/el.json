@@ -468,7 +468,9 @@
       "statusCompleted": "Ολοκληρώθηκε",
       "statusDeclined": "Απορρίφθηκε",
       "statusCancelled": "Ακυρώθηκε",
-      "statusNoShow": "Απουσία"
+      "statusNoShow": "Απουσία",
+      "servicesLabel": "Υπηρεσίες",
+      "minutes": "λεπτά"
     },
     "reviews": {
       "empty": "Δεν υπάρχουν κριτικές ακόμα",
