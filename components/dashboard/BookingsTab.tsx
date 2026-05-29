@@ -47,18 +47,18 @@ async function updateBookingStatus(formData: FormData) {
     .update(update)
     .eq("id", bookingId);
 
-  // ── Post-completion: notify customer to leave a review ───────
-  // Only fires when the professional marks a booking as completed.
+  // ── Customer notifications for status changes ────────────────
+  // Fires for: confirmed, declined, completed.
   // Silently swallows errors so the status update is never blocked.
-  if (newStatus === "completed") {
+  if (newStatus === "confirmed" || newStatus === "declined" || newStatus === "completed") {
     try {
-      // Step 1: fetch customer_id + professional_id from the booking
+      // Step 1: fetch customer_id + professional_id + booking_date from the booking
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: bk } = await (supabase as any)
         .from("bookings")
-        .select("customer_id, professional_id")
+        .select("customer_id, professional_id, booking_date")
         .eq("id", bookingId)
-        .single() as { data: { customer_id: string; professional_id: string } | null };
+        .single() as { data: { customer_id: string; professional_id: string; booking_date: string } | null };
 
       if (bk?.customer_id && bk?.professional_id) {
         // Step 2: parallel — customer user_id + professional name/slug
@@ -83,18 +83,39 @@ async function updateBookingStatus(formData: FormData) {
             ? `/professional/${proRes.data.slug}`
             : null;
 
+          // Format booking date for display: "DD/MM/YYYY"
+          const dateLabel = bk.booking_date
+            ? new Date(bk.booking_date).toLocaleDateString("el-GR")
+            : "";
+
+          // Pick title + body depending on what happened
+          let title: string;
+          let body:  string;
+
+          if (newStatus === "confirmed") {
+            title = `✅ Η κράτησή σου επιβεβαιώθηκε`;
+            body  = `Ο/Η ${proName} αποδέχτηκε το αίτημά σου${dateLabel ? ` για ${dateLabel}` : ""}. Τα λεπτομέρειες θα συζητηθούν απευθείας.`;
+          } else if (newStatus === "declined") {
+            title = `❌ Η κράτησή σου απορρίφθηκε`;
+            body  = `Ο/Η ${proName} δεν μπορεί να εξυπηρετήσει το αίτημά σου${dateLabel ? ` για ${dateLabel}` : ""}. Δοκίμασε άλλον επαγγελματία.`;
+          } else {
+            // completed — prompt for a review
+            title = `⭐ Αξιολόγησε τον/την ${proName}`;
+            body  = "Πώς πήγε η συνεργασία; Μοιράσου την εμπειρία σου.";
+          }
+
           await supabase.from("notifications").insert({
             user_id: custRes.data.user_id,
-            title:   `⭐ Αξιολόγησε τον/την ${proName}`,
-            body:    "Πώς πήγε η συνεργασία; Μοιράσου την εμπειρία σου.",
+            title,
+            body,
             link:    proLink,
             channel: "inbox",
           });
         }
       }
     } catch (err) {
-      // Non-fatal — review prompt is best-effort
-      console.error("[BookingsTab] failed to send review notification:", err);
+      // Non-fatal — notification is best-effort
+      console.error("[BookingsTab] failed to send customer notification:", err);
     }
   }
 

@@ -407,10 +407,12 @@ function ProfessionalCard({ pro }: { pro: ProfessionalWithDistance }) {
 // ── Zero Results state ────────────────────────────────────────
 function ZeroResults({
   categoryName,
+  categoryId,
   location,
   nearbyPros,
 }: {
   categoryName: string;
+  categoryId:   string;
   location:     string;
   nearbyPros:   ProfessionalWithDistance[];
 }) {
@@ -497,7 +499,7 @@ function ZeroResults({
           {t("notifySub")} {categoryName}
           {location ? ` ${t("noResultsIn")} ${location}` : ""}.
         </p>
-        <EmailCaptureForm categoryName={categoryName} location={location} />
+        <EmailCaptureForm categoryName={categoryName} categoryId={categoryId} location={location} />
       </div>
 
       {/* Pro recruitment CTA */}
@@ -944,6 +946,7 @@ export default async function ServicesPage({
             /* Zero results — pass locale-aware name */
             <ZeroResults
               categoryName={catDispName}
+              categoryId={categoryId}
               location={location}
               nearbyPros={nearbyPros}
             />
