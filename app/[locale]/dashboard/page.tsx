@@ -44,6 +44,7 @@ import ReviewsTab           from "@/components/dashboard/ReviewsTab";
 import AvailabilityEditor   from "@/components/dashboard/AvailabilityEditor";
 import BusinessPageEditor  from "@/components/dashboard/BusinessPageEditor";
 import ReferralsTab         from "@/components/dashboard/ReferralsTab";
+import PayNowButton         from "@/components/dashboard/PayNowButton";
 
 // ── Next.js 16: params/searchParams are Promises ─────────────
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -87,6 +88,7 @@ interface DbProfessional {
 
 interface DbSubscription {
   id:                  string;
+  professional_id:     string;
   tier:                "light" | "trades" | "specialists";
   billing_plan:        "monthly" | "semi" | "annual";
   monthly_price:       number;
@@ -760,6 +762,50 @@ function SubscriptionTab({
 
           <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
 
+            {/* ── Stripe card payment (primary, fastest) ── */}
+            <div
+              style={{
+                border:       "2px solid #635BFF",
+                borderRadius: "12px",
+                padding:      "1.25rem",
+                background:   "rgba(99,91,255,0.03)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.75rem" }}>
+                <div
+                  style={{
+                    width:           "36px",
+                    height:          "36px",
+                    borderRadius:    "8px",
+                    background:      "#635BFF",
+                    display:         "flex",
+                    alignItems:      "center",
+                    justifyContent:  "center",
+                    color:           "#fff",
+                    fontSize:        "0.75rem",
+                    fontWeight:      800,
+                    flexShrink:      0,
+                  }}
+                >
+                  💳
+                </div>
+                <div>
+                  <p style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--color-text)", margin: 0 }}>
+                    Κάρτα (Visa / Mastercard / Maestro)
+                  </p>
+                  <p style={{ fontSize: "0.775rem", color: "var(--color-text-muted)", margin: 0 }}>
+                    Άμεση ενεργοποίηση · Ασφαλής πληρωμή μέσω Stripe
+                  </p>
+                </div>
+              </div>
+              <PayNowButton
+                subscriptionId={sub.id}
+                professionalId={sub.professional_id}
+                amountEuros={sub.total_amount}
+                planLabel={`${PLAN_LABEL[sub.billing_plan]} — ${TIER_LABEL[sub.tier]}`}
+              />
+            </div>
+
             {/* IRIS */}
             <div
               style={{
@@ -1054,7 +1100,7 @@ export default async function DashboardPage({
   const { data: subRaw } = await supabase
     .from("subscriptions")
     .select(
-      "id, tier, billing_plan, monthly_price, total_amount, " +
+      "id, professional_id, tier, billing_plan, monthly_price, total_amount, " +
       "payment_reference, payment_status, is_founding, starts_at, ends_at",
     )
     .eq("professional_id", pro.id)

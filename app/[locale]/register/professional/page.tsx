@@ -26,6 +26,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter }        from "@/i18n/navigation";
+import { useLocale }        from "next-intl";
 import { useSearchParams }  from "next/navigation";
 import {
   ChevronRight, ChevronLeft,
@@ -831,6 +832,7 @@ function ThankYouOther() {
 // =============================================================
 export default function ProfessionalRegistrationPage() {
   const router       = useRouter();
+  const locale       = useLocale();
   const supabase     = createClient();
   const searchParams = useSearchParams();
 
@@ -963,11 +965,15 @@ export default function ProfessionalRegistrationPage() {
         throw proError;
       }
 
-      // 4. Insert subscription (free trial)
+      // 4. Insert subscription (pending payment)
       // payment_reference = '' → triggers trg_payment_reference which
       // auto-generates the TRS-YYYY-XXXX code (see DB trigger definition).
-      // payment_status = 'pending' → no payment collected during trial.
-      const { error: subError } = await supabase
+      // payment_status = 'pending' → updated to 'verified' by Stripe webhook.
+      // ends_at is set to plan duration from today (activated on payment).
+      const planEnds = new Date(now);
+      planEnds.setMonth(planEnds.getMonth() + plan.months);
+
+      const { data: subscription, error: subError } = await supabase
         .from("subscriptions")
         .insert({
           professional_id:   professional.id,
@@ -979,14 +985,16 @@ export default function ProfessionalRegistrationPage() {
           payment_reference: "",    // DB trigger generates TRS-YYYY-XXXX
           payment_status:    "pending",
           starts_at:         now.toISOString(),
-          ends_at:           trialEnds.toISOString(),
-          is_founding:       true,  // Mark as founding member (admin can revise)
-        });
+          ends_at:           planEnds.toISOString(),
+          is_founding:       true,  // First pros get founding-member price locked forever
+        })
+        .select("id")
+        .single();
 
       if (subError) throw subError;
 
       // 5. Claim referral if the user arrived via ?ref=SLUG
-      // Non-fatal: if the referral RPC fails we still redirect to dashboard.
+      // Non-fatal: if the referral RPC fails we still proceed to payment.
       if (refSlug) {
         const { error: refError } = await supabase.rpc("claim_referral", {
           ref_slug:   refSlug,
@@ -997,8 +1005,41 @@ export default function ProfessionalRegistrationPage() {
         }
       }
 
-      // 6. Success → redirect to dashboard
-      router.push("/dashboard?welcome=1");
+      // 6. Create Stripe Checkout session → redirect to payment
+      // If STRIPE_SECRET_KEY is not configured (e.g. local dev without Stripe),
+      // fall back to dashboard directly so development is not blocked.
+      const planLabel =
+        locale === "en"
+          ? `${plan.months}-Month Plan — ${tier.charAt(0).toUpperCase() + tier.slice(1)}`
+          : `Πλάνο ${plan.months} Μηνών — ${plan.labelEl}`;
+
+      const checkoutRes = await fetch("/api/checkout", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          subscriptionId: subscription.id,
+          professionalId: professional.id,
+          amountEuros:    plan.total[tier],
+          planLabel,
+          locale,
+        }),
+      });
+
+      if (!checkoutRes.ok) {
+        const err = await checkoutRes.json().catch(() => ({}));
+        // If Stripe is not configured, go straight to dashboard
+        if (err.error === "STRIPE_SECRET_KEY is not set. Add it to .env.local.") {
+          console.warn("[register] Stripe not configured — skipping payment");
+          router.push("/dashboard?welcome=1");
+          return;
+        }
+        throw new Error(err.error ?? "Payment setup failed");
+      }
+
+      const { url: checkoutUrl } = await checkoutRes.json();
+
+      // Hard-navigate to Stripe's hosted checkout page
+      window.location.href = checkoutUrl;
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Σφάλμα εγγραφής. Παρακαλώ δοκιμάστε ξανά.";
