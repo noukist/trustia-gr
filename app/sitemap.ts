@@ -18,7 +18,7 @@
 
 import type { MetadataRoute } from "next";
 import { createClient }       from "@/lib/supabase/server";
-import { CATEGORIES }         from "@/lib/constants";
+import { CATEGORIES, getAllAreas } from "@/lib/constants";
 
 const BASE = "https://trustia.gr";
 
@@ -109,5 +109,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ]);
 
-  return [...staticEntries, ...categoryEntries, ...proEntries];
+  // ── SEO landing pages (category × area clean URLs) ──────────
+  // These are the main organic-search targets: /house-cleaning/kalamaria etc.
+  // We generate one entry per category × area combination for both locales.
+  // Priority 0.85 — higher than query-param category pages since these are
+  // the dedicated long-tail landing pages.
+  const allAreas = getAllAreas();
+  const seoLandingEntries: MetadataRoute.Sitemap = CATEGORIES.flatMap((cat) =>
+    allAreas.flatMap((area) => [
+      {
+        url:             `${BASE}/${cat.id}/${area.id}`,
+        lastModified:    new Date(),
+        changeFrequency: "weekly" as const,
+        priority:        0.85,
+      },
+      {
+        url:             `${BASE}/en/${cat.id}/${area.id}`,
+        lastModified:    new Date(),
+        changeFrequency: "weekly" as const,
+        priority:        0.75,
+      },
+    ])
+  );
+
+  return [...staticEntries, ...categoryEntries, ...seoLandingEntries, ...proEntries];
 }
