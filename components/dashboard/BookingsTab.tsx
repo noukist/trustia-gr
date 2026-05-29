@@ -1,0 +1,576 @@
+// =============================================================
+// components/dashboard/BookingsTab.tsx
+// =============================================================
+// Server Component — shows a professional's bookings list.
+//
+// DATA
+//   Fetches from bookings table filtered by professional_id.
+//   RLS: bookings_professional_read policy allows this.
+//
+// ORDERING
+//   pending → confirmed → completed/declined/cancelled/no_show
+//   Within each group: newest first.
+//
+// ACTIONS (Server Actions — work without JavaScript)
+//   pending   → Confirm | Decline
+//   confirmed → Complete | Cancel
+//   Others    → read-only
+// =============================================================
+
+import { createClient }    from "@/lib/supabase/server";
+import { revalidatePath }  from "next/cache";
+import { getLocale, getTranslations } from "next-intl/server";
+
+// ── Server Action ─────────────────────────────────────────────
+// Updates booking status. Called by plain <form action> buttons.
+async function updateBookingStatus(formData: FormData) {
+  "use server";
+
+  const bookingId = formData.get("bookingId") as string;
+  const newStatus = formData.get("status")    as string;
+
+  if (!bookingId || !newStatus) return;
+
+  const supabase = await createClient();
+
+  const update: Record<string, string | null> = {
+    status:     newStatus,
+    updated_at: new Date().toISOString(),
+  };
+
+  // Stamp lifecycle timestamps where appropriate
+  if (newStatus === "confirmed") update.confirmed_at = new Date().toISOString();
+  if (newStatus === "completed") update.completed_at = new Date().toISOString();
+
+  await supabase
+    .from("bookings")
+    .update(update)
+    .eq("id", bookingId);
+
+  // ── Customer notifications for status changes ────────────────
+  // Fires for: confirmed, declined, completed.
+  // Silently swallows errors so the status update is never blocked.
+  if (newStatus === "confirmed" || newStatus === "declined" || newStatus === "completed") {
+    try {
+      // Step 1: fetch customer_id + professional_id + booking_date from the booking
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: bk } = await (supabase as any)
+        .from("bookings")
+        .select("customer_id, professional_id, booking_date")
+        .eq("id", bookingId)
+        .single() as { data: { customer_id: string; professional_id: string; booking_date: string } | null };
+
+      if (bk?.customer_id && bk?.professional_id) {
+        // Step 2: parallel — customer user_id + professional name/slug
+        const [custRes, proRes] = await Promise.all([
+          supabase
+            .from("customers")
+            .select("user_id")
+            .eq("id", bk.customer_id)
+            .single(),
+          supabase
+            .from("professionals")
+            .select("slug, first_name, last_name")
+            .eq("id", bk.professional_id)
+            .single(),
+        ]);
+
+        if (custRes.data?.user_id) {
+          const proName = proRes.data
+            ? `${proRes.data.first_name} ${proRes.data.last_name}`
+            : "τον επαγγελματία";
+          const proLink = proRes.data?.slug
+            ? `/professional/${proRes.data.slug}`
+            : null;
+
+          // Format booking date for display: "DD/MM/YYYY"
+          const dateLabel = bk.booking_date
+            ? new Date(bk.booking_date).toLocaleDateString("el-GR")
+            : "";
+
+          // Pick title + body depending on what happened
+          let title: string;
+          let body:  string;
+
+          if (newStatus === "confirmed") {
+            title = `✅ Η κράτησή σου επιβεβαιώθηκε`;
+            body  = `Ο/Η ${proName} αποδέχτηκε το αίτημά σου${dateLabel ? ` για ${dateLabel}` : ""}. Τα λεπτομέρειες θα συζητηθούν απευθείας.`;
+          } else if (newStatus === "declined") {
+            title = `❌ Η κράτησή σου απορρίφθηκε`;
+            body  = `Ο/Η ${proName} δεν μπορεί να εξυπηρετήσει το αίτημά σου${dateLabel ? ` για ${dateLabel}` : ""}. Δοκίμασε άλλον επαγγελματία.`;
+          } else {
+            // completed — prompt for a review
+            title = `⭐ Αξιολόγησε τον/την ${proName}`;
+            body  = "Πώς πήγε η συνεργασία; Μοιράσου την εμπειρία σου.";
+          }
+
+          await supabase.from("notifications").insert({
+            user_id: custRes.data.user_id,
+            title,
+            body,
+            link:    proLink,
+            channel: "inbox",
+          });
+        }
+      }
+    } catch (err) {
+      // Non-fatal — notification is best-effort
+      console.error("[BookingsTab] failed to send customer notification:", err);
+    }
+  }
+
+  // Revalidate the dashboard for both locales so the list refreshes
+  revalidatePath("/el/dashboard");
+  revalidatePath("/en/dashboard");
+  revalidatePath("/dashboard"); // default locale (el, no prefix)
+}
+
+// ── DB row type ───────────────────────────────────────────────
+
+// Shape of each entry in the services JSONB column
+interface BookingService {
+  service_id?: string;
+  name:        string;
+  duration:    number;   // minutes
+  price:       number;
+}
+
+interface DbBooking {
+  id:             string;
+  booking_date:   string;
+  start_time:     string | null;
+  booking_mode:   string;
+  status:         string;
+  description:    string | null;
+  customer_name:  string | null;
+  customer_phone: string | null;
+  customer_email: string | null;
+  total_price:    number | null;
+  services:       BookingService[] | null;  // JSONB — populated for "full" mode bookings
+  created_at:     string;
+}
+
+// ── Status color map (labels come from i18n) ──────────────────
+
+const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
+  pending:   { bg: "#FEF3C7", color: "#D97706" },
+  confirmed: { bg: "#D1FAE5", color: "#059669" },
+  completed: { bg: "#EDE9FE", color: "#7C3AED" },
+  declined:  { bg: "#FEE2E2", color: "#DC2626" },
+  cancelled: { bg: "#F3F4F6", color: "#6B7280" },
+  no_show:   { bg: "#FFF7ED", color: "#EA580C" },
+};
+
+// ── Shared button styles ──────────────────────────────────────
+
+const btnPrimary: React.CSSProperties = {
+  padding:         "0.5rem 1.25rem",
+  backgroundColor: "var(--color-primary)",
+  color:           "#ffffff",
+  border:          "none",
+  borderRadius:    "8px",
+  fontSize:        "0.875rem",
+  fontWeight:      700,
+  fontFamily:      "inherit",
+  cursor:          "pointer",
+  whiteSpace:      "nowrap",
+};
+
+const btnSuccess: React.CSSProperties = {
+  ...btnPrimary,
+  backgroundColor: "#059669",
+};
+
+const btnDanger: React.CSSProperties = {
+  ...btnPrimary,
+  backgroundColor: "#ffffff",
+  color:           "#DC2626",
+  border:          "1.5px solid #DC2626",
+};
+
+const btnMuted: React.CSSProperties = {
+  ...btnPrimary,
+  backgroundColor: "#ffffff",
+  color:           "var(--color-text-muted)",
+  border:          "1.5px solid var(--color-border)",
+};
+
+// ── Component ─────────────────────────────────────────────────
+
+export default async function BookingsTab({
+  professionalId,
+}: {
+  professionalId: string;
+}) {
+  // Get locale for date formatting + load translations
+  const locale   = await getLocale();
+  const t        = await getTranslations({ locale, namespace: "dashboard.bookings" });
+  const supabase = await createClient();
+
+  // Build the status label map using translated strings
+  const statusLabel: Record<string, string> = {
+    pending:   t("statusPending"),
+    confirmed: t("statusConfirmed"),
+    completed: t("statusCompleted"),
+    declined:  t("statusDeclined"),
+    cancelled: t("statusCancelled"),
+    no_show:   t("statusNoShow"),
+  };
+
+  const { data, error } = await supabase
+    .from("bookings")
+    .select(
+      "id, booking_date, start_time, booking_mode, status, " +
+      "description, customer_name, customer_phone, customer_email, " +
+      "total_price, services, created_at",
+    )
+    .eq("professional_id", professionalId)
+    .order("booking_date", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    console.error("[BookingsTab] fetch error:", error.message);
+  }
+
+  const rows = (data ?? []) as unknown as DbBooking[];
+
+  // Sort: pending → confirmed → all others (newest booking_date first within each group)
+  const pending   = rows.filter((b) => b.status === "pending");
+  const confirmed = rows.filter((b) => b.status === "confirmed");
+  const others    = rows.filter((b) => !["pending", "confirmed"].includes(b.status));
+  const ordered   = [...pending, ...confirmed, ...others];
+
+  // Date locale for Intl.DateTimeFormat — el → el-GR, en → en-GB
+  const dateLocale = locale === "el" ? "el-GR" : "en-GB";
+
+  // ── Empty state ───────────────────────────────────────────
+
+  if (ordered.length === 0) {
+    return (
+      <div
+        style={{
+          backgroundColor: "#ffffff",
+          border:          "1.5px solid var(--color-border)",
+          borderRadius:    "14px",
+          padding:         "1.5rem",
+        }}
+      >
+        <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
+          <p style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>📅</p>
+          <h2
+            style={{
+              fontSize:     "1.125rem",
+              fontWeight:   700,
+              color:        "var(--color-text)",
+              marginBottom: "0.5rem",
+            }}
+          >
+            {t("empty")}
+          </h2>
+          <p style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", margin: 0 }}>
+            {t("emptyHint")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── List ──────────────────────────────────────────────────
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+
+      {/* ── Header row ── */}
+      <div
+        style={{
+          display:        "flex",
+          justifyContent: "space-between",
+          alignItems:     "center",
+          flexWrap:       "wrap",
+          gap:            "0.5rem",
+        }}
+      >
+        <h2
+          style={{
+            fontWeight: 700,
+            fontSize:   "1rem",
+            color:      "var(--color-text)",
+            margin:     0,
+          }}
+        >
+          {t("title", { count: ordered.length })}
+        </h2>
+
+        {/* Pending count badge — draws attention */}
+        {pending.length > 0 && (
+          <span
+            style={{
+              display:         "inline-flex",
+              padding:         "0.25rem 0.75rem",
+              backgroundColor: "#FEF3C7",
+              color:           "#D97706",
+              borderRadius:    "99px",
+              fontSize:        "0.8rem",
+              fontWeight:      700,
+            }}
+          >
+            {t("pendingBadge", { count: pending.length })}
+          </span>
+        )}
+      </div>
+
+      {/* ── Booking cards ── */}
+      {ordered.map((booking) => {
+        const style       = STATUS_STYLE[booking.status] ?? STATUS_STYLE.pending;
+        const label       = statusLabel[booking.status]  ?? booking.status;
+        const isPending   = booking.status === "pending";
+        const isConfirmed = booking.status === "confirmed";
+
+        // Format the booking date in the user's locale
+        const dateLabel = new Date(booking.booking_date).toLocaleDateString(dateLocale, {
+          weekday: "long",
+          day:     "numeric",
+          month:   "long",
+          year:    "numeric",
+        });
+        // Append start time if present (strip seconds from HH:MM:SS)
+        const timeLabel = booking.start_time ? ` — ${booking.start_time.slice(0, 5)}` : "";
+
+        return (
+          <div
+            key={booking.id}
+            style={{
+              backgroundColor: "#ffffff",
+              border:          isPending
+                ? "1.5px solid #FCD34D"   // amber highlight for pending
+                : "1.5px solid var(--color-border)",
+              borderRadius:    "14px",
+              padding:         "1.25rem",
+              display:         "flex",
+              flexDirection:   "column",
+              gap:             "0.875rem",
+            }}
+          >
+            {/* Date + status */}
+            <div
+              style={{
+                display:        "flex",
+                justifyContent: "space-between",
+                alignItems:     "flex-start",
+                flexWrap:       "wrap",
+                gap:            "0.5rem",
+              }}
+            >
+              <div>
+                <p
+                  style={{
+                    fontWeight: 700,
+                    color:      "var(--color-text)",
+                    margin:     "0 0 0.25rem",
+                    fontSize:   "0.975rem",
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {dateLabel}{timeLabel}
+                </p>
+                <p style={{ fontSize: "0.775rem", color: "var(--color-text-muted)", margin: 0 }}>
+                  {t("submittedOn")}{" "}
+                  {new Date(booking.created_at).toLocaleDateString(dateLocale)}
+                </p>
+              </div>
+
+              {/* Status badge */}
+              <span
+                style={{
+                  display:         "inline-flex",
+                  padding:         "0.25rem 0.75rem",
+                  backgroundColor: style.bg,
+                  color:           style.color,
+                  borderRadius:    "99px",
+                  fontSize:        "0.8rem",
+                  fontWeight:      700,
+                  whiteSpace:      "nowrap",
+                }}
+              >
+                {label}
+              </span>
+            </div>
+
+            {/* Customer contact (if provided in the booking) */}
+            {(booking.customer_name || booking.customer_phone || booking.customer_email) && (
+              <div
+                style={{
+                  display:    "flex",
+                  flexWrap:   "wrap",
+                  gap:        "1rem",
+                  fontSize:   "0.875rem",
+                  color:      "var(--color-text)",
+                }}
+              >
+                {booking.customer_name && (
+                  <span>👤 {booking.customer_name}</span>
+                )}
+                {booking.customer_phone && (
+                  <a
+                    href={`tel:${booking.customer_phone}`}
+                    style={{ color: "var(--color-primary)", textDecoration: "none", fontWeight: 600 }}
+                  >
+                    📞 {booking.customer_phone}
+                  </a>
+                )}
+                {booking.customer_email && (
+                  <a
+                    href={`mailto:${booking.customer_email}`}
+                    style={{ color: "var(--color-primary)", textDecoration: "none" }}
+                  >
+                    ✉ {booking.customer_email}
+                  </a>
+                )}
+              </div>
+            )}
+
+            {/* Services breakdown (full-calendar mode only) */}
+            {booking.services && booking.services.length > 0 && (
+              <div
+                style={{
+                  backgroundColor: "var(--color-bg-light)",
+                  border:          "1px solid var(--color-border)",
+                  borderRadius:    "8px",
+                  padding:         "0.625rem 0.875rem",
+                  display:         "flex",
+                  flexDirection:   "column",
+                  gap:             "0.375rem",
+                }}
+              >
+                {/* Header */}
+                <p
+                  style={{
+                    fontSize:   "0.75rem",
+                    fontWeight: 600,
+                    color:      "var(--color-text-muted)",
+                    margin:     0,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
+                  }}
+                >
+                  {t("servicesLabel")}
+                </p>
+                {/* Service rows */}
+                {booking.services.map((svc, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      display:        "flex",
+                      justifyContent: "space-between",
+                      alignItems:     "center",
+                      fontSize:       "0.875rem",
+                      color:          "var(--color-text)",
+                    }}
+                  >
+                    <span>
+                      {svc.name}
+                      <span style={{ color: "var(--color-text-muted)", marginLeft: "0.375rem" }}>
+                        ({svc.duration} {t("minutes")})
+                      </span>
+                    </span>
+                    <span style={{ fontWeight: 600 }}>
+                      €{Number(svc.price).toFixed(2)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Description / notes from the customer */}
+            {booking.description && (
+              <p
+                style={{
+                  fontSize:        "0.875rem",
+                  color:           "var(--color-text-muted)",
+                  margin:          0,
+                  lineHeight:      1.6,
+                  backgroundColor: "var(--color-bg-light)",
+                  padding:         "0.625rem 0.875rem",
+                  borderRadius:    "8px",
+                  borderLeft:      "3px solid var(--color-border)",
+                }}
+              >
+                {booking.description}
+              </p>
+            )}
+
+            {/* Total price (for full-calendar bookings with service catalog) */}
+            {booking.total_price !== null && booking.total_price > 0 && (
+              <p
+                style={{
+                  fontSize:   "0.875rem",
+                  fontWeight: 700,
+                  color:      "var(--color-text)",
+                  margin:     0,
+                }}
+              >
+                {t("total")}: €{booking.total_price.toFixed(2)}
+              </p>
+            )}
+
+            {/* ── Actions: pending → Confirm | Decline ── */}
+            {isPending && (
+              <div
+                style={{
+                  display:     "flex",
+                  gap:         "0.75rem",
+                  flexWrap:    "wrap",
+                  paddingTop:  "0.625rem",
+                  borderTop:   "1px solid var(--color-border)",
+                }}
+              >
+                <form action={updateBookingStatus}>
+                  <input type="hidden" name="bookingId" value={booking.id} />
+                  <input type="hidden" name="status"    value="confirmed" />
+                  <button type="submit" style={btnPrimary}>
+                    {t("confirmBtn")}
+                  </button>
+                </form>
+                <form action={updateBookingStatus}>
+                  <input type="hidden" name="bookingId" value={booking.id} />
+                  <input type="hidden" name="status"    value="declined" />
+                  <button type="submit" style={btnDanger}>
+                    {t("declineBtn")}
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* ── Actions: confirmed → Complete | Cancel ── */}
+            {isConfirmed && (
+              <div
+                style={{
+                  display:    "flex",
+                  gap:        "0.75rem",
+                  flexWrap:   "wrap",
+                  paddingTop: "0.625rem",
+                  borderTop:  "1px solid var(--color-border)",
+                }}
+              >
+                <form action={updateBookingStatus}>
+                  <input type="hidden" name="bookingId" value={booking.id} />
+                  <input type="hidden" name="status"    value="completed" />
+                  <button type="submit" style={btnSuccess}>
+                    {t("completeBtn")}
+                  </button>
+                </form>
+                <form action={updateBookingStatus}>
+                  <input type="hidden" name="bookingId" value={booking.id} />
+                  <input type="hidden" name="status"    value="cancelled" />
+                  <button type="submit" style={btnMuted}>
+                    {t("cancelBtn")}
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}

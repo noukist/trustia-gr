@@ -30,109 +30,37 @@
 "use client";
 
 import { useState }         from "react";
-import { Phone, Calendar, Copy, Check, X } from "lucide-react";
+import { Phone, Calendar, Copy, Check } from "lucide-react";
+import { useTranslations }   from "next-intl";
 import { createClient }      from "@/lib/supabase/client";
-import LoginPromptModal      from "@/components/ui/LoginPromptModal";
+import LoginPromptModal           from "@/components/ui/LoginPromptModal";
+import DateBookingForm            from "@/components/professional/DateBookingForm";
+import FullCalendarBookingForm, {
+  type ServiceItem,
+}                                 from "@/components/professional/FullCalendarBookingForm";
 
 // ── Props ──────────────────────────────────────────────────────
 interface ActionPanelProps {
+  professionalId: string;          // needed for phone-reveal tracking
   phone:          string;
   bookingMode:    "contact" | "date" | "full";
   bookingEnabled: boolean;
   proName:        string;
-}
-
-// ── Booking placeholder ──────────────────────────────────────
-function BookingPlaceholder({
-  mode,
-  onClose,
-}: {
-  mode:    "date" | "full";
-  onClose: () => void;
-}) {
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position:        "fixed",
-        inset:           0,
-        backgroundColor: "rgba(0,0,0,0.5)",
-        zIndex:          500,
-        display:         "flex",
-        alignItems:      "center",
-        justifyContent:  "center",
-        padding:         "1rem",
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          backgroundColor: "#fff",
-          borderRadius:    "16px",
-          padding:         "2rem",
-          maxWidth:        "420px",
-          width:           "100%",
-          position:        "relative",
-          boxShadow:       "0 20px 60px rgba(0,0,0,0.25)",
-          textAlign:       "center",
-        }}
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Κλείσιμο"
-          style={{
-            position:  "absolute",
-            top:       "1rem",
-            right:     "1rem",
-            background:"none",
-            border:    "none",
-            cursor:    "pointer",
-            color:     "var(--color-text-muted)",
-            display:   "flex",
-          }}
-        >
-          <X size={20} />
-        </button>
-
-        <span style={{ fontSize: "2.5rem" }}>
-          {mode === "full" ? "🗓️" : "📅"}
-        </span>
-
-        <h2
-          style={{
-            fontSize:     "1.125rem",
-            fontWeight:   700,
-            color:        "var(--color-text)",
-            margin:       "0.75rem 0 0.5rem",
-          }}
-        >
-          Κράτηση{" "}
-          {mode === "full" ? "— Πλήρες Ημερολόγιο" : "Ημερομηνίας"}
-        </h2>
-        <p
-          style={{
-            fontSize:  "0.875rem",
-            color:     "var(--color-text-muted)",
-            lineHeight: 1.6,
-          }}
-        >
-          Το σύστημα κράτησης ανοίγει σύντομα.
-          <br />
-          Επικοινωνήστε απευθείας μέσω τηλεφώνου.
-        </p>
-      </div>
-    </div>
-  );
+  /** Service catalog — passed through to FullCalendarBookingForm */
+  services?:      ServiceItem[];
 }
 
 // ── Main component ────────────────────────────────────────────
 export default function ActionPanel({
+  professionalId,
   phone,
   bookingMode,
   bookingEnabled,
   proName,
+  services = [],
 }: ActionPanelProps) {
+  const t = useTranslations("profile");
+
   // "idle" | "revealed" = phone state
   const [phoneState,    setPhoneState]   = useState<"idle" | "revealed">("idle");
   const [copied,        setCopied]       = useState(false);
@@ -153,6 +81,15 @@ export default function ActionPanel({
       return;
     }
     setPhoneState("revealed");
+
+    // Fire-and-forget: increment phone_reveals counter via SECURITY DEFINER RPC.
+    // Non-fatal — UI is never blocked by this call.
+    const supabase = createClient();
+    supabase
+      .rpc("increment_phone_reveal", { prof_id: professionalId })
+      .then(({ error }) => {
+        if (error) console.warn("[ActionPanel] phone reveal track:", error.message);
+      });
   }
 
   async function handleBookClick() {
@@ -244,10 +181,10 @@ export default function ActionPanel({
             type="button"
             onClick={copyPhone}
             style={ghostBtn}
-            title="Αντιγραφή αριθμού"
+            title={t("copyNumber")}
           >
             {copied ? <Check size={15} style={{ color: "#27AE60" }} /> : <Copy size={15} />}
-            {copied ? "Αντιγράφηκε" : "Αντιγραφή"}
+            {copied ? t("copied") : t("copyAction")}
           </button>
         </div>
 
@@ -260,13 +197,13 @@ export default function ActionPanel({
           }}
         >
           <Phone size={17} />
-          Κλήση
+          {t("callAction")}
         </a>
       </div>
     ) : (
       <button type="button" onClick={handlePhoneClick} style={primaryBtn}>
         <Phone size={17} />
-        Εμφάνιση τηλεφώνου
+        {t("actionCall")}
       </button>
     );
 
@@ -285,7 +222,7 @@ export default function ActionPanel({
       }}
     >
       <Calendar size={17} />
-      {bookingMode === "full" ? "Κράτηση Online" : "Επιλογή Ημερομηνίας"}
+      {bookingMode === "full" ? t("bookOnline") : t("actionBookDate")}
     </button>
   ) : null;
 
@@ -312,7 +249,7 @@ export default function ActionPanel({
           margin:       0,
         }}
       >
-        Επικοινωνία με τον {proName.split(" ")[0]}
+        {t("contactWith", { firstName: proName.split(" ")[0] })}
       </p>
 
       {phoneContent}
@@ -326,7 +263,7 @@ export default function ActionPanel({
           margin:    0,
         }}
       >
-        Χωρίς προμήθεια — 100% πηγαίνει στον επαγγελματία
+        {t("zeroCommission")}
       </p>
     </div>
   );
@@ -392,7 +329,7 @@ export default function ActionPanel({
             style={{ ...primaryBtn, flex: 1, padding: "0.75rem" }}
           >
             <Phone size={16} />
-            Τηλέφωνο
+            {t("phoneBtn")}
           </button>
           {bookingContent && (
             <button
@@ -440,19 +377,30 @@ export default function ActionPanel({
       {/* ── Modals ── */}
       {modal === "login-phone" && (
         <LoginPromptModal
-          message="Συνδεθείτε για να δείτε τα στοιχεία επικοινωνίας του επαγγελματία."
+          message={t("loginToSeePhone")}
           onClose={() => setModal(null)}
         />
       )}
       {modal === "login-booking" && (
         <LoginPromptModal
-          message="Συνδεθείτε για να κάνετε κράτηση."
+          message={t("loginToBook")}
           onClose={() => setModal(null)}
         />
       )}
-      {modal === "booking" && bookingMode !== "contact" && (
-        <BookingPlaceholder
-          mode={bookingMode as "date" | "full"}
+      {/* Date mode — real booking form */}
+      {modal === "booking" && bookingMode === "date" && (
+        <DateBookingForm
+          professionalId={professionalId}
+          proName={proName}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {/* Full calendar booking form */}
+      {modal === "booking" && bookingMode === "full" && (
+        <FullCalendarBookingForm
+          professionalId={professionalId}
+          proName={proName}
+          services={services}
           onClose={() => setModal(null)}
         />
       )}

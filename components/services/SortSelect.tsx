@@ -7,19 +7,23 @@
 
 "use client";
 
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
-
-const SORT_OPTIONS = [
-  { value: "reviews", label: "Κριτικές (προεπιλογή)" },
-  { value: "rating",  label: "Υψηλότερη βαθμολογία" },
-  { value: "price",   label: "Χαμηλότερη τιμή" },
-  { value: "nearest", label: "Κοντινότεροι" },
-] as const;
+import { useRouter, usePathname } from "@/i18n/navigation";
+import { useSearchParams }        from "next/navigation";
+import { useTranslations } from "next-intl";
 
 export default function SortSelect({ hasLocation }: { hasLocation: boolean }) {
+  const t           = useTranslations("services");
   const router      = useRouter();
   const pathname    = usePathname();
   const searchParams = useSearchParams();
+
+  // Translated sort options — built after t() is available
+  const SORT_OPTIONS = [
+    { value: "reviews", label: `${t("sortReviews")} ${t("sortDefault")}` },
+    { value: "rating",  label: t("sortRating") },
+    { value: "price",   label: t("sortPrice") },
+    { value: "nearest", label: t("sortNearest") },
+  ] as const;
 
   const current = searchParams.get("sort") ?? "reviews";
 
@@ -44,7 +48,7 @@ export default function SortSelect({ hasLocation }: { hasLocation: boolean }) {
           whiteSpace: "nowrap",
         }}
       >
-        Ταξινόμηση:
+        {t("sortLabel")}:
       </label>
 
       <select
@@ -75,7 +79,7 @@ export default function SortSelect({ hasLocation }: { hasLocation: boolean }) {
             disabled={opt.value === "nearest" && !hasLocation}
           >
             {opt.label}
-            {opt.value === "nearest" && !hasLocation ? " (χρειάζεται τοποθεσία)" : ""}
+            {opt.value === "nearest" && !hasLocation ? ` ${t("sortNeedsLocation")}` : ""}
           </option>
         ))}
       </select>

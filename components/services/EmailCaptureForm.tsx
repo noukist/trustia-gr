@@ -11,24 +11,32 @@
 //   "use client" module, the parent page stays a pure Server
 //   Component while the form gets full client-side interactivity.
 //
-// TODO (post-MVP): wire the submit handler to a real API route
-//   that stores the notification request in `scheduled_emails`
-//   or a dedicated `notification_requests` table.
+// DATA FLOW
+//   Calls saveNotificationRequest (Server Action) which INSERTs
+//   into the notification_requests table.  RLS allows anon +
+//   authenticated users to insert; see migration 018.
 // =============================================================
 
 "use client";
 
-import React, { useState } from "react";
-import { Mail, Check, Loader2 } from "lucide-react";
+import React, { useState }                   from "react";
+import { Mail, Check, Loader2 }              from "lucide-react";
+import { saveNotificationRequest }           from "@/app/actions/save-notification-request";
 
 interface EmailCaptureFormProps {
-  /** Greek name of the category the user searched for */
+  /** Greek name of the category the user searched for (display only) */
   categoryName: string;
+  /** Category slug / ID stored in the DB (e.g. "plumber") */
+  categoryId:   string;
   /** Location display name (empty string if no location was set) */
-  location: string;
+  location:     string;
 }
 
-export default function EmailCaptureForm({ categoryName, location }: EmailCaptureFormProps) {
+export default function EmailCaptureForm({
+  categoryName,
+  categoryId,
+  location,
+}: EmailCaptureFormProps) {
   const [email,     setEmail]     = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [loading,   setLoading]   = useState(false);
@@ -38,7 +46,7 @@ export default function EmailCaptureForm({ categoryName, location }: EmailCaptur
     e.preventDefault();
     if (!email.trim()) return;
 
-    // Basic email format guard before hitting the network
+    // Client-side format guard before hitting the server
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError("Παρακαλώ εισάγετε έγκυρο email.");
       return;
@@ -48,10 +56,17 @@ export default function EmailCaptureForm({ categoryName, location }: EmailCaptur
     setLoading(true);
 
     try {
-      // POST to /api/notify — route to be implemented in a future sprint.
-      // For now we simulate a 600ms network round-trip so the loading
-      // state is visible and the UX matches what the real endpoint will do.
-      await new Promise((r) => setTimeout(r, 600));
+      const result = await saveNotificationRequest({
+        email:      email.trim(),
+        categoryId,
+        location:   location ?? "",
+      });
+
+      if (!result.ok) {
+        setError(result.message ?? "Κάτι πήγε στραβά. Δοκιμάστε ξανά.");
+        return;
+      }
+
       setSubmitted(true);
     } catch {
       setError("Κάτι πήγε στραβά. Δοκιμάστε ξανά.");
@@ -64,17 +79,17 @@ export default function EmailCaptureForm({ categoryName, location }: EmailCaptur
     return (
       <div
         style={{
-          display:        "flex",
-          alignItems:     "center",
-          justifyContent: "center",
-          gap:            "0.5rem",
-          padding:        "0.75rem 1rem",
+          display:         "flex",
+          alignItems:      "center",
+          justifyContent:  "center",
+          gap:             "0.5rem",
+          padding:         "0.75rem 1rem",
           backgroundColor: "rgba(39,174,96,0.1)",
-          border:         "1.5px solid rgba(39,174,96,0.3)",
-          borderRadius:   "10px",
-          color:          "#166534",
-          fontWeight:     600,
-          fontSize:       "0.875rem",
+          border:          "1.5px solid rgba(39,174,96,0.3)",
+          borderRadius:    "10px",
+          color:           "#166534",
+          fontWeight:      600,
+          fontSize:        "0.875rem",
         }}
       >
         <Check size={16} />

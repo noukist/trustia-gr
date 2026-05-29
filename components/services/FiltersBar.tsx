@@ -21,47 +21,55 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { SlidersHorizontal, X, RotateCcw } from "lucide-react";
+import { useRouter, usePathname } from "@/i18n/navigation";
+import { useSearchParams }        from "next/navigation";
+import { useTranslations } from "next-intl";
+import { SlidersHorizontal, X, RotateCcw, Search, MapPin } from "lucide-react";
+import LocationAutocomplete, { type LocationResult } from "@/components/ui/LocationAutocomplete";
 
 // ── Types ──────────────────────────────────────────────────────
 interface FiltersBarProps {
   /** Whether the user provided a geo-coded location (enables distance filter) */
   hasLocation: boolean;
+  /** Current service-name search query from URL (?q=…) */
+  serviceQ?:   string;
 }
 
-// ── Filter options ─────────────────────────────────────────────
-const RATING_OPTIONS = [
-  { value: "",    label: "Όλοι" },
-  { value: "3",   label: "3★ +" },
-  { value: "4",   label: "4★ +" },
-  { value: "4.5", label: "4.5★ +" },
-] as const;
-
-const MODE_OPTIONS = [
-  { value: "",        label: "Όλοι" },
-  { value: "contact", label: "📞 Τηλέφωνο" },
-  { value: "date",    label: "📅 Ημερομηνία" },
-  { value: "full",    label: "🗓️ Online" },
-] as const;
-
-const DISTANCE_OPTIONS = [
-  { value: "",    label: "Οπουδήποτε" },
-  { value: "5",   label: "≤ 5 km" },
-  { value: "10",  label: "≤ 10 km" },
-  { value: "30",  label: "≤ 30 km" },
-  { value: "60",  label: "≤ 60 km" },
-  { value: "120", label: "≤ 120 km" },
-] as const;
-
 // ── Component ──────────────────────────────────────────────────
-export default function FiltersBar({ hasLocation }: FiltersBarProps) {
+export default function FiltersBar({ hasLocation, serviceQ = "" }: FiltersBarProps) {
+  const t           = useTranslations("services");
   const router      = useRouter();
   const pathname    = usePathname();
   const searchParams = useSearchParams();
 
+  // ── Filter options (translated) ────────────────────────────
+  const RATING_OPTIONS = [
+    { value: "",    label: t("filterAll") },
+    { value: "3",   label: "3★ +" },
+    { value: "4",   label: "4★ +" },
+    { value: "4.5", label: "4.5★ +" },
+  ] as const;
+
+  const MODE_OPTIONS = [
+    { value: "",        label: t("filterAll") },
+    { value: "contact", label: `📞 ${t("modeContact")}` },
+    { value: "date",    label: `📅 ${t("modeDate")}` },
+    { value: "full",    label: `🗓️ ${t("modeFull")}` },
+  ] as const;
+
+  const DISTANCE_OPTIONS = [
+    { value: "",    label: t("filterAnyDistance") },
+    { value: "5",   label: "≤ 5 km" },
+    { value: "10",  label: "≤ 10 km" },
+    { value: "30",  label: "≤ 30 km" },
+    { value: "60",  label: "≤ 60 km" },
+    { value: "120", label: "≤ 120 km" },
+  ] as const;
+
   // Mobile panel open/close state
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Local search input — initialised from the URL prop so it's in sync
+  const [searchDraft, setSearchDraft] = useState(serviceQ);
 
   // ── Read current values from URL ───────────────────────────
   const currentRating   = searchParams.get("rating")    ?? "";
@@ -69,14 +77,19 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
   const currentReviews  = searchParams.get("reviews")   ?? "";
   const currentDistance = searchParams.get("distance")  ?? "";
   const currentAvail    = searchParams.get("available") ?? "";
+  // Location context (set here or from homepage hero search)
+  const currentLocation = searchParams.get("location")  ?? "";
 
   // Count active filters (for badge on mobile button)
+  // Include serviceQ so the badge reflects an active text search too
+  // Note: location is NOT counted here since resetFilters() preserves it
   const activeCount = [
     currentRating,
     currentMode,
     currentReviews === "1" ? "1" : "",
     currentDistance,
     currentAvail === "1" ? "1" : "",
+    serviceQ,
   ].filter(Boolean).length;
 
   // ── Update a single URL param ──────────────────────────────
@@ -92,6 +105,31 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
     router.push(`${pathname}?${params.toString()}`);
   }
 
+  // ── Set location from the autocomplete (also enables distance filter) ──
+  function setLocation(result: LocationResult) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("location", result.displayName);
+    params.set("placeId",  result.placeId);
+    params.set("lat",      String(result.lat));
+    params.set("lng",      String(result.lng));
+    params.delete("page");
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
+  // ── Clear location (also removes distance + nearest sort) ──
+  function clearLocation() {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("location");
+    params.delete("placeId");
+    params.delete("lat");
+    params.delete("lng");
+    // These filters depend on coordinates — remove them too
+    params.delete("distance");
+    if (params.get("sort") === "nearest") params.delete("sort");
+    params.delete("page");
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
   // ── Reset all filters (keep category/location params) ─────
   function resetFilters() {
     const params = new URLSearchParams();
@@ -100,16 +138,169 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
       const v = searchParams.get(key);
       if (v) params.set(key, v);
     }
+    setSearchDraft("");
     router.push(`${pathname}?${params.toString()}`);
     setMobileOpen(false);
+  }
+
+  // ── Submit the service-name search ────────────────────────
+  function submitSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const params = new URLSearchParams(searchParams.toString());
+    if (searchDraft.trim()) {
+      params.set("q", searchDraft.trim());
+    } else {
+      params.delete("q");
+    }
+    params.delete("page");
+    router.push(`${pathname}?${params.toString()}`);
   }
 
   // ── Rendered filter controls (shared by sidebar + mobile panel)
   const filterContent = (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
+      {/* ── Location ── */}
+      {/* Shows the active location with a clear button, or the autocomplete
+          input if no location is set. Setting a location unlocks the distance
+          filter and "sort by nearest" option. */}
+      <div>
+        <p
+          style={{
+            fontSize:      "0.75rem",
+            fontWeight:    700,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            color:         "var(--color-text-muted)",
+            margin:        "0 0 0.625rem",
+          }}
+        >
+          {t("filterLocation")}
+        </p>
+
+        {currentLocation ? (
+          /* Active location chip with clear button */
+          <div
+            style={{
+              display:         "flex",
+              alignItems:      "center",
+              gap:             "0.375rem",
+              padding:         "0.4rem 0.625rem",
+              backgroundColor: "var(--color-primary-bg)",
+              border:          "1.5px solid var(--color-primary)",
+              borderRadius:    "8px",
+              fontSize:        "0.8125rem",
+              color:           "var(--color-primary-dark, #1A6F6F)",
+              fontWeight:      500,
+            }}
+          >
+            <MapPin size={12} style={{ flexShrink: 0, color: "var(--color-primary)" }} />
+            <span
+              style={{
+                flex:         1,
+                overflow:     "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace:   "nowrap",
+                minWidth:     0,
+              }}
+            >
+              {currentLocation}
+            </span>
+            <button
+              type="button"
+              aria-label={t("filterLocationClear")}
+              onClick={clearLocation}
+              style={{
+                background:  "none",
+                border:      "none",
+                cursor:      "pointer",
+                padding:     0,
+                flexShrink:  0,
+                display:     "flex",
+                color:       "var(--color-text-muted)",
+              }}
+            >
+              <X size={13} />
+            </button>
+          </div>
+        ) : (
+          /* Location autocomplete input */
+          <LocationAutocomplete
+            onSelect={setLocation}
+            placeholder={t("filterLocationPlaceholder")}
+          />
+        )}
+      </div>
+
+      {/* ── Service name search ── */}
+      <form onSubmit={submitSearch} style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+        <p
+          style={{
+            fontSize:      "0.75rem",
+            fontWeight:    700,
+            textTransform: "uppercase",
+            letterSpacing: "0.06em",
+            color:         "var(--color-text-muted)",
+            margin:        0,
+          }}
+        >
+          {t("searchLabel")}
+        </p>
+        <div style={{ position: "relative" }}>
+          <Search
+            size={14}
+            style={{
+              position:     "absolute",
+              left:         "0.625rem",
+              top:          "50%",
+              transform:    "translateY(-50%)",
+              color:        "var(--color-text-muted)",
+              pointerEvents:"none",
+            }}
+          />
+          <input
+            type="search"
+            value={searchDraft}
+            onChange={(e) => setSearchDraft(e.target.value)}
+            placeholder={t("searchPlaceholder")}
+            aria-label={t("searchLabel")}
+            style={{
+              width:        "100%",
+              padding:      "0.5rem 2rem 0.5rem 1.75rem",
+              border:       "1.5px solid var(--color-border)",
+              borderRadius: "8px",
+              fontSize:     "0.8375rem",
+              fontFamily:   "inherit",
+              outline:      "none",
+              boxSizing:    "border-box",
+              color:        "var(--color-text)",
+            }}
+          />
+          {searchDraft && (
+            <button
+              type="button"
+              onClick={() => { setSearchDraft(""); setFilter("q", ""); }}
+              style={{
+                position:  "absolute",
+                right:     "0.5rem",
+                top:       "50%",
+                transform: "translateY(-50%)",
+                background:"none",
+                border:    "none",
+                cursor:    "pointer",
+                padding:   0,
+                color:     "var(--color-text-muted)",
+                display:   "flex",
+              }}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+      </form>
+
       {/* ── Rating ── */}
-      <FilterGroup label="Βαθμολογία">
+      <FilterGroup label={t("filterRating")}>
         {RATING_OPTIONS.map((opt) => (
           <RadioChip
             key={opt.value}
@@ -121,7 +312,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
       </FilterGroup>
 
       {/* ── Booking mode ── */}
-      <FilterGroup label="Τρόπος κράτησης">
+      <FilterGroup label={t("filterMode")}>
         {MODE_OPTIONS.map((opt) => (
           <RadioChip
             key={opt.value}
@@ -133,14 +324,14 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
       </FilterGroup>
 
       {/* ── Reviews ── */}
-      <FilterGroup label="Κριτικές">
+      <FilterGroup label={t("filterReviewsGroup")}>
         <RadioChip
-          label="Όλοι"
+          label={t("filterAll")}
           selected={currentReviews !== "1"}
           onClick={() => setFilter("reviews", "")}
         />
         <RadioChip
-          label="Με κριτικές μόνο"
+          label={t("filterWithReviews")}
           selected={currentReviews === "1"}
           onClick={() => setFilter("reviews", "1")}
         />
@@ -148,7 +339,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
 
       {/* ── Distance (only when lat/lng are known) ── */}
       {hasLocation && (
-        <FilterGroup label="Απόσταση">
+        <FilterGroup label={t("filterDistance")}>
           {DISTANCE_OPTIONS.map((opt) => (
             <RadioChip
               key={opt.value}
@@ -161,7 +352,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
       )}
 
       {/* ── Available today ── */}
-      <FilterGroup label="Διαθεσιμότητα">
+      <FilterGroup label={t("filterAvailability")}>
         <label
           style={{
             display:    "flex",
@@ -207,7 +398,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
               }}
             />
           </span>
-          Διαθέσιμος σήμερα
+          {t("filterAvailable")}
         </label>
       </FilterGroup>
 
@@ -230,7 +421,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
           }}
         >
           <RotateCcw size={13} />
-          Καθαρισμός φίλτρων
+          {t("filterReset")}
         </button>
       )}
     </div>
@@ -258,7 +449,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
           }}
         >
           <SlidersHorizontal size={16} />
-          Φίλτρα
+          {t("filtersTitle")}
           {activeCount > 0 && (
             <span
               style={{
@@ -292,7 +483,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
           {/* Close button */}
           <button
             type="button"
-            aria-label="Κλείσιμο φίλτρων"
+            aria-label={t("filterClose")}
             onClick={() => setMobileOpen(false)}
             style={{
               position:        "absolute",
@@ -316,7 +507,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
               color:        "var(--color-text)",
             }}
           >
-            Φίλτρα
+            {t("filtersTitle")}
           </p>
           {filterContent}
         </div>
@@ -350,7 +541,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
               margin:     0,
             }}
           >
-            Φίλτρα
+            {t("filtersTitle")}
             {activeCount > 0 && (
               <span
                 style={{
@@ -381,7 +572,7 @@ export default function FiltersBar({ hasLocation }: FiltersBarProps) {
                 padding:        0,
               }}
             >
-              Καθαρισμός
+              {t("filterResetShort")}
             </button>
           )}
         </div>

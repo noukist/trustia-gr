@@ -21,8 +21,8 @@
 // =============================================================
 
 import React          from "react";
-import Link           from "next/link";
-import { redirect }   from "next/navigation";
+import { Link }          from "@/i18n/navigation";   // locale-aware Link
+import { redirect }       from "next/navigation";     // redirect — we prefix locale manually below
 import type { Metadata } from "next";
 import {
   CheckCircle2, AlertCircle, ExternalLink,
@@ -32,18 +32,31 @@ import {
 
 import { createClient }  from "@/lib/supabase/server";
 import { CATEGORIES, PLAN_OPTIONS } from "@/lib/constants";
-import { setRequestLocale } from "next-intl/server";
+import { setRequestLocale, getTranslations } from "next-intl/server";
+import { useTranslations } from "next-intl";
 import DashboardNav    from "@/components/dashboard/DashboardNav";
 import Button          from "@/components/ui/Button";
 import ProfileEditor   from "@/components/dashboard/ProfileEditor";
-
-export const metadata: Metadata = {
-  title: "Dashboard | Trustia.gr",
-};
+import ServicesEditor  from "@/components/dashboard/ServicesEditor";
+import PortfolioEditor from "@/components/dashboard/PortfolioEditor";
+import BookingsTab          from "@/components/dashboard/BookingsTab";
+import ReviewsTab           from "@/components/dashboard/ReviewsTab";
+import AvailabilityEditor   from "@/components/dashboard/AvailabilityEditor";
+import BusinessPageEditor  from "@/components/dashboard/BusinessPageEditor";
+import ReferralsTab         from "@/components/dashboard/ReferralsTab";
+import PayNowButton         from "@/components/dashboard/PayNowButton";
+import AreasEditor          from "@/components/dashboard/AreasEditor";
 
 // ── Next.js 16: params/searchParams are Promises ─────────────
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
 type PageParams       = Promise<{ locale: string }>;
+
+// Dynamic metadata — layout template appends "| Trustia.gr"
+export async function generateMetadata({ params }: { params: PageParams }): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "dashboard" });
+  return { title: t("title") };
+}
 
 // ── DB row types ──────────────────────────────────────────────
 
@@ -65,13 +78,18 @@ interface DbProfessional {
   booking_mode:    "contact" | "date" | "full";
   rating:          number;
   review_count:    number;
-  profile_complete:boolean;
-  status:          string;
-  created_at:      string;
+  profile_views:   number;   // lifetime profile page views (browser-only)
+  phone_reveals:   number;   // lifetime phone-reveal clicks by logged-in users
+  profile_complete: boolean;
+  status:           string;
+  created_at:       string;
+  vacation_start:   string | null;
+  vacation_end:     string | null;
 }
 
 interface DbSubscription {
   id:                  string;
+  professional_id:     string;
   tier:                "light" | "trades" | "specialists";
   billing_plan:        "monthly" | "semi" | "annual";
   monthly_price:       number;
@@ -83,42 +101,23 @@ interface DbSubscription {
   ends_at:             string;
 }
 
-// ── Display labels ────────────────────────────────────────────
-
-const TIER_LABEL: Record<string, string> = {
-  light:       "Ελαφριές Υπηρεσίες",
-  trades:      "Τεχνικά & Ομορφιά",
-  specialists: "Ειδικοί",
-};
-
-const PLAN_LABEL: Record<string, string> = {
-  monthly: "3 Μήνες",
-  semi:    "6 Μήνες",
-  annual:  "12 Μήνες (Ετήσιο)",
-};
-
-const PAYMENT_STATUS_LABEL: Record<string, { label: string; color: string }> = {
-  pending:  { label: "Εκκρεμεί πληρωμή", color: "#D97706" },
-  verified: { label: "Πληρωμένη",         color: "#27AE60" },
-  failed:   { label: "Αποτυχία πληρωμής", color: "#E74C3C" },
-  refunded: { label: "Επιστροφή",         color: "#6B7280" },
-};
+// ── Display label helpers (return maps from t() inside components) ─
 
 // ── Helpers ───────────────────────────────────────────────────
 
-/** Profile completion: returns 0-100 and list of missing field names */
+/** Profile completion: returns 0-100 and list of missing field keys (translated at render) */
 function calcCompletion(pro: DbProfessional): {
   percent: number;
-  missing: { field: string; label: string; weight: number }[];
+  missing: { field: string; labelKey: string; weight: number }[];
 } {
   // Required fields are always filled at registration → 50% base
   const base = 50;
 
-  // Optional fields that improve completeness + search ranking
+  // Optional fields — labelKey maps to dashboard.overview.addX translation
   const optionals = [
-    { field: "avatar_url", label: "Φωτογραφία προφίλ", weight: 20, done: !!pro.avatar_url },
-    { field: "bio",        label: "Βιογραφικό",         weight: 20, done: !!pro.bio && pro.bio.length > 5 },
-    { field: "price_text", label: "Τιμή υπηρεσίας",     weight: 10, done: !!pro.price_text },
+    { field: "avatar_url", labelKey: "addPhoto", weight: 20, done: !!pro.avatar_url },
+    { field: "bio",        labelKey: "addBio",   weight: 20, done: !!pro.bio && pro.bio.length > 5 },
+    { field: "price_text", labelKey: "addPrice", weight: 10, done: !!pro.price_text },
   ];
 
   const earnedBonus = optionals.filter((o) => o.done).reduce((s, o) => s + o.weight, 0);
@@ -266,11 +265,14 @@ function OverviewTab({
   pro,
   sub,
   showWelcome,
+  bookingsCount,
 }: {
-  pro:         DbProfessional;
-  sub:         DbSubscription | null;
-  showWelcome: boolean;
+  pro:           DbProfessional;
+  sub:           DbSubscription | null;
+  showWelcome:   boolean;
+  bookingsCount: number;
 }) {
+  const t          = useTranslations("dashboard");
   const cat        = CATEGORIES.find((c) => c.id === pro.category_id);
   const completion = calcCompletion(pro);
   const daysLeft   = sub ? daysUntil(sub.ends_at) : null;
@@ -289,11 +291,10 @@ function OverviewTab({
           }}
         >
           <p style={{ fontSize: "1.25rem", fontWeight: 800, margin: "0 0 0.375rem" }}>
-            🎉 Καλώς ήρθες στο Trustia!
+            {t("overview.welcomeTitle")}
           </p>
           <p style={{ fontSize: "0.9375rem", margin: 0, opacity: 0.9, lineHeight: 1.5 }}>
-            Η δοκιμαστική περίοδος 3 μηνών ξεκίνησε.
-            Συμπλήρωσε το προφίλ σου για να εμφανιστείς στις αναζητήσεις.
+            {t("overview.welcomeDesc")}
           </p>
         </div>
       )}
@@ -315,13 +316,13 @@ function OverviewTab({
           <div>
             <p style={{ fontWeight: 700, color: "#92400E", margin: "0 0 0.25rem", fontSize: "0.9rem" }}>
               {daysLeft === 1
-                ? "Η δοκιμαστική περίοδος λήγει αύριο!"
-                : `${daysLeft} ημέρες απομένουν στη δοκιμαστική περίοδο`}
+                ? t("overview.trialExpiryTomorrow")
+                : t("overview.trialExpiryDays", { days: daysLeft ?? 0 })}
             </p>
             <p style={{ color: "#92400E", margin: 0, fontSize: "0.8125rem", opacity: 0.85 }}>
-              Προχώρησε στην πληρωμή για να διατηρήσεις το προφίλ σου ενεργό.{" "}
+              {t("overview.trialPaymentCta")}{" "}
               <Link href="/dashboard?tab=subscription" style={{ fontWeight: 700, color: "#92400E" }}>
-                Πληρωμή →
+                {t("overview.trialPaymentLink")}
               </Link>
             </p>
           </div>
@@ -338,7 +339,7 @@ function OverviewTab({
             margin:     0,
           }}
         >
-          Καλημέρα, {pro.first_name}!
+          {t("overview.greeting", { name: pro.first_name })}
         </h1>
         <p style={{ color: "var(--color-text-muted)", margin: "0.25rem 0 0", fontSize: "0.875rem" }}>
           {cat?.emoji} {cat?.nameEl}
@@ -354,15 +355,15 @@ function OverviewTab({
           gap:                 "0.875rem",
         }}
       >
-        <StatCard icon={Eye}      label="Προβολές προφίλ" value={0}               sub="τελευταίες 30 μέρες" />
-        <StatCard icon={Phone}    label="Κλήσεις"          value={0}               sub="τελευταίες 30 μέρες" />
-        <StatCard icon={Calendar} label="Κρατήσεις"        value={0}               sub="συνολικά" />
-        <StatCard icon={Star}     label="Κριτικές"         value={pro.review_count} sub={pro.rating > 0 ? `★ ${pro.rating.toFixed(1)}` : "—"} />
+        <StatCard icon={Eye}      label={t("overview.stats.views")}    value={pro.profile_views}  sub={t("overview.stats.total")} />
+        <StatCard icon={Phone}    label={t("overview.stats.calls")}    value={pro.phone_reveals}  sub={t("overview.stats.total")} />
+        <StatCard icon={Calendar} label={t("overview.stats.bookings")} value={bookingsCount}      sub={t("overview.stats.total")} />
+        <StatCard icon={Star}     label={t("overview.stats.rating")}   value={pro.review_count}   sub={pro.rating > 0 ? `★ ${pro.rating.toFixed(1)}` : "—"} />
       </div>
 
       {/* ── Profile completion ── */}
       <Card>
-        <CardTitle>Συμπλήρωση Προφίλ</CardTitle>
+        <CardTitle>{t("overview.completionTitle")}</CardTitle>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.625rem" }}>
           <span style={{ fontWeight: 700, fontSize: "1.5rem", color: "var(--color-text)" }}>
@@ -383,7 +384,7 @@ function OverviewTab({
               }}
             >
               <CheckCircle2 size={14} />
-              Πλήρες
+              {t("overview.completionFull")}
             </span>
           ) : (
             <span
@@ -396,7 +397,7 @@ function OverviewTab({
                 fontWeight:      600,
               }}
             >
-              {pro.profile_complete ? "Ορατό στις αναζητήσεις" : "Δεν εμφανίζεται ακόμα"}
+              {pro.profile_complete ? t("overview.completionVisible") : t("overview.completionHidden")}
             </span>
           )}
         </div>
@@ -411,7 +412,7 @@ function OverviewTab({
         {completion.missing.length > 0 && (
           <div style={{ marginTop: "1rem" }}>
             <p style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", marginBottom: "0.625rem" }}>
-              Συμπλήρωσε τα παρακάτω για να φτάσεις στο 100%:
+              {t("overview.completionHint")}
             </p>
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.375rem" }}>
               {completion.missing.map((m) => (
@@ -441,7 +442,7 @@ function OverviewTab({
                   >
                     +{m.weight}%
                   </span>
-                  {m.label}
+                  {t(`overview.${m.labelKey}` as Parameters<typeof t>[0])}
                 </li>
               ))}
             </ul>
@@ -451,7 +452,7 @@ function OverviewTab({
 
       {/* ── Quick actions ── */}
       <Card>
-        <CardTitle>Γρήγορες Ενέργειες</CardTitle>
+        <CardTitle>{t("overview.quickActions")}</CardTitle>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem" }}>
           <Link
             href="/dashboard?tab=profile"
@@ -468,7 +469,7 @@ function OverviewTab({
               textDecoration:  "none",
             }}
           >
-            Επεξεργασία Προφίλ
+            {t("overview.editProfile")}
           </Link>
 
           {pro.slug && (
@@ -490,7 +491,7 @@ function OverviewTab({
               }}
             >
               <ExternalLink size={14} />
-              Προεπισκόπηση Προφίλ →
+              {t("overview.previewProfile")}
             </Link>
           )}
         </div>
@@ -510,11 +511,31 @@ function SubscriptionTab({
   pro: DbProfessional;
   sub: DbSubscription | null;
 }) {
+  const t = useTranslations("dashboard");
+
+  // Build label maps from translations (inside component to access t)
+  const TIER_LABEL: Record<string, string> = {
+    light:       t("tiers.light"),
+    trades:      t("tiers.trades"),
+    specialists: t("tiers.specialists"),
+  };
+  const PLAN_LABEL: Record<string, string> = {
+    monthly: t("plans.monthly"),
+    semi:    t("plans.semi"),
+    annual:  t("plans.annual"),
+  };
+  const PAYMENT_STATUS_LABEL: Record<string, { label: string; color: string }> = {
+    pending:  { label: t("subscription.paymentPending"),  color: "#D97706" },
+    verified: { label: t("subscription.paymentVerified"), color: "#27AE60" },
+    failed:   { label: t("subscription.paymentFailed"),   color: "#E74C3C" },
+    refunded: { label: t("subscription.paymentRefunded"), color: "#6B7280" },
+  };
+
   if (!sub) {
     return (
       <Card>
         <p style={{ color: "var(--color-text-muted)", textAlign: "center", padding: "2rem 0" }}>
-          Δεν βρέθηκε συνδρομή. Παρακαλώ επικοινωνήστε με υποστήριξη.
+          {t("subscription.noSubscriptionFull")}
         </p>
       </Card>
     );
@@ -536,7 +557,7 @@ function SubscriptionTab({
 
       {/* ── Plan overview card ── */}
       <Card>
-        <CardTitle>Τρέχον Πλάνο</CardTitle>
+        <CardTitle>{t("subscription.currentPlan")}</CardTitle>
 
         <div
           style={{
@@ -549,7 +570,7 @@ function SubscriptionTab({
           {/* Tier */}
           <div>
             <p style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", margin: "0 0 0.25rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Κατηγορία
+              {t("subscription.tier")}
             </p>
             <p style={{ fontWeight: 700, color: "var(--color-text)", margin: 0, fontSize: "0.9375rem" }}>
               {TIER_LABEL[sub.tier] ?? sub.tier}
@@ -559,7 +580,7 @@ function SubscriptionTab({
           {/* Plan duration */}
           <div>
             <p style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", margin: "0 0 0.25rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Διάρκεια
+              {t("subscription.planDuration")}
             </p>
             <p style={{ fontWeight: 700, color: "var(--color-text)", margin: 0, fontSize: "0.9375rem" }}>
               {PLAN_LABEL[sub.billing_plan] ?? sub.billing_plan}
@@ -569,7 +590,7 @@ function SubscriptionTab({
           {/* Monthly price */}
           <div>
             <p style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", margin: "0 0 0.25rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Τιμή / μήνα
+              {t("subscription.pricePerMonth")}
             </p>
             <p style={{ fontWeight: 800, color: "var(--color-primary)", margin: 0, fontSize: "1.25rem" }}>
               €{sub.monthly_price.toFixed(2)}
@@ -586,7 +607,7 @@ function SubscriptionTab({
                     verticalAlign:   "middle",
                   }}
                 >
-                  🏆 Ιδρυτική
+                  {t("subscription.foundingBadge")}
                 </span>
               )}
             </p>
@@ -595,7 +616,7 @@ function SubscriptionTab({
           {/* Total */}
           <div>
             <p style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", margin: "0 0 0.25rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Σύνολο
+              {t("subscription.totalAmount")}
             </p>
             <p style={{ fontWeight: 700, color: "var(--color-text)", margin: 0, fontSize: "0.9375rem" }}>
               €{sub.total_amount.toFixed(2)}
@@ -647,7 +668,7 @@ function SubscriptionTab({
                 fontWeight:      600,
               }}
             >
-              🏆 Ιδρυτικό Μέλος — Τιμή κλειδωμένη για πάντα
+              {t("subscription.foundingMember")}
             </span>
           )}
         </div>
@@ -656,7 +677,7 @@ function SubscriptionTab({
       {/* ── Trial / subscription period ── */}
       <Card>
         <CardTitle>
-          {isPaid ? "Περίοδος Συνδρομής" : "Δοκιμαστική Περίοδος"}
+          {isPaid ? t("subscription.subscriptionPeriod") : t("subscription.trialPeriod")}
         </CardTitle>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.625rem", flexWrap: "wrap", gap: "0.5rem" }}>
@@ -670,12 +691,14 @@ function SubscriptionTab({
               }}
             >
               {isExpired
-                ? "Έληξε"
-                : `${daysLeft} ${daysLeft === 1 ? "ημέρα" : "ημέρες"} απομένουν`}
+                ? t("subscription.expired")
+                : daysLeft === 1
+                  ? t("subscription.daysRemainingOne")
+                  : t("subscription.daysRemainingPlural", { days: daysLeft })}
             </span>
           </div>
           <span style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)" }}>
-            Λήξη: {new Date(sub.ends_at).toLocaleDateString("el-GR", { day: "numeric", month: "long", year: "numeric" })}
+            {t("subscription.endDate")} {new Date(sub.ends_at).toLocaleDateString("el-GR", { day: "numeric", month: "long", year: "numeric" })}
           </span>
         </div>
 
@@ -686,16 +709,16 @@ function SubscriptionTab({
         />
 
         <p style={{ fontSize: "0.775rem", color: "var(--color-text-muted)", marginTop: "0.5rem" }}>
-          Έναρξη: {new Date(sub.starts_at).toLocaleDateString("el-GR", { day: "numeric", month: "long", year: "numeric" })}
+          {t("subscription.startDate")} {new Date(sub.starts_at).toLocaleDateString("el-GR", { day: "numeric", month: "long", year: "numeric" })}
         </p>
       </Card>
 
       {/* ── Payment reference ── */}
       <Card>
-        <CardTitle>Κωδικός Πληρωμής</CardTitle>
+        <CardTitle>{t("subscription.paymentCodeTitle")}</CardTitle>
 
         <p style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", margin: "0 0 0.875rem" }}>
-          Χρησιμοποίησε τον παρακάτω κωδικό ως αιτιολογία στην τραπεζική μεταφορά ή στην παραγγελία PayPal.
+          {t("subscription.paymentCodeDesc")}
         </p>
 
         {/* Reference display */}
@@ -714,7 +737,7 @@ function SubscriptionTab({
         >
           <div>
             <p style={{ fontSize: "0.7rem", color: "var(--color-primary)", margin: "0 0 0.25rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-              Κωδικός Αναφοράς
+              {t("subscription.referenceCode")}
             </p>
             <p
               style={{
@@ -736,9 +759,53 @@ function SubscriptionTab({
       {/* ── Payment methods ── */}
       {!isPaid && (
         <Card>
-          <CardTitle>Τρόποι Πληρωμής</CardTitle>
+          <CardTitle>{t("subscription.paymentMethodsTitle")}</CardTitle>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+
+            {/* ── Stripe card payment (primary, fastest) ── */}
+            <div
+              style={{
+                border:       "2px solid #635BFF",
+                borderRadius: "12px",
+                padding:      "1.25rem",
+                background:   "rgba(99,91,255,0.03)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.75rem" }}>
+                <div
+                  style={{
+                    width:           "36px",
+                    height:          "36px",
+                    borderRadius:    "8px",
+                    background:      "#635BFF",
+                    display:         "flex",
+                    alignItems:      "center",
+                    justifyContent:  "center",
+                    color:           "#fff",
+                    fontSize:        "0.75rem",
+                    fontWeight:      800,
+                    flexShrink:      0,
+                  }}
+                >
+                  💳
+                </div>
+                <div>
+                  <p style={{ fontWeight: 700, fontSize: "0.9rem", color: "var(--color-text)", margin: 0 }}>
+                    Κάρτα (Visa / Mastercard / Maestro)
+                  </p>
+                  <p style={{ fontSize: "0.775rem", color: "var(--color-text-muted)", margin: 0 }}>
+                    Άμεση ενεργοποίηση · Ασφαλής πληρωμή μέσω Stripe
+                  </p>
+                </div>
+              </div>
+              <PayNowButton
+                subscriptionId={sub.id}
+                professionalId={sub.professional_id}
+                amountEuros={sub.total_amount}
+                planLabel={`${PLAN_LABEL[sub.billing_plan]} — ${TIER_LABEL[sub.tier]}`}
+              />
+            </div>
 
             {/* IRIS */}
             <div
@@ -770,10 +837,10 @@ function SubscriptionTab({
                 </div>
                 <div>
                   <p style={{ fontWeight: 700, color: "var(--color-text)", margin: 0, fontSize: "0.9375rem" }}>
-                    IRIS Pay — Άμεση Πληρωμή
+                    {t("subscription.irisTitle")}
                   </p>
                   <p style={{ color: "var(--color-text-muted)", margin: 0, fontSize: "0.8rem" }}>
-                    Σκάναρε το QR με την τραπεζική εφαρμογή σου
+                    {t("subscription.irisDesc")}
                   </p>
                 </div>
               </div>
@@ -793,9 +860,7 @@ function SubscriptionTab({
                   backgroundColor: "var(--color-bg-light)",
                 }}
               >
-                QR Code
-                <br />
-                (Σύντομα)
+                {t("subscription.qrComingSoon")}
               </div>
             </div>
 
@@ -810,15 +875,15 @@ function SubscriptionTab({
               <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", marginBottom: "0.875rem" }}>
                 <Building2 size={20} style={{ color: "var(--color-primary)" }} />
                 <p style={{ fontWeight: 700, color: "var(--color-text)", margin: 0, fontSize: "0.9375rem" }}>
-                  Τραπεζική Μεταφορά
+                  {t("subscription.bankTransferTitle")}
                 </p>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 {[
-                  { label: "Τράπεζα",    value: "Εθνική Τράπεζα" },
-                  { label: "IBAN",       value: "GR00 0000 0000 0000 0000 0000 000" },
-                  { label: "Δικαιούχος",value: "Trustia.gr ΙΚΕ" },
-                  { label: "Αιτιολογία",value: sub.payment_reference || "—", highlight: true },
+                  { label: t("subscription.bankName"),        value: "Εθνική Τράπεζα" },
+                  { label: "IBAN",                            value: "GR00 0000 0000 0000 0000 0000 000" },
+                  { label: t("subscription.bankBeneficiary"), value: "Trustia.gr ΙΚΕ" },
+                  { label: t("subscription.bankReference"),   value: sub.payment_reference || "—", highlight: true },
                 ].map(({ label, value, highlight }) => (
                   <div
                     key={label}
@@ -888,7 +953,7 @@ function SubscriptionTab({
                     PayPal
                   </p>
                   <p style={{ color: "var(--color-text-muted)", margin: 0, fontSize: "0.8rem" }}>
-                    Ασφαλής πληρωμή με PayPal
+                    {t("subscription.paypalDesc")}
                   </p>
                 </div>
               </div>
@@ -910,7 +975,7 @@ function SubscriptionTab({
                 }}
               >
                 <ExternalLink size={14} />
-                Πλήρωσε με PayPal
+                {t("subscription.paypalBtn")}
               </a>
             </div>
 
@@ -935,11 +1000,10 @@ function SubscriptionTab({
         >
           <div>
             <p style={{ fontWeight: 800, fontSize: "1rem", margin: "0 0 0.25rem" }}>
-              🔒 Αναβάθμιση σε Ετήσιο Πλάνο
+              {t("subscription.upgradeTitle")}
             </p>
             <p style={{ opacity: 0.9, fontSize: "0.875rem", margin: 0, lineHeight: 1.5 }}>
-              Κλείδωσε την Τιμή Γνωριμίας.
-              Μόνο €{annualPlan.perMonth[tierKey].toFixed(2)}/μήνα — εξοικονομείς έως 31%.
+              {t("subscription.upgradeDesc", { price: annualPlan.perMonth[tierKey].toFixed(2) })}
             </p>
           </div>
           <Link
@@ -958,7 +1022,7 @@ function SubscriptionTab({
               whiteSpace:      "nowrap",
             }}
           >
-            Αναβάθμιση →
+            {t("subscription.upgradeBtn")}
           </Link>
         </div>
       )}
@@ -1008,7 +1072,7 @@ export default async function DashboardPage({
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/dashboard");
+  if (!user) redirect(`/${locale}/login`);
 
   // ── Professional check ────────────────────────────────────
   const { data: proRaw } = await supabase
@@ -1016,21 +1080,28 @@ export default async function DashboardPage({
     .select(
       "id, slug, first_name, last_name, phone, email, avatar_url, " +
       "category_id, tier, city, lat, lng, bio, price_text, booking_mode, " +
-      "rating, review_count, profile_complete, status, created_at",
+      "rating, review_count, profile_views, phone_reveals, profile_complete, status, created_at, " +
+      "vacation_start, vacation_end",
     )
     .eq("user_id", user.id)
     .maybeSingle();
 
   // If the user has no professional profile, redirect to home
-  if (!proRaw) redirect("/");
+  if (!proRaw) redirect(locale === "en" ? "/en" : "/");
 
   const pro = proRaw as unknown as DbProfessional;
+
+  // ── Bookings count (queried directly — always accurate) ───
+  const { count: bookingsCount } = await supabase
+    .from("bookings")
+    .select("id", { count: "exact", head: true })
+    .eq("professional_id", pro.id);
 
   // ── Fetch latest subscription ─────────────────────────────
   const { data: subRaw } = await supabase
     .from("subscriptions")
     .select(
-      "id, tier, billing_plan, monthly_price, total_amount, " +
+      "id, professional_id, tier, billing_plan, monthly_price, total_amount, " +
       "payment_reference, payment_status, is_founding, starts_at, ends_at",
     )
     .eq("professional_id", pro.id)
@@ -1048,13 +1119,19 @@ export default async function DashboardPage({
   const provider      = (user.app_metadata?.provider as string | undefined) ?? "";
   const isOAuthAccount = provider === "google" || provider === "facebook";
 
-  // ── Tab titles for <title> tag ────────────────────────────
+  // ── Translations ──────────────────────────────────────────
+  const t = await getTranslations("dashboard");
+
+  // ── Tab titles for section heading ────────────────────────
   const TAB_TITLES: Record<string, string> = {
-    overview:     "Επισκόπηση",
-    profile:      "Προφίλ",
-    bookings:     "Κρατήσεις",
-    reviews:      "Κριτικές",
-    subscription: "Συνδρομή",
+    overview:     t("tabs.overview"),
+    profile:      t("tabs.profile"),
+    bookings:     t("tabs.bookings"),
+    reviews:      t("tabs.reviews"),
+    availability: "Διαθεσιμότητα",
+    business:     "Σελίδα Επιχείρησης",
+    referrals:    "Παραπομπές",
+    subscription: t("tabs.subscription"),
   };
 
   // ── Render ─────────────────────────────────────────────────
@@ -1073,6 +1150,7 @@ export default async function DashboardPage({
         proSlug={pro.slug}
         avatarUrl={pro.avatar_url}
         initials={proInitials}
+        bookingMode={pro.booking_mode}
       />
 
       {/* ── Main content area ── */}
@@ -1095,40 +1173,56 @@ export default async function DashboardPage({
             margin:       "0 0 1.5rem",
           }}
         >
-          {TAB_TITLES[tab] ?? "Επισκόπηση"}
+          {TAB_TITLES[tab] ?? t("tabs.overview")}
         </h2>
 
         {/* Tab content */}
         {tab === "subscription" ? (
           <SubscriptionTab pro={pro} sub={sub} />
         ) : tab === "profile" ? (
-          <ProfileEditor
-            professionalId={pro.id}
-            userId={user.id}
-            initialData={{
-              first_name:      pro.first_name,
-              last_name:       pro.last_name,
-              phone:           pro.phone,
-              email:           pro.email,
-              avatar_url:      pro.avatar_url,
-              category_id:     pro.category_id,
-              tier:            pro.tier,
-              city:            pro.city,
-              lat:             pro.lat,
-              lng:             pro.lng,
-              bio:             pro.bio,
-              price_text:      pro.price_text,
-              booking_mode:    pro.booking_mode,
-              profile_complete: pro.profile_complete,
-            }}
-            isOAuthAccount={isOAuthAccount}
-          />
+          <>
+            <ProfileEditor
+              professionalId={pro.id}
+              userId={user.id}
+              initialData={{
+                first_name:      pro.first_name,
+                last_name:       pro.last_name,
+                phone:           pro.phone,
+                email:           pro.email,
+                avatar_url:      pro.avatar_url,
+                category_id:     pro.category_id,
+                tier:            pro.tier,
+                city:            pro.city,
+                lat:             pro.lat,
+                lng:             pro.lng,
+                bio:             pro.bio,
+                price_text:      pro.price_text,
+                booking_mode:     pro.booking_mode,
+                profile_complete: pro.profile_complete,
+                vacation_start:   pro.vacation_start,
+                vacation_end:     pro.vacation_end,
+              }}
+              isOAuthAccount={isOAuthAccount}
+            />
+            {/* ── Services catalog editor — shown below profile fields ── */}
+            <ServicesEditor professionalId={pro.id} />
+            {/* ── Portfolio photo upload — shown below services ── */}
+            <PortfolioEditor professionalId={pro.id} userId={user.id} />
+          </>
         ) : tab === "bookings" ? (
-          <PlaceholderTab label="Κρατήσεις" />
+          <BookingsTab professionalId={pro.id} />
         ) : tab === "reviews" ? (
-          <PlaceholderTab label="Κριτικές" />
+          <ReviewsTab professionalId={pro.id} proSlug={pro.slug} />
+        ) : tab === "availability" ? (
+          <AvailabilityEditor professionalId={pro.id} />
+        ) : tab === "areas" ? (
+          <AreasEditor professionalId={pro.id} />
+        ) : tab === "business" ? (
+          <BusinessPageEditor professionalId={pro.id} />
+        ) : tab === "referrals" ? (
+          <ReferralsTab proId={pro.id} proSlug={pro.slug} />
         ) : (
-          <OverviewTab pro={pro} sub={sub} showWelcome={showWelcome} />
+          <OverviewTab pro={pro} sub={sub} showWelcome={showWelcome} bookingsCount={bookingsCount ?? 0} />
         )}
       </main>
     </div>

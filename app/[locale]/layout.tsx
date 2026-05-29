@@ -21,6 +21,7 @@ import { getMessages, setRequestLocale }     from "next-intl/server";
 import { routing }         from "@/i18n/routing";
 import Navbar              from "@/components/layout/Navbar";
 import Footer              from "@/components/layout/Footer";
+import AnnouncementBar     from "@/components/layout/AnnouncementBar";
 
 // ── Metadata (locale-aware) ───────────────────────────────────
 export async function generateMetadata({
@@ -42,9 +43,23 @@ export async function generateMetadata({
       : "Find trusted professionals for every need in Greece. Plumbers, electricians, cleaning, renovation and more.",
     metadataBase: new URL("https://trustia.gr"),
     openGraph: {
-      siteName:  "Trustia.gr",
-      locale:    isEl ? "el_GR" : "en_US",
-      type:      "website",
+      siteName: "Trustia.gr",
+      locale:   isEl ? "el_GR" : "en_US",
+      type:     "website",
+      images: [
+        {
+          url:    `/api/og?locale=${locale}`,
+          width:  1200,
+          height: 630,
+          alt:    isEl
+            ? "Trustia.gr — Βρες τον ειδικό για κάθε ανάγκη"
+            : "Trustia.gr — Find the expert for every need",
+        },
+      ],
+    },
+    twitter: {
+      card:   "summary_large_image",
+      images: [`/api/og?locale=${locale}`],
     },
   };
 }
@@ -78,6 +93,7 @@ export default async function LocaleLayout({ children, params }: Props) {
     // NextIntlClientProvider makes messages available to all
     // client components nested under this layout (e.g. Navbar, forms).
     <NextIntlClientProvider locale={locale} messages={messages}>
+      <AnnouncementBar locale={locale} />
       <Navbar />
       <main style={{ minHeight: "calc(100vh - 64px)" }}>{children}</main>
       <Footer />

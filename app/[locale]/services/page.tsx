@@ -27,11 +27,11 @@
 // =============================================================
 
 import React from "react";
-import Link  from "next/link";
+import { Link }  from "@/i18n/navigation";     // locale-aware Link (auto-prepends /en/ etc.)
 import type { Metadata } from "next";
 import { UserCircle2, Star, MapPin, Phone, Calendar, CalendarDays } from "lucide-react";
-import { setRequestLocale } from "next-intl/server";
-import { useTranslations } from "next-intl";
+import { setRequestLocale, getTranslations } from "next-intl/server";
+import { useTranslations, useLocale } from "next-intl"; // useLocale for cat name locale-switch
 
 import { createClient }  from "@/lib/supabase/server";
 import { CATEGORIES }    from "@/lib/constants";
@@ -79,30 +79,38 @@ export async function generateMetadata({
   params,
   searchParams,
 }: {
-  params: PageSearchParams;
+  params:       PageParams;        // Note: was PageSearchParams — fixed to correct type
   searchParams: PageSearchParams;
 }): Promise<Metadata> {
-  const p        = await searchParams;
-  const str      = (k: string) => (Array.isArray(p[k]) ? p[k][0] : p[k]) ?? "";
-  const catId    = str("category");
-  const location = str("location");
-  const cat      = CATEGORIES.find((c) => c.id === catId);
+  const { locale } = await params;
+  const p           = await searchParams;
+  const str         = (k: string) => (Array.isArray(p[k]) ? p[k][0] : p[k]) ?? "";
+  const catId       = str("category");
+  const location    = str("location");
+  const cat         = CATEGORIES.find((c) => c.id === catId);
+
+  // Pick locale-appropriate category name
+  const catName = locale === "en" && cat?.nameEn ? cat.nameEn : cat?.nameEl;
+
+  // Load translations for the correct locale
+  // Note: layout template appends "| Trustia.gr" — do NOT add it manually here
+  const t = await getTranslations({ locale, namespace: "services" });
 
   if (cat && location) {
     return {
-      title:       `${cat.nameEl} στο ${location} | Trustia.gr`,
-      description: `Βρείτε ${cat.nameEl} στο ${location}. Επαγγελματίες με επαληθευμένες κριτικές, άμεση κράτηση, 0% προμήθεια.`,
+      title:       t("catInLocation", { catName: catName!, location }),
+      description: t("metaDescCatLocation", { catName: catName!, location }),
     };
   }
   if (cat) {
     return {
-      title:       `${cat.nameEl} | Trustia.gr`,
-      description: `Βρείτε ${cat.nameEl} κοντά σας. Επαγγελματίες με κριτικές σε όλη την Ελλάδα.`,
+      title:       catName!,
+      description: t("metaDescCat", { catName: catName! }),
     };
   }
   return {
-    title:       "Υπηρεσίες | Trustia.gr",
-    description: "Βρείτε τον κατάλληλο επαγγελματία για κάθε ανάγκη. 51 κατηγορίες σε όλη την Ελλάδα.",
+    title:       t("title"),
+    description: t("metaDesc"),
   };
 }
 
@@ -163,8 +171,11 @@ const MODE_EMOJI: Record<string, { emoji: string; color: string }> = {
 // ── Professional card ─────────────────────────────────────────
 function ProfessionalCard({ pro }: { pro: ProfessionalWithDistance }) {
   const t        = useTranslations("services");
+  const locale   = useLocale();
   const name     = `${pro.first_name} ${pro.last_name}`;
   const cat      = CATEGORIES.find((c) => c.id === pro.category_id);
+  // Show English category name when available and locale is EN
+  const catName  = locale === "en" && cat?.nameEn ? cat.nameEn : cat?.nameEl;
   const modeEmoji = MODE_EMOJI[pro.booking_mode] ?? MODE_EMOJI.contact;
 
   // Booking mode translated label
@@ -267,7 +278,7 @@ function ProfessionalCard({ pro }: { pro: ProfessionalWithDistance }) {
                   color:    "var(--color-text-muted)",
                 }}
               >
-                {cat.emoji} {cat.nameEl}
+                {cat.emoji} {catName}
               </p>
             )}
             {pro.city && (
@@ -396,10 +407,12 @@ function ProfessionalCard({ pro }: { pro: ProfessionalWithDistance }) {
 // ── Zero Results state ────────────────────────────────────────
 function ZeroResults({
   categoryName,
+  categoryId,
   location,
   nearbyPros,
 }: {
   categoryName: string;
+  categoryId:   string;
   location:     string;
   nearbyPros:   ProfessionalWithDistance[];
 }) {
@@ -486,17 +499,17 @@ function ZeroResults({
           {t("notifySub")} {categoryName}
           {location ? ` ${t("noResultsIn")} ${location}` : ""}.
         </p>
-        <EmailCaptureForm categoryName={categoryName} location={location} />
+        <EmailCaptureForm categoryName={categoryName} categoryId={categoryId} location={location} />
       </div>
 
       {/* Pro recruitment CTA */}
       <p style={{ fontSize: "0.875rem", color: "var(--color-text-muted)" }}>
-        Είσαι {categoryName};{" "}
+        {t("proRecruit")} {categoryName}?{" "}
         <Link
           href="/register/professional"
           style={{ color: "var(--color-primary)", fontWeight: 600 }}
         >
-          Εγγραφή →
+          {t("proRecruitLink")}
         </Link>
       </p>
     </div>
@@ -506,14 +519,18 @@ function ZeroResults({
 // ── Browse Mode (no search params) ───────────────────────────
 function BrowseMode() {
   // Display categories grouped by tier with links to /services?category=X
+  const t      = useTranslations("services");
+  const locale = useLocale();
+
   const light       = CATEGORIES.filter((c) => c.tier === "light");
   const trades      = CATEGORIES.filter((c) => c.tier === "trades");
   const specialists = CATEGORIES.filter((c) => c.tier === "specialists");
 
+  // Tier labels built after t() is ready — not at module scope
   const tiers = [
-    { label: "Ελαφριές Υπηρεσίες",   cats: light },
-    { label: "Τεχνικά & Ομορφιά",    cats: trades },
-    { label: "Ειδικοί",               cats: specialists },
+    { label: t("browseTierLight"),       cats: light },
+    { label: t("browseTierTrades"),      cats: trades },
+    { label: t("browseTierSpecialists"), cats: specialists },
   ];
 
   return (
@@ -526,7 +543,7 @@ function BrowseMode() {
           marginBottom: "0.5rem",
         }}
       >
-        Όλες οι Υπηρεσίες
+        {t("allServices")}
       </h1>
       <p
         style={{
@@ -535,7 +552,7 @@ function BrowseMode() {
           marginBottom: "2.5rem",
         }}
       >
-        51 κατηγορίες. Επαγγελματίες με επαληθευμένες κριτικές σε όλη την Ελλάδα.
+        {t("allServicesSub")}
       </p>
 
       {tiers.map(({ label, cats }) => (
@@ -560,31 +577,35 @@ function BrowseMode() {
               gap:                 "0.625rem",
             }}
           >
-            {cats.map((cat) => (
-              <Link
-                key={cat.id}
-                href={`/services?category=${cat.id}`}
-                style={{
-                  display:         "flex",
-                  flexDirection:   "column",
-                  alignItems:      "center",
-                  gap:             "0.375rem",
-                  padding:         "1rem 0.75rem",
-                  backgroundColor: "#fff",
-                  border:          "1.5px solid var(--color-border)",
-                  borderRadius:    "12px",
-                  textDecoration:  "none",
-                  color:           "var(--color-text)",
-                  fontSize:        "0.85rem",
-                  fontWeight:      500,
-                  textAlign:       "center",
-                  transition:      "border-color 0.15s, box-shadow 0.15s",
-                }}
-              >
-                <span style={{ fontSize: "1.5rem" }}>{cat.emoji}</span>
-                {cat.nameEl}
-              </Link>
-            ))}
+            {cats.map((cat) => {
+              // Locale-aware name: use English name when available and locale is EN
+              const catName = locale === "en" && cat.nameEn ? cat.nameEn : cat.nameEl;
+              return (
+                <Link
+                  key={cat.id}
+                  href={`/services?category=${cat.id}`}
+                  style={{
+                    display:         "flex",
+                    flexDirection:   "column",
+                    alignItems:      "center",
+                    gap:             "0.375rem",
+                    padding:         "1rem 0.75rem",
+                    backgroundColor: "#fff",
+                    border:          "1.5px solid var(--color-border)",
+                    borderRadius:    "12px",
+                    textDecoration:  "none",
+                    color:           "var(--color-text)",
+                    fontSize:        "0.85rem",
+                    fontWeight:      500,
+                    textAlign:       "center",
+                    transition:      "border-color 0.15s, box-shadow 0.15s",
+                  }}
+                >
+                  <span style={{ fontSize: "1.5rem" }}>{cat.emoji}</span>
+                  {catName}
+                </Link>
+              );
+            })}
           </div>
         </section>
       ))}
@@ -605,9 +626,10 @@ export default async function ServicesPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  // Translations for the page-level strings (sub-components call their own t())
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const t = useTranslations("services");
+  // Translations for the page-level strings (sub-components call their own t()).
+  // Must use getTranslations (awaitable) inside an async Server Component —
+  // useTranslations is only valid in sync components (next-intl v4 rule).
+  const t = await getTranslations("services");
 
   // ── 1. Parse URL params ──────────────────────────────────
   const p = await searchParams;
@@ -618,28 +640,68 @@ export default async function ServicesPage({
     return (Array.isArray(v) ? v[0] : v) ?? "";
   }
 
-  const categoryId = str("category");
-  const location   = str("location");
-  const latRaw     = str("lat");
-  const lngRaw     = str("lng");
-  const minRating  = str("rating");
-  const modeFilter = str("mode");
+  const categoryId  = str("category");
+  const location    = str("location");
+  const latRaw      = str("lat");
+  const lngRaw      = str("lng");
+  const minRating   = str("rating");
+  const modeFilter  = str("mode");
   const reviewsOnly = str("reviews") === "1";
-  const maxDistRaw = str("distance");
-  const availToday = str("available") === "1";
-  const sortBy     = str("sort") || "reviews";
+  const maxDistRaw  = str("distance");
+  const availToday  = str("available") === "1";
+  const sortBy      = str("sort") || "reviews";
+  /** Free-text service name search (matches name_el OR name_en) */
+  const serviceQ    = str("q").trim();
 
-  const userLat = latRaw ? parseFloat(latRaw) : null;
-  const userLng = lngRaw ? parseFloat(lngRaw) : null;
+  const userLat     = latRaw ? parseFloat(latRaw) : null;
+  const userLng     = lngRaw ? parseFloat(lngRaw) : null;
   const hasLocation = userLat !== null && userLng !== null;
 
   // ── 2. No params → show browse mode ─────────────────────
-  if (!categoryId && !location) {
+  if (!categoryId && !location && !serviceQ) {
     return <BrowseMode />;
   }
 
   // ── 3. Fetch professionals from Supabase ─────────────────
   const supabase = await createClient();
+
+  // When a service-name query is present, first find the professional_ids
+  // that have a matching service (name_el ILIKE %q% OR name_en ILIKE %q%).
+  // We do two separate .ilike() calls and union the IDs in JS because
+  // PostgREST doesn't support OR across different columns in a single call.
+  let serviceMatchIds: string[] | null = null;
+  if (serviceQ) {
+    const [elResult, enResult] = await Promise.all([
+      supabase
+        .from("professional_services")
+        .select("professional_id")
+        .ilike("name_el", `%${serviceQ}%`)
+        .eq("active", true),
+      supabase
+        .from("professional_services")
+        .select("professional_id")
+        .ilike("name_en", `%${serviceQ}%`)
+        .eq("active", true),
+    ]);
+
+    const ids = new Set<string>();
+    for (const row of elResult.data ?? []) ids.add(row.professional_id);
+    for (const row of enResult.data ?? []) ids.add(row.professional_id);
+    serviceMatchIds = [...ids];
+  }
+
+  // ── Subscription expiry filter ───────────────────────────
+  // Fetch professional IDs whose subscription is verified but expired.
+  // These pros paid at some point but their plan period has ended.
+  // Pros with payment_status='pending' (pre-payment / trial) are NOT excluded.
+  const now = new Date().toISOString();
+  const { data: expiredSubs } = await supabase
+    .from("subscriptions")
+    .select("professional_id")
+    .eq("payment_status", "verified")
+    .lt("ends_at", now);
+
+  const expiredProIds = (expiredSubs ?? []).map((s) => s.professional_id);
 
   let query = supabase
     .from("professionals")
@@ -652,9 +714,24 @@ export default async function ServicesPage({
     .eq("profile_complete", true)
     .is("deleted_at",       null);
 
+  // Exclude pros with an expired paid subscription
+  if (expiredProIds.length > 0) {
+    query = query.not("id", "in", `(${expiredProIds.join(",")})`);
+  }
+
   // ── DB-level filters (before TypeScript post-processing) ──
   if (categoryId) {
     query = query.eq("category_id", categoryId);
+  }
+
+  // When a service text search was performed, limit to matching professionals.
+  // An empty array means no professionals have that service name — return nothing.
+  if (serviceMatchIds !== null) {
+    if (serviceMatchIds.length === 0) {
+      query = query.in("id", ["00000000-0000-0000-0000-000000000000"]); // guaranteed empty
+    } else {
+      query = query.in("id", serviceMatchIds);
+    }
   }
 
   if (minRating) {
@@ -746,7 +823,7 @@ export default async function ServicesPage({
   let nearbyPros: ProfessionalWithDistance[] = [];
 
   if (results.length === 0 && categoryId && hasLocation) {
-    const { data: nearby } = await supabase
+    let nearbyQuery = supabase
       .from("professionals")
       .select(
         "id, slug, first_name, last_name, avatar_url, category_id, tier, city, lat, lng, " +
@@ -759,6 +836,12 @@ export default async function ServicesPage({
       .eq("category_id",      categoryId)
       .order("review_count",  { ascending: false })
       .limit(12);
+
+    if (expiredProIds.length > 0) {
+      nearbyQuery = nearbyQuery.not("id", "in", `(${expiredProIds.join(",")})`);
+    }
+
+    const { data: nearby } = await nearbyQuery;
 
     nearbyPros = ((nearby ?? []) as unknown as DbProfessional[])
       .map((pro) => ({
@@ -774,13 +857,15 @@ export default async function ServicesPage({
   }
 
   // ── 6. Derive display strings ─────────────────────────────
-  const cat         = CATEGORIES.find((c) => c.id === categoryId);
-  const catNameEl   = cat?.nameEl ?? "Επαγγελματίες";
-  const pageTitle   = location
-    ? `${catNameEl} στο ${location}`
+  const cat       = CATEGORIES.find((c) => c.id === categoryId);
+  // Locale-aware category name (English name when available in EN locale)
+  const catNameEl = cat?.nameEl ?? t("professionals");
+  const catDispName = locale === "en" && cat?.nameEn ? cat.nameEn : catNameEl;
+  const pageTitle = location
+    ? t("catInLocation", { catName: catDispName, location })
     : categoryId
-      ? catNameEl
-      : "Αποτελέσματα αναζήτησης";
+      ? catDispName
+      : t("searchResults");
 
   // ── 7. Render ─────────────────────────────────────────────
   return (
@@ -799,15 +884,15 @@ export default async function ServicesPage({
         }}
       >
         <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-          {/* Breadcrumb */}
+          {/* Breadcrumb — uses t() keys already present in the services namespace */}
           <p style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", margin: "0 0 0.375rem" }}>
-            <Link href="/" style={{ color: "inherit", textDecoration: "none" }}>Αρχική</Link>
+            <Link href="/" style={{ color: "inherit", textDecoration: "none" }}>{t("breadcrumbHome")}</Link>
             {" / "}
-            <Link href="/services" style={{ color: "inherit", textDecoration: "none" }}>Υπηρεσίες</Link>
+            <Link href="/services" style={{ color: "inherit", textDecoration: "none" }}>{t("breadcrumbServices")}</Link>
             {cat && (
               <>
                 {" / "}
-                <span style={{ color: "var(--color-text)" }}>{cat.nameEl}</span>
+                <span style={{ color: "var(--color-text)" }}>{catDispName}</span>
               </>
             )}
           </p>
@@ -845,7 +930,7 @@ export default async function ServicesPage({
         }}
       >
         {/* ── Left: Filter sidebar (client) ── */}
-        <FiltersBar hasLocation={hasLocation} />
+        <FiltersBar hasLocation={hasLocation} serviceQ={serviceQ} />
 
         {/* ── Right: Results ── */}
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -882,9 +967,10 @@ export default async function ServicesPage({
               </div>
             </>
           ) : (
-            /* Zero results */
+            /* Zero results — pass locale-aware name */
             <ZeroResults
-              categoryName={catNameEl}
+              categoryName={catDispName}
+              categoryId={categoryId}
               location={location}
               nearbyPros={nearbyPros}
             />

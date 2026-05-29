@@ -1,6 +1,6 @@
 // app/[locale]/terms/page.tsx — Όροι Χρήσης / Terms of Use
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { setRequestLocale } from "next-intl/server";
 
 export async function generateMetadata({
@@ -10,7 +10,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   return {
-    title: locale === "en" ? "Terms of Use | Trustia.gr" : "Όροι Χρήσης | Trustia.gr",
+    title: locale === "en" ? "Terms of Use" : "Όροι Χρήσης",
   };
 }
 

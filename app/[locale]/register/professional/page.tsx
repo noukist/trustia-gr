@@ -25,7 +25,9 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useRouter }        from "next/navigation";
+import { useRouter }        from "@/i18n/navigation";
+import { useLocale }        from "next-intl";
+import { useSearchParams }  from "next/navigation";
 import {
   ChevronRight, ChevronLeft,
   Check, Phone, CalendarDays, CalendarRange,
@@ -162,7 +164,8 @@ function Step1({
           <p style={styles.tierLabel}>{TIER_META[tier].labelEl}</p>
 
           {/* Responsive grid: 3 cols desktop, 2 cols mobile */}
-          <div style={styles.categoryGrid}>
+          {/* pro-category-grid class provides the responsive 2→3 column breakpoint */}
+          <div className="pro-category-grid" style={{ gap: "0.5rem" }}>
             {byTier(tier).map((cat) => {
               const isSelected = data.categoryId === cat.id;
               return (
@@ -740,7 +743,7 @@ function Step5({
           Αποδέχομαι τους{" "}
           <a href="/terms" target="_blank" style={styles.link}>Όρους Χρήσης</a>
           {" "}και τη{" "}
-          <a href="/subscription-agreement" target="_blank" style={styles.link}>
+          <a href="/terms" target="_blank" style={styles.link}>
             Συμφωνία Συνδρομής
           </a>
           {" "}
@@ -828,8 +831,13 @@ function ThankYouOther() {
 // MAIN COMPONENT
 // =============================================================
 export default function ProfessionalRegistrationPage() {
-  const router   = useRouter();
-  const supabase = createClient();
+  const router       = useRouter();
+  const locale       = useLocale();
+  const supabase     = createClient();
+  const searchParams = useSearchParams();
+
+  // ?ref= captures the referrer's slug so we can record the referral after sign-up
+  const refSlug = searchParams.get("ref");
 
   const [step,         setStep]         = useState(1);
   const [data,         setData]         = useState<WizardData>(INITIAL_DATA);
@@ -957,11 +965,15 @@ export default function ProfessionalRegistrationPage() {
         throw proError;
       }
 
-      // 4. Insert subscription (free trial)
+      // 4. Insert subscription (pending payment)
       // payment_reference = '' → triggers trg_payment_reference which
       // auto-generates the TRS-YYYY-XXXX code (see DB trigger definition).
-      // payment_status = 'pending' → no payment collected during trial.
-      const { error: subError } = await supabase
+      // payment_status = 'pending' → updated to 'verified' by Stripe webhook.
+      // ends_at is set to plan duration from today (activated on payment).
+      const planEnds = new Date(now);
+      planEnds.setMonth(planEnds.getMonth() + plan.months);
+
+      const { data: subscription, error: subError } = await supabase
         .from("subscriptions")
         .insert({
           professional_id:   professional.id,
@@ -973,14 +985,61 @@ export default function ProfessionalRegistrationPage() {
           payment_reference: "",    // DB trigger generates TRS-YYYY-XXXX
           payment_status:    "pending",
           starts_at:         now.toISOString(),
-          ends_at:           trialEnds.toISOString(),
-          is_founding:       true,  // Mark as founding member (admin can revise)
-        });
+          ends_at:           planEnds.toISOString(),
+          is_founding:       true,  // First pros get founding-member price locked forever
+        })
+        .select("id")
+        .single();
 
       if (subError) throw subError;
 
-      // 5. Success → redirect to dashboard
-      router.push("/dashboard?welcome=1");
+      // 5. Claim referral if the user arrived via ?ref=SLUG
+      // Non-fatal: if the referral RPC fails we still proceed to payment.
+      if (refSlug) {
+        const { error: refError } = await supabase.rpc("claim_referral", {
+          ref_slug:   refSlug,
+          new_pro_id: professional.id,
+        });
+        if (refError) {
+          console.warn("[register] claim_referral error:", refError.message);
+        }
+      }
+
+      // 6. Create Stripe Checkout session → redirect to payment
+      // If STRIPE_SECRET_KEY is not configured (e.g. local dev without Stripe),
+      // fall back to dashboard directly so development is not blocked.
+      const planLabel =
+        locale === "en"
+          ? `${plan.months}-Month Plan — ${tier.charAt(0).toUpperCase() + tier.slice(1)}`
+          : `Πλάνο ${plan.months} Μηνών — ${plan.labelEl}`;
+
+      const checkoutRes = await fetch("/api/checkout", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          subscriptionId: subscription.id,
+          professionalId: professional.id,
+          amountEuros:    plan.total[tier],
+          planLabel,
+          locale,
+        }),
+      });
+
+      if (!checkoutRes.ok) {
+        const err = await checkoutRes.json().catch(() => ({}));
+        // If Stripe is not configured, go straight to dashboard
+        if (typeof err.error === "string" && err.error.startsWith("STRIPE_SECRET_KEY is not set")) {
+          console.warn("[register] Stripe not configured — skipping payment");
+          router.push("/dashboard?welcome=1");
+          return;
+        }
+        throw new Error(err.error ?? "Payment setup failed");
+      }
+
+      const { url: checkoutUrl } = await checkoutRes.json();
+
+      // Hard-navigate to Stripe's hosted checkout page
+      window.location.href = checkoutUrl;
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : "Σφάλμα εγγραφής. Παρακαλώ δοκιμάστε ξανά.";
@@ -1005,6 +1064,17 @@ export default function ProfessionalRegistrationPage() {
         padding:         "2rem 1rem 4rem",
       }}
     >
+      {/* Responsive overrides — category grid: 2-col on mobile, 3-col on wider */}
+      <style>{`
+        .pro-category-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 0.5rem;
+        }
+        @media (min-width: 480px) {
+          .pro-category-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+      `}</style>
       <div style={{ maxWidth: "680px", margin: "0 auto" }}>
 
         {/* ── Header ── */}

@@ -24,13 +24,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import Link from "next/link";
-import { useRouter, usePathname } from "@/i18n/navigation";
+import { Link, useRouter, usePathname } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { Menu, X, LogIn, LayoutDashboard, LogOut, ChevronDown, User as UserIcon, Shield } from "lucide-react";
+import { Menu, X, LogIn, LayoutDashboard, LogOut, ChevronDown, User as UserIcon, Shield, CalendarDays, Heart } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
-import Logo         from "@/components/ui/Logo";
-import Button       from "@/components/ui/Button";
+import Logo              from "@/components/ui/Logo";
+import Button            from "@/components/ui/Button";
+import NotificationBell  from "@/components/ui/NotificationBell";
 import { createClient } from "@/lib/supabase/client";
 import { signOut }      from "@/lib/auth/helpers";
 
@@ -164,12 +164,14 @@ export default function Navbar() {
             ))}
           </nav>
 
-          {/* ── Desktop right group: Language switcher + CTA ── */}
+          {/* ── Desktop right group: Language switcher + bell + CTA ── */}
           <div
             className="hidden md:flex"
             style={{ alignItems: "center", gap: "0.75rem", flexShrink: 0 }}
           >
             <LanguageSwitcher />
+            {/* NotificationBell self-hides when user is null */}
+            <NotificationBell user={user} />
             {user ? (
               <UserMenu user={user} isPro={isPro} isAdmin={isAdmin} t={t} />
             ) : (
@@ -587,6 +589,22 @@ function UserMenu({ user, isPro, isAdmin, t }: { user: User; isPro: boolean; isA
                 onClick={() => setOpen(false)}
               />
             )}
+            {/* My Bookings — visible to all logged-in users (customers AND professionals) */}
+            <DropdownItem
+              href="/my-bookings"
+              icon={<CalendarDays size={15} />}
+              label={t("myBookings")}
+              onClick={() => setOpen(false)}
+            />
+            {/* Favorites — only relevant for customers (pros have no favorites) */}
+            {!isPro && (
+              <DropdownItem
+                href="/favorites"
+                icon={<Heart size={15} />}
+                label={t("favorites")}
+                onClick={() => setOpen(false)}
+              />
+            )}
             <div style={{ height: "1px", backgroundColor: "var(--color-border)", margin: "0.375rem 0" }} />
             <button
               type="button"
@@ -748,6 +766,52 @@ function DrawerUserFooter({
         {isPro ? <LayoutDashboard size={17} /> : <UserIcon size={17} />}
         {isPro ? t("dashboard") : t("myProfile")}
       </Link>
+
+      {/* My Bookings — all logged-in users */}
+      <Link
+        href="/my-bookings"
+        onClick={onClose}
+        style={{
+          display:         "flex",
+          alignItems:      "center",
+          gap:             "0.5rem",
+          padding:         "0.625rem 0.75rem",
+          backgroundColor: "var(--color-bg-light)",
+          color:           "var(--color-text)",
+          borderRadius:    "10px",
+          fontWeight:      600,
+          fontSize:        "0.875rem",
+          textDecoration:  "none",
+          border:          "1.5px solid var(--color-border)",
+        }}
+      >
+        <CalendarDays size={15} style={{ color: "var(--color-primary)" }} />
+        {t("myBookings")}
+      </Link>
+
+      {/* Favorites — only relevant for customers */}
+      {!isPro && (
+        <Link
+          href="/favorites"
+          onClick={onClose}
+          style={{
+            display:         "flex",
+            alignItems:      "center",
+            gap:             "0.5rem",
+            padding:         "0.625rem 0.75rem",
+            backgroundColor: "var(--color-bg-light)",
+            color:           "var(--color-text)",
+            borderRadius:    "10px",
+            fontWeight:      600,
+            fontSize:        "0.875rem",
+            textDecoration:  "none",
+            border:          "1.5px solid var(--color-border)",
+          }}
+        >
+          <Heart size={15} style={{ color: "#E74C3C" }} />
+          {t("favorites")}
+        </Link>
+      )}
 
       <button
         type="button"

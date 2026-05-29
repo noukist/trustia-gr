@@ -13,7 +13,7 @@
 // <style> to <head>) to keep this a Server Component with zero JS.
 // =============================================================
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { getTranslations, getLocale } from "next-intl/server";
 import { CATEGORIES, POPULAR_CATEGORY_IDS } from "@/lib/constants";
 import type { Category } from "@/lib/constants";

@@ -30,8 +30,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
+import { useTranslations } from "next-intl";
 import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, Check } from "lucide-react";
 import {
   signInWithGoogle,
@@ -70,6 +70,7 @@ function FacebookIcon() {
 // Component
 // ---------------------------------------------------------------
 export default function RegisterPage() {
+  const t      = useTranslations("auth");
   const router = useRouter();
 
   // Form fields
@@ -97,8 +98,8 @@ export default function RegisterPage() {
   // ── Helpers ─────────────────────────────────────────────────
 
   function validatePassword(): string | null {
-    if (password.length < 8) return "Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες.";
-    if (password !== confirmPassword)  return "Οι κωδικοί δεν ταιριάζουν.";
+    if (password.length < 8)          return t("passwordTooShort");
+    if (password !== confirmPassword)  return t("passwordMismatch");
     return null;
   }
 
@@ -109,7 +110,7 @@ export default function RegisterPage() {
     setLoadingGoogle(true);
     const { error: err } = await signInWithGoogle();
     if (err) {
-      setError("Η εγγραφή με Google απέτυχε. Δοκίμασε ξανά.");
+      setError(t("errors.googleFailed"));
       setLoadingGoogle(false);
     }
     // On success the browser navigates to /auth/callback
@@ -120,7 +121,7 @@ export default function RegisterPage() {
     setLoadingFacebook(true);
     const { error: err } = await signInWithFacebook();
     if (err) {
-      setError("Η εγγραφή με Facebook απέτυχε. Δοκίμασε ξανά.");
+      setError(t("errors.facebookFailed"));
       setLoadingFacebook(false);
     }
   }
@@ -130,7 +131,7 @@ export default function RegisterPage() {
     setError(null);
 
     if (!gdprAccepted) {
-      setError("Πρέπει να αποδεχτείς τους Όρους Χρήσης για να συνεχίσεις.");
+      setError(t("gdprRequiredError"));
       return;
     }
 
@@ -143,10 +144,28 @@ export default function RegisterPage() {
 
     if (signUpError) {
       if (signUpError.message.toLowerCase().includes("already registered")) {
-        setError("Υπάρχει ήδη λογαριασμός με αυτό το email. Σύνδεσε ή ανάκτησε τον κωδικό σου.");
+        setError(t("errors.alreadyRegistered"));
       } else {
         setError(signUpError.message);
       }
+      setLoadingEmail(false);
+      return;
+    }
+
+    // ── Duplicate email detection (email-confirmation ON) ────────
+    // Supabase silently swallows duplicate signups to prevent
+    // user-enumeration attacks, but the response shape differs:
+    //
+    //   Confirmed duplicate:   user=null, session=null, error=null
+    //   Unconfirmed duplicate: user={ identities:[] }, session=null, error=null
+    //
+    // In both cases we show the "already registered" error instead
+    // of the misleading "check your email" success screen.
+    const isConfirmedDuplicate   = !data.user && !data.session;
+    const isUnconfirmedDuplicate = data.user != null && (data.user.identities?.length ?? 0) === 0;
+
+    if (isConfirmedDuplicate || isUnconfirmedDuplicate) {
+      setError(t("errors.alreadyRegistered"));
       setLoadingEmail(false);
       return;
     }
@@ -202,7 +221,11 @@ export default function RegisterPage() {
           alignItems: "center",
           justifyContent: "center",
           padding: "2rem 1rem",
-          backgroundColor: "var(--color-bg-light)",
+          background: [
+            "radial-gradient(ellipse 70% 50% at 70% 20%, rgba(42,143,143,0.10) 0%, transparent 70%)",
+            "radial-gradient(ellipse 60% 50% at 15% 85%, rgba(212,160,57,0.08) 0%, transparent 65%)",
+            "var(--color-bg-light)",
+          ].join(", "),
         }}
       >
         <div
@@ -242,21 +265,21 @@ export default function RegisterPage() {
               letterSpacing: "-0.02em",
             }}
           >
-            Έλεγξε το email σου
+            {t("successVerifyTitle")}
           </h2>
           <p style={{ fontSize: "0.9rem", color: "var(--color-text-muted)", lineHeight: 1.65, margin: "0 0 1.5rem" }}>
-            Στείλαμε σύνδεσμο επιβεβαίωσης στο{" "}
+            {t("successVerifyPrefix")}{" "}
             <strong style={{ color: "var(--color-text)" }}>{successEmail}</strong>.
             <br />
-            Κάνε κλικ στον σύνδεσμο για να ενεργοποιήσεις τον λογαριασμό σου.
+            {t("successVerifyLine2")}
           </p>
           <p style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)" }}>
-            Δεν έφτασε; Έλεγξε το φάκελο spam ή{" "}
+            {t("successNotArrived")}{" "}
             <button
               onClick={() => { setSuccess(null); setError(null); }}
               style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-primary)", fontWeight: 600, padding: 0, fontSize: "inherit" }}
             >
-              δοκίμασε ξανά
+              {t("successTryAgain")}
             </button>
             .
           </p>
@@ -277,7 +300,7 @@ export default function RegisterPage() {
               textDecoration: "none",
             }}
           >
-            Πήγαινε στη Σύνδεση
+            {t("goToLogin")}
           </Link>
         </div>
       </div>
@@ -295,6 +318,7 @@ export default function RegisterPage() {
         .spin { animation: spin 0.9s linear infinite; }
       `}</style>
 
+      {/* Full-height centred wrapper — brand gradient fills the background */}
       <div
         style={{
           minHeight: "calc(100vh - 64px)",
@@ -302,7 +326,11 @@ export default function RegisterPage() {
           alignItems: "center",
           justifyContent: "center",
           padding: "2rem 1rem",
-          backgroundColor: "var(--color-bg-light)",
+          background: [
+            "radial-gradient(ellipse 70% 50% at 70% 20%, rgba(42,143,143,0.10) 0%, transparent 70%)",
+            "radial-gradient(ellipse 60% 50% at 15% 85%, rgba(212,160,57,0.08) 0%, transparent 65%)",
+            "var(--color-bg-light)",
+          ].join(", "),
         }}
       >
         <div
@@ -324,10 +352,10 @@ export default function RegisterPage() {
               </span>
             </Link>
             <h1 style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--color-text)", margin: "0.5rem 0 0.25rem", letterSpacing: "-0.02em" }}>
-              Δημιουργία λογαριασμού
+              {t("registerTitle")}
             </h1>
             <p style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", margin: 0 }}>
-              Εγγράψου δωρεάν ως πελάτης
+              {t("registerSubCustomer")}
             </p>
           </div>
 
@@ -377,7 +405,7 @@ export default function RegisterPage() {
             }}
           >
             {loadingGoogle ? <Loader2 size={20} className="spin" /> : <GoogleIcon />}
-            Συνέχεια με Google
+            {t("continueGoogle")}
           </button>
 
           {/* ── OAuth: Facebook ── */}
@@ -404,13 +432,13 @@ export default function RegisterPage() {
             }}
           >
             {loadingFacebook ? <Loader2 size={20} className="spin" /> : <FacebookIcon />}
-            Συνέχεια με Facebook
+            {t("continueFacebook")}
           </button>
 
           {/* ── Divider ── */}
           <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.5rem" }}>
             <div style={{ flex: 1, height: "1px", backgroundColor: "var(--color-border)" }} />
-            <span style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", fontWeight: 500 }}>ή με email</span>
+            <span style={{ fontSize: "0.8125rem", color: "var(--color-text-muted)", fontWeight: 500 }}>{t("orEmail")}</span>
             <div style={{ flex: 1, height: "1px", backgroundColor: "var(--color-border)" }} />
           </div>
 
@@ -419,7 +447,7 @@ export default function RegisterPage() {
             {/* Email */}
             <div style={{ marginBottom: "1rem" }}>
               <label htmlFor="email" style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)", marginBottom: "0.375rem" }}>
-                Email
+                {t("emailLabel")}
               </label>
               <div style={{ position: "relative" }}>
                 <Mail size={16} style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-muted)", pointerEvents: "none" }} />
@@ -440,8 +468,8 @@ export default function RegisterPage() {
             {/* Password */}
             <div style={{ marginBottom: "1rem" }}>
               <label htmlFor="password" style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)", marginBottom: "0.375rem" }}>
-                Κωδικός{" "}
-                <span style={{ fontSize: "0.75rem", fontWeight: 400, color: "var(--color-text-muted)" }}>(τουλάχιστον 8 χαρακτήρες)</span>
+                {t("passwordLabel")}{" "}
+                <span style={{ fontSize: "0.75rem", fontWeight: 400, color: "var(--color-text-muted)" }}>({t("passwordHint")})</span>
               </label>
               <div style={{ position: "relative" }}>
                 <Lock size={16} style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-muted)", pointerEvents: "none" }} />
@@ -459,7 +487,7 @@ export default function RegisterPage() {
                 />
                 <button
                   type="button"
-                  aria-label={showPassword ? "Απόκρυψη κωδικού" : "Εμφάνιση κωδικού"}
+                  aria-label={showPassword ? t("hidePassword") : t("showPassword")}
                   onClick={() => setShowPassword((v) => !v)}
                   style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", padding: "0.125rem" }}
                 >
@@ -471,7 +499,7 @@ export default function RegisterPage() {
             {/* Confirm password */}
             <div style={{ marginBottom: "1.5rem" }}>
               <label htmlFor="confirmPassword" style={{ display: "block", fontSize: "0.875rem", fontWeight: 600, color: "var(--color-text)", marginBottom: "0.375rem" }}>
-                Επιβεβαίωση κωδικού
+                {t("passwordConfirmLabel")}
               </label>
               <div style={{ position: "relative" }}>
                 <Lock size={16} style={{ position: "absolute", left: "0.875rem", top: "50%", transform: "translateY(-50%)", color: "var(--color-text-muted)", pointerEvents: "none" }} />
@@ -488,7 +516,7 @@ export default function RegisterPage() {
                 />
                 <button
                   type="button"
-                  aria-label={showConfirm ? "Απόκρυψη" : "Εμφάνιση"}
+                  aria-label={showConfirm ? t("hideConfirm") : t("showConfirm")}
                   onClick={() => setShowConfirm((v) => !v)}
                   style={{ position: "absolute", right: "0.75rem", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", padding: "0.125rem" }}
                 >
@@ -520,13 +548,13 @@ export default function RegisterPage() {
                   style={{ width: "16px", height: "16px", marginTop: "1px", flexShrink: 0, accentColor: "var(--color-primary)", cursor: "pointer" }}
                 />
                 <span>
-                  Αποδέχομαι τους{" "}
+                  {t("gdprAcceptPrefix")}{" "}
                   <Link href="/terms" style={{ color: "var(--color-primary)", fontWeight: 600 }} target="_blank">
-                    Όρους Χρήσης
+                    {t("gdprTermsLink")}
                   </Link>{" "}
-                  και την{" "}
+                  {t("gdprAcceptMiddle")}{" "}
                   <Link href="/privacy" style={{ color: "var(--color-primary)", fontWeight: 600 }} target="_blank">
-                    Πολιτική Απορρήτου
+                    {t("gdprPrivacyLink")}
                   </Link>
                   . <span style={{ color: "var(--color-danger)", fontWeight: 600 }}>*</span>
                 </span>
@@ -550,9 +578,7 @@ export default function RegisterPage() {
                   onChange={(e) => setMarketingAccepted(e.target.checked)}
                   style={{ width: "16px", height: "16px", marginTop: "1px", flexShrink: 0, accentColor: "var(--color-primary)", cursor: "pointer" }}
                 />
-                <span>
-                  Θέλω να λαμβάνω ενημερώσεις, προσφορές και διαφημίσεις από το Trustia.gr και συνεργαζόμενες επιχειρήσεις.
-                </span>
+                <span>{t("gdprMarketing")}</span>
               </label>
             </div>
 
@@ -579,7 +605,7 @@ export default function RegisterPage() {
               }}
             >
               {loadingEmail && <Loader2 size={18} className="spin" />}
-              Εγγραφή
+              {t("registerBtn")}
             </button>
           </form>
 
@@ -587,20 +613,20 @@ export default function RegisterPage() {
           <div style={{ marginTop: "1.75rem", display: "flex", flexDirection: "column", gap: "0.75rem", alignItems: "center", textAlign: "center" }}>
             {/* Professional registration CTA */}
             <p style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", margin: 0 }}>
-              Είσαι επαγγελματίας;{" "}
+              {t("proRegisterCta")}{" "}
               <Link
                 href="/register/professional"
                 style={{ color: "var(--color-accent)", fontWeight: 700, textDecoration: "none" }}
               >
-                Εγγραφή Επαγγελματία&nbsp;→
+                {t("proRegisterLink")}
               </Link>
             </p>
 
             {/* Login link */}
             <p style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", margin: 0 }}>
-              Έχεις ήδη λογαριασμό;{" "}
+              {t("hasAccount")}{" "}
               <Link href="/login" style={{ color: "var(--color-primary)", fontWeight: 600, textDecoration: "none" }}>
-                Σύνδεση
+                {t("loginLink")}
               </Link>
             </p>
           </div>

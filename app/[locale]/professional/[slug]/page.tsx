@@ -24,19 +24,26 @@
 // =============================================================
 
 import React                  from "react";
-import Link                   from "next/link";
+import { Link }               from "@/i18n/navigation";  // locale-aware Link
 import { notFound }           from "next/navigation";
 import type { Metadata }      from "next";
 import { ArrowLeft, MapPin, ImageIcon } from "lucide-react";
 
-import { createClient }  from "@/lib/supabase/server";
-import { setRequestLocale } from "next-intl/server";
-import { CATEGORIES }    from "@/lib/constants";
-import ActionPanel       from "@/components/professional/ActionPanel";
-import ShareButton       from "@/components/professional/ShareButton";
+import { createClient }                        from "@/lib/supabase/server";
+import { setRequestLocale, getTranslations }   from "next-intl/server";
+import { useTranslations, useLocale }          from "next-intl";
+import { CATEGORIES }                          from "@/lib/constants";
+import ActionPanel                             from "@/components/professional/ActionPanel";
+import ShareButton                             from "@/components/professional/ShareButton";
+import ProfileViewTracker                      from "@/components/professional/ProfileViewTracker";
+import RecentlyViewedTracker                   from "@/components/professional/RecentlyViewedTracker";
+import ReviewActions                           from "@/components/reviews/ReviewActions";
+import FavoriteButton                         from "@/components/professional/FavoriteButton";
+import ReportButton                            from "@/components/professional/ReportButton";
 
-// ── Next.js 16: params is a Promise ──────────────────────────
-type PageParams = Promise<{ locale: string; slug: string }>;
+// ── Next.js 16: params and searchParams are Promises ─────────
+type PageParams       = Promise<{ locale: string; slug: string }>;
+type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 // ── DB row types ──────────────────────────────────────────────
 
@@ -67,6 +74,7 @@ interface DbProfessional {
 interface DbService {
   id:               string;
   name_el:          string;
+  name_en:          string | null;   // optional English name for bilingual display
   duration_minutes: number;
   price:            number;
   sort_order:       number;
@@ -98,8 +106,15 @@ interface DbReview {
 
 // ── Helper functions ──────────────────────────────────────────
 
-/** Convert minutes to a human-readable Greek duration string */
-function formatDuration(minutes: number): string {
+/** Convert minutes to a locale-aware duration string */
+function formatDuration(minutes: number, locale: string): string {
+  if (locale === "en") {
+    if (minutes < 60) return `${minutes} min`;
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (m === 0) return h === 1 ? "1 hour" : `${h} hours`;
+    return `${h}h ${m}m`;
+  }
   if (minutes < 60) return `${minutes} λεπτά`;
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
@@ -107,22 +122,29 @@ function formatDuration(minutes: number): string {
   return `${h} ώρ. ${m} λεπτ.`;
 }
 
-/** Format a price number (€0 → "Δωρεάν") */
-function formatPrice(price: number): string {
-  if (price === 0) return "Δωρεάν";
+/** Format a price number — €0 → "Free" (EN) or "Δωρεάν" (EL) */
+function formatPrice(price: number, locale: string): string {
+  if (price === 0) return locale === "en" ? "Free" : "Δωρεάν";
   return `€${price % 1 === 0 ? price : price.toFixed(2)}`;
 }
 
-/** Relative date in Greek (e.g. "3 μήνες πριν") */
-function relativeDate(iso: string): string {
-  const diff  = Date.now() - new Date(iso).getTime();
-  const days  = Math.floor(diff / 86_400_000);
-  if (days === 0) return "Σήμερα";
-  if (days === 1) return "Χθες";
-  if (days < 30)  return `${days} μέρες πριν`;
+/** Relative date formatted for the active locale */
+function relativeDate(iso: string, locale: string): string {
+  const diff   = Date.now() - new Date(iso).getTime();
+  const days   = Math.floor(diff / 86_400_000);
   const months = Math.floor(days / 30);
+  const years  = Math.floor(months / 12);
+  if (locale === "en") {
+    if (days  === 0) return "Today";
+    if (days  === 1) return "Yesterday";
+    if (days  < 30)  return `${days} days ago`;
+    if (months < 12) return months === 1 ? "1 month ago" : `${months} months ago`;
+    return years === 1 ? "1 year ago" : `${years} years ago`;
+  }
+  if (days  === 0) return "Σήμερα";
+  if (days  === 1) return "Χθες";
+  if (days  < 30)  return `${days} μέρες πριν`;
   if (months < 12) return months === 1 ? "1 μήνα πριν" : `${months} μήνες πριν`;
-  const years = Math.floor(months / 12);
   return years === 1 ? "1 χρόνο πριν" : `${years} χρόνια πριν`;
 }
 
@@ -197,15 +219,17 @@ function InitialsAvatar({
   );
 }
 
-// ── Booking mode badge ────────────────────────────────────────
-const MODE_META: Record<string, { emoji: string; label: string }> = {
-  contact: { emoji: "📞", label: "Επικοινωνία Τηλέφωνο" },
-  date:    { emoji: "📅", label: "Κράτηση Ημερομηνίας" },
-  full:    { emoji: "🗓️",  label: "Online Κράτηση" },
+// ── Booking mode emojis (locale-agnostic) ────────────────────
+// Labels are looked up via t("bookingMode.X") inside the component
+const MODE_EMOJI: Record<string, string> = {
+  contact: "📞",
+  date:    "📅",
+  full:    "🗓️",
 };
 
 // ── Review type badge ─────────────────────────────────────────
 function ReviewTypeBadge({ type }: { type: DbReview["type"] }) {
+  const t = useTranslations("profile");
   if (type === "verified") {
     return (
       <span
@@ -222,7 +246,7 @@ function ReviewTypeBadge({ type }: { type: DbReview["type"] }) {
           fontWeight:      600,
         }}
       >
-        ✓ Επαληθευμένη
+        {t("verifiedBadge")}
       </span>
     );
   }
@@ -242,7 +266,7 @@ function ReviewTypeBadge({ type }: { type: DbReview["type"] }) {
           fontWeight:      600,
         }}
       >
-        🔗 Προσκεκλημένη
+        {t("invitedBadge")}
       </span>
     );
   }
@@ -292,7 +316,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale, slug } = await params;
   setRequestLocale(locale);
-  const supabase  = await createClient();
+
+  const t       = await getTranslations({ locale, namespace: "profile" });
+  const supabase = await createClient();
 
   const { data } = await supabase
     .from("professionals")
@@ -302,18 +328,26 @@ export async function generateMetadata({
     .single();
 
   if (!data) {
-    return { title: "Επαγγελματίας | Trustia.gr" };
+    // Layout template appends "| Trustia.gr" — no manual suffix here
+    return { title: t("metaNotFound") };
   }
 
-  const cat  = CATEGORIES.find((c) => c.id === data.category_id);
-  const name = `${data.first_name} ${data.last_name}`;
+  const cat     = CATEGORIES.find((c) => c.id === data.category_id);
+  const catName = locale === "en" && cat?.nameEn ? cat.nameEn : cat?.nameEl ?? "";
+  const name    = `${data.first_name} ${data.last_name}`;
 
   return {
-    title:       `${name} — ${cat?.nameEl ?? ""} | Trustia.gr`,
-    description: `${name}, ${cat?.nameEl} στο ${data.city ?? ""}. ★ ${data.rating.toFixed(1)} βαθμολογία (${data.review_count} κριτικές) στο Trustia.gr.`,
+    title:       `${name} — ${catName}`,   // layout adds "| Trustia.gr"
+    description: t("metaDesc", {
+      name,
+      catName,
+      city:        data.city ?? "",
+      rating:      data.rating.toFixed(1),
+      reviewCount: data.review_count,
+    }),
     openGraph: {
-      title:       `${name} — ${cat?.nameEl ?? ""}`,
-      description: `Επαγγελματίας στο Trustia.gr`,
+      title:       `${name} — ${catName}`,
+      description: t("metaOgDesc"),
       type:        "profile",
     },
   };
@@ -324,10 +358,19 @@ export async function generateMetadata({
 // =============================================================
 export default async function ProfessionalProfilePage({
   params,
+  searchParams,
 }: {
-  params: PageParams;
+  params:       PageParams;
+  searchParams: PageSearchParams;
 }) {
   const { locale, slug } = await params;
+  const sp = await searchParams;
+
+  // ── Read invite code from ?invite= URL param ─────────────
+  // Passed down to ReviewActions so WriteReviewModal opens automatically
+  // and pre-sets the review type to 'invitation' (weight 1.0).
+  const inviteCode = (Array.isArray(sp["invite"]) ? sp["invite"][0] : sp["invite"]) || null;
+
   setRequestLocale(locale);
   const supabase  = await createClient();
 
@@ -356,7 +399,7 @@ export default async function ProfessionalProfilePage({
     // Services catalog (required for "full" booking mode)
     supabase
       .from("professional_services")
-      .select("id, name_el, duration_minutes, price, sort_order")
+      .select("id, name_el, name_en, duration_minutes, price, sort_order")
       .eq("professional_id", pro.id)
       .eq("active", true)
       .is("deleted_at", null)
@@ -391,10 +434,74 @@ export default async function ProfessionalProfilePage({
   const portfolio = (portfolioResult.data ?? []) as unknown as DbPortfolioPhoto[];
   const reviews   = (reviewsResult.data   ?? []) as unknown as DbReview[];
 
-  // ── 3. Derived values ────────────────────────────────────
-  const cat      = CATEGORIES.find((c) => c.id === pro.category_id);
-  const name     = `${pro.first_name} ${pro.last_name}`;
-  const modeMeta = MODE_META[pro.booking_mode];
+  // ── 3. Auth context for review CTA ──────────────────────
+  // Non-blocking — anonymous users can still view the page.
+  // We need: customer row, completed booking with this pro, existing review.
+  const { data: { user } } = await supabase.auth.getUser();
+
+  let reviewCustomerId:         string | null = null;
+  let reviewCompletedBookingId: string | null = null;
+  let reviewExisting: { id: string; rating: number; text: string | null; type: string } | null = null;
+  let isFavorited = false;
+
+  if (user) {
+    // Step 1: get customer row for this user
+    const { data: custRow } = await supabase
+      .from("customers")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (custRow) {
+      reviewCustomerId = custRow.id;
+
+      // Step 2: parallel — completed booking + existing review + favorite
+      const [bookingRes, reviewRes, favoriteRes] = await Promise.all([
+        supabase
+          .from("bookings")
+          .select("id")
+          .eq("professional_id", pro.id)
+          .eq("customer_id", custRow.id)
+          .eq("status", "completed")
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("reviews")
+          .select("id, rating, text, type")
+          .eq("professional_id", pro.id)
+          .eq("customer_id", custRow.id)
+          .is("deleted_at", null)
+          .maybeSingle(),
+        supabase
+          .from("favorites")
+          .select("id")
+          .eq("professional_id", pro.id)
+          .eq("customer_id", custRow.id)
+          .maybeSingle(),
+      ]);
+
+      reviewCompletedBookingId = bookingRes.data?.id ?? null;
+      reviewExisting = reviewRes.data ?? null;
+      isFavorited = !!favoriteRes.data;
+    }
+  }
+
+  // ── 4. Derived values ────────────────────────────────────
+  const t   = await getTranslations("profile");
+  const cat = CATEGORIES.find((c) => c.id === pro.category_id);
+  // Locale-aware category name
+  const catDispName = locale === "en" && cat?.nameEn ? cat.nameEn : cat?.nameEl ?? "";
+  const name        = `${pro.first_name} ${pro.last_name}`;
+  // Build modeMeta from translations — not from module-level hardcoded constant
+  const bookingLabels: Record<string, string> = {
+    contact: t("bookingMode.contact"),
+    date:    t("bookingMode.date"),
+    full:    t("bookingMode.full"),
+  };
+  const modeMeta = {
+    emoji: MODE_EMOJI[pro.booking_mode] ?? "📞",
+    label: bookingLabels[pro.booking_mode] ?? pro.booking_mode,
+  };
 
   // Is professional currently on vacation?
   const today    = new Date();
@@ -403,7 +510,39 @@ export default async function ProfessionalProfilePage({
       ? today >= new Date(pro.vacation_start) && today <= new Date(pro.vacation_end)
       : false;
 
-  // ── 4. Render ────────────────────────────────────────────
+  // ── 5. Build JSON-LD structured data ────────────────────
+  // Schema.org LocalBusiness / Person markup for rich search results.
+  // Helps Google show the professional in local search with rating stars.
+  const jsonLd = {
+    "@context":    "https://schema.org",
+    "@type":       "LocalBusiness",
+    name:          name,
+    description:   pro.bio ?? `${catDispName} ${locale === "en" ? "in" : "στο"} ${pro.city ?? "Greece"}`,
+    url:           `https://trustia.gr/${locale === "en" ? "en/" : ""}professional/${pro.slug}`,
+    telephone:     pro.phone,
+    address: pro.city
+      ? {
+          "@type":           "PostalAddress",
+          addressLocality:   pro.city,
+          addressCountry:    "GR",
+        }
+      : undefined,
+    ...(pro.avatar_url ? { image: pro.avatar_url } : {}),
+    ...(pro.review_count > 0
+      ? {
+          aggregateRating: {
+            "@type":       "AggregateRating",
+            ratingValue:   pro.rating.toFixed(1),
+            reviewCount:   pro.review_count,
+            bestRating:    "5",
+            worstRating:   "1",
+          },
+        }
+      : {}),
+    priceRange: pro.price_text ?? undefined,
+  };
+
+  // ── 5. Render ────────────────────────────────────────────
   return (
     <div
       style={{
@@ -413,6 +552,15 @@ export default async function ProfessionalProfilePage({
         paddingBottom:   "80px",
       }}
     >
+      {/* ── JSON-LD structured data ── */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      {/* ── Profile view tracker (client-only, renders null) ── */}
+      <ProfileViewTracker professionalId={pro.id} />
+      {/* Track this visit in customer's recently-viewed history (skipped for non-customers) */}
+      <RecentlyViewedTracker professionalId={pro.id} customerId={reviewCustomerId} />
       {/* ── Topbar: Back + Share ── */}
       <div
         style={{
@@ -444,14 +592,27 @@ export default async function ProfessionalProfilePage({
             }}
           >
             <ArrowLeft size={16} />
-            Πίσω στα αποτελέσματα
+            {t("back")}
           </Link>
 
-          {/* Share button (client) */}
-          <ShareButton
-            proName={name}
-            categoryEl={cat?.nameEl ?? "Επαγγελματίας"}
-          />
+          {/* Right group: Favorite + Share + Report */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <FavoriteButton
+              professionalId={pro.id}
+              customerId={reviewCustomerId}
+              initialFavorited={isFavorited}
+            />
+            <ShareButton
+              proName={name}
+              categoryEl={catDispName}
+            />
+            {/* Report button — hidden for anonymous visitors (userId null) */}
+            <ReportButton
+              professionalId={pro.id}
+              professionalName={name}
+              userId={user?.id ?? null}
+            />
+          </div>
         </div>
       </div>
 
@@ -520,7 +681,7 @@ export default async function ProfessionalProfilePage({
                     verticalAlign:   "middle",
                   }}
                 >
-                  ★ Προβολή Plus
+                  {t("featuredBadge")}
                 </span>
               )}
             </h1>
@@ -533,7 +694,7 @@ export default async function ProfessionalProfilePage({
                 margin:       "0 0 0.25rem",
               }}
             >
-              {cat?.emoji} {cat?.nameEl ?? pro.category_id}
+              {cat?.emoji} {catDispName || pro.category_id}
             </p>
 
             {pro.city && (
@@ -567,7 +728,7 @@ export default async function ProfessionalProfilePage({
                 {pro.rating.toFixed(1)}
               </span>
               <span style={{ fontSize: "0.875rem", color: "var(--color-text-muted)" }}>
-                ({pro.review_count} αξιολογήσεις)
+                {t("ratingCount", { count: pro.review_count })}
               </span>
             </div>
 
@@ -607,11 +768,11 @@ export default async function ProfessionalProfilePage({
                     color:           "#27AE60",
                   }}
                 >
-                  ✓ Διαθέσιμος σήμερα
+                  {t("availableToday")}
                 </span>
               )}
 
-              {/* Vacation notice */}
+              {/* Vacation notice — shows badge + "Returns DD/MM" when vacation_end is set */}
               {onVacation && (
                 <span
                   style={{
@@ -627,7 +788,17 @@ export default async function ProfessionalProfilePage({
                     color:           "var(--color-accent)",
                   }}
                 >
-                  🏖️ Σε διακοπές
+                  {t("onVacationBadge")}
+                  {pro.vacation_end && (
+                    <>
+                      {" · "}
+                      {t("onVacationUntil")}{" "}
+                      {new Date(pro.vacation_end).toLocaleDateString(
+                        locale === "en" ? "en-GB" : "el-GR",
+                        { day: "numeric", month: "short" },
+                      )}
+                    </>
+                  )}
                 </span>
               )}
 
@@ -639,11 +810,11 @@ export default async function ProfessionalProfilePage({
                   alignSelf: "center",
                 }}
               >
-                Μέλος από{" "}
-                {new Date(pro.created_at).toLocaleDateString("el-GR", {
-                  month: "long",
-                  year:  "numeric",
-                })}
+                {t("memberSince")}{" "}
+                {new Date(pro.created_at).toLocaleDateString(
+                  locale === "en" ? "en-US" : "el-GR",
+                  { month: "long", year: "numeric" },
+                )}
               </span>
             </div>
           </div>
@@ -662,7 +833,7 @@ export default async function ProfessionalProfilePage({
 
             {/* Bio & Price */}
             {(pro.bio || pro.price_text) && (
-              <Section title="Σχετικά">
+              <Section title={t("about")}>
                 {pro.bio && (
                   <p
                     style={{
@@ -698,10 +869,10 @@ export default async function ProfessionalProfilePage({
             )}
 
             {/* Services catalog (PRD §17) */}
-            <Section title={`Υπηρεσίες (${services.length})`}>
+            <Section title={t("servicesSection", { count: services.length })}>
               {services.length === 0 ? (
                 <p style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", margin: 0 }}>
-                  Δεν έχουν οριστεί υπηρεσίες ακόμα.
+                  {t("noServices")}
                 </p>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
@@ -720,9 +891,9 @@ export default async function ProfessionalProfilePage({
                       color:         "var(--color-text-muted)",
                     }}
                   >
-                    <span>Υπηρεσία</span>
-                    <span style={{ textAlign: "center" }}>Διάρκεια</span>
-                    <span style={{ textAlign: "right" }}>Τιμή</span>
+                    <span>{t("serviceHeader")}</span>
+                    <span style={{ textAlign: "center" }}>{t("durationHeader")}</span>
+                    <span style={{ textAlign: "right" }}>{t("priceHeader")}</span>
                   </div>
 
                   {/* Table rows */}
@@ -748,7 +919,8 @@ export default async function ProfessionalProfilePage({
                           fontWeight: 500,
                         }}
                       >
-                        {svc.name_el}
+                        {/* Show English name on EN locale if available, else Greek */}
+                        {locale === "en" && svc.name_en ? svc.name_en : svc.name_el}
                       </span>
                       <span
                         style={{
@@ -758,7 +930,7 @@ export default async function ProfessionalProfilePage({
                           whiteSpace: "nowrap",
                         }}
                       >
-                        {formatDuration(svc.duration_minutes)}
+                        {formatDuration(svc.duration_minutes, locale)}
                       </span>
                       <span
                         style={{
@@ -769,7 +941,7 @@ export default async function ProfessionalProfilePage({
                           whiteSpace: "nowrap",
                         }}
                       >
-                        {formatPrice(svc.price)}
+                        {formatPrice(svc.price, locale)}
                       </span>
                     </div>
                   ))}
@@ -778,7 +950,7 @@ export default async function ProfessionalProfilePage({
             </Section>
 
             {/* Portfolio gallery (PRD §16) */}
-            <Section title={`Φωτογραφίες (${portfolio.length})`}>
+            <Section title={t("portfolioSection", { count: portfolio.length })}>
               {portfolio.length === 0 ? (
                 <div
                   style={{
@@ -792,7 +964,7 @@ export default async function ProfessionalProfilePage({
                 >
                   <ImageIcon size={32} style={{ opacity: 0.4 }} />
                   <p style={{ margin: 0, fontSize: "0.875rem" }}>
-                    Δεν υπάρχουν φωτογραφίες ακόμα.
+                    {t("noPortfolio")}
                   </p>
                 </div>
               ) : (
@@ -820,13 +992,13 @@ export default async function ProfessionalProfilePage({
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={photo.thumbnail_url ?? photo.photo_url}
-                          alt={photo.caption ?? "Πριν"}
+                          alt={photo.caption ?? t("beforeAfter").split(" / ")[0]}
                           style={{ width: "50%", objectFit: "cover", aspectRatio: "1" }}
                         />
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={photo.after_photo_url}
-                          alt="Μετά"
+                          alt={t("beforeAfter").split(" / ")[1] ?? "After"}
                           style={{ width: "50%", objectFit: "cover", aspectRatio: "1" }}
                         />
                         <span
@@ -841,7 +1013,7 @@ export default async function ProfessionalProfilePage({
                             fontSize:        "0.65rem",
                           }}
                         >
-                          Πριν / Μετά
+                          {t("beforeAfter")}
                         </span>
                       </div>
                     ) : (
@@ -857,7 +1029,7 @@ export default async function ProfessionalProfilePage({
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={photo.thumbnail_url ?? photo.photo_url}
-                          alt={photo.caption ?? "Φωτογραφία"}
+                          alt={photo.caption ?? (locale === "en" ? "Photo" : "Φωτογραφία")}
                           style={{
                             width:      "100%",
                             aspectRatio: "1",
@@ -892,29 +1064,21 @@ export default async function ProfessionalProfilePage({
             </Section>
 
             {/* Reviews section (PRD §38) */}
-            <Section title={`Κριτικές (${pro.review_count})`}>
+            <Section title={t("reviewsSection", { count: pro.review_count })}>
               {reviews.length === 0 ? (
                 <div style={{ textAlign: "center", padding: "1.5rem 0" }}>
                   <p style={{ fontSize: "0.875rem", color: "var(--color-text-muted)", margin: "0 0 1rem" }}>
-                    Δεν υπάρχουν κριτικές ακόμα.
+                    {t("noReviews")}
                   </p>
-                  <Link
-                    href="/login"
-                    style={{
-                      display:         "inline-flex",
-                      alignItems:      "center",
-                      gap:             "0.375rem",
-                      padding:         "0.5rem 1rem",
-                      backgroundColor: "var(--color-primary)",
-                      color:           "#fff",
-                      borderRadius:    "8px",
-                      fontWeight:      600,
-                      fontSize:        "0.875rem",
-                      textDecoration:  "none",
-                    }}
-                  >
-                    Αφήστε κριτική
-                  </Link>
+                  <ReviewActions
+                    professionalId={pro.id}
+                    professionalName={name}
+                    professionalSlug={pro.slug ?? slug}
+                    customerId={reviewCustomerId}
+                    existingReview={reviewExisting}
+                    completedBookingId={reviewCompletedBookingId}
+                    inviteCode={inviteCode}
+                  />
                 </div>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
@@ -948,7 +1112,7 @@ export default async function ProfessionalProfilePage({
                               margin:     0,
                             }}
                           >
-                            {review.customer?.display_name ?? "Ανώνυμος"}
+                            {review.customer?.display_name ?? t("anonymous")}
                           </p>
                           <p
                             style={{
@@ -957,7 +1121,7 @@ export default async function ProfessionalProfilePage({
                               margin:    "0.15rem 0 0",
                             }}
                           >
-                            {relativeDate(review.created_at)}
+                            {relativeDate(review.created_at, locale)}
                           </p>
                         </div>
                         <ReviewTypeBadge type={review.type} />
@@ -984,25 +1148,17 @@ export default async function ProfessionalProfilePage({
                     </article>
                   ))}
 
-                  {/* "Leave review" CTA at the bottom */}
+                  {/* "Leave / edit review" CTA at the bottom */}
                   <div style={{ textAlign: "center", paddingTop: "0.5rem" }}>
-                    <Link
-                      href="/login"
-                      style={{
-                        display:         "inline-flex",
-                        alignItems:      "center",
-                        gap:             "0.375rem",
-                        padding:         "0.5rem 1.25rem",
-                        border:          "1.5px solid var(--color-primary)",
-                        color:           "var(--color-primary)",
-                        borderRadius:    "8px",
-                        fontWeight:      600,
-                        fontSize:        "0.875rem",
-                        textDecoration:  "none",
-                      }}
-                    >
-                      Αφήστε κριτική
-                    </Link>
+                    <ReviewActions
+                      professionalId={pro.id}
+                      professionalName={name}
+                      professionalSlug={pro.slug ?? slug}
+                      customerId={reviewCustomerId}
+                      existingReview={reviewExisting}
+                      completedBookingId={reviewCompletedBookingId}
+                      inviteCode={inviteCode}
+                    />
                   </div>
                 </div>
               )}
@@ -1016,10 +1172,12 @@ export default async function ProfessionalProfilePage({
             style={{ width: "300px", flexShrink: 0 }}
           >
             <ActionPanel
+              professionalId={pro.id}
               phone={pro.phone}
               bookingMode={pro.booking_mode}
               bookingEnabled={pro.booking_enabled}
               proName={name}
+              services={services}
             />
           </div>
         </div>
@@ -1027,6 +1185,7 @@ export default async function ProfessionalProfilePage({
         {/* ── Mobile ActionPanel (fixed bottom bar, hidden on desktop) ── */}
         <div className="md:hidden">
           <ActionPanel
+            professionalId={pro.id}
             phone={pro.phone}
             bookingMode={pro.booking_mode}
             bookingEnabled={pro.booking_enabled}

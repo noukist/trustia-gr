@@ -1,23 +1,27 @@
 // =============================================================
-// app/how-it-works/page.tsx
+// app/[locale]/how-it-works/page.tsx
 // =============================================================
 // "Πώς Λειτουργεί" — explainer page for customers AND professionals.
-// Fully static, publicly accessible. Replaces the placeholder.
+// Fully static, publicly accessible.
+//
+// i18n: all sub-components are sync Server Components so they use
+// useTranslations() (from "next-intl") directly — no prop drilling.
 //
 // SECTIONS
-//   1. Hero           — dual-audience headline + tab switcher
+//   1. Hero           — dual-audience headline + jump links
 //   2. Customer steps — 4-step process for finding & booking
 //   3. Pro steps      — 4-step process for signing up & earning
 //   4. Booking modes  — three cards explaining Contact/Date/Full
-//   5. FAQ accordion  — 6 questions, client-side expand/collapse
+//   5. FAQ accordion  — 6 questions via native <details>/<summary>
 //   6. Dual CTA       — bottom row for customers + professionals
 // =============================================================
 
 import React       from "react";
-import Link        from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight, Phone, Calendar, CalendarDays, ChevronDown } from "lucide-react";
-import { setRequestLocale } from "next-intl/server";
+import { useTranslations } from "next-intl";
+import { ArrowRight, Phone, Calendar, CalendarDays } from "lucide-react";
+import { setRequestLocale, getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/navigation";
 
 export async function generateMetadata({
   params,
@@ -25,13 +29,10 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "howItWorks" });
   return {
-    title: locale === "en"
-      ? "How It Works | Trustia.gr"
-      : "Πώς Λειτουργεί | Trustia.gr",
-    description: locale === "en"
-      ? "Learn how Trustia.gr connects customers with professionals. 0% commission, 3 months free, 51 categories."
-      : "Μάθε πώς το Trustia.gr συνδέει πελάτες με επαγγελματίες. 0% προμήθεια, 3 μήνες δωρεάν, 51 κατηγορίες.",
+    title: t("heroTitle1"),   // "Πώς Λειτουργεί" — layout adds "| Trustia.gr"
+    description: t("subtitle"),
   };
 }
 
@@ -114,10 +115,10 @@ function StepCard({
   return (
     <div
       style={{
-        position:  "relative",
-        display:   "flex",
+        position:      "relative",
+        display:       "flex",
         flexDirection: "column",
-        gap:       "0.875rem",
+        gap:           "0.875rem",
       }}
     >
       {/* Connector line between steps (desktop only) */}
@@ -162,10 +163,10 @@ function StepCard({
         <p style={{ fontSize: "2.25rem", margin: "0 0 0.5rem", lineHeight: 1 }}>{emoji}</p>
         <h3
           style={{
-            fontWeight:   700,
-            fontSize:     "1rem",
-            color:        "var(--color-text)",
-            margin:       "0 0 0.4rem",
+            fontWeight: 700,
+            fontSize:   "1rem",
+            color:      "var(--color-text)",
+            margin:     "0 0 0.4rem",
           }}
         >
           {title}
@@ -189,6 +190,7 @@ function StepCard({
 // SECTION 1 — HERO
 // =============================================================
 function Hero() {
+  const t = useTranslations("howItWorks");
   return (
     <section
       style={{
@@ -211,21 +213,21 @@ function Hero() {
             marginBottom:    "1.25rem",
           }}
         >
-          51 κατηγορίες · Σε όλη την Ελλάδα
+          {t("heroBadge")}
         </span>
 
         <h1
           style={{
-            fontSize:   "clamp(2rem, 6vw, 3rem)",
-            fontWeight: 900,
-            lineHeight: 1.1,
-            margin:     "0 0 1rem",
+            fontSize:      "clamp(2rem, 6vw, 3rem)",
+            fontWeight:    900,
+            lineHeight:    1.1,
+            margin:        "0 0 1rem",
             letterSpacing: "-0.02em",
           }}
         >
-          Πώς Λειτουργεί
+          {t("heroTitle1")}
           <br />
-          <span style={{ color: "#D4F0F0" }}>το Trustia.gr</span>
+          <span style={{ color: "#D4F0F0" }}>{t("heroTitle2")}</span>
         </h1>
 
         <p
@@ -236,9 +238,9 @@ function Hero() {
             margin:     "0 0 2rem",
           }}
         >
-          Απλό για πελάτες. Δίκαιο για επαγγελματίες.
+          {t("heroSub1")}
           <br />
-          Μηδέν προμήθεια. Εκατό τοις εκατό αμοιβή.
+          {t("heroSub2")}
         </p>
 
         {/* Jump links */}
@@ -263,7 +265,7 @@ function Hero() {
               textDecoration:  "none",
             }}
           >
-            👤 Για Πελάτες
+            {t("heroForCustomers")}
           </a>
           <a
             href="#professionals"
@@ -278,7 +280,7 @@ function Hero() {
               textDecoration:  "none",
             }}
           >
-            🔧 Για Επαγγελματίες
+            {t("heroForProfessionals")}
           </a>
         </div>
       </div>
@@ -290,27 +292,14 @@ function Hero() {
 // SECTION 2 — CUSTOMER STEPS
 // =============================================================
 function CustomerSteps() {
+  const t = useTranslations("howItWorks");
+
+  // Built inside the component so t() is available
   const steps = [
-    {
-      emoji: "🔍",
-      title: "Αναζήτηση",
-      desc:  "Γράψε τι χρειάζεσαι και πού. 51 κατηγορίες σε όλη την Ελλάδα.",
-    },
-    {
-      emoji: "📋",
-      title: "Σύγκριση",
-      desc:  "Δες προφίλ, κριτικές, τιμές και διαθεσιμότητα. Χωρίς δέσμευση.",
-    },
-    {
-      emoji: "📞",
-      title: "Επικοινωνία ή Κράτηση",
-      desc:  "Κάλεσε απευθείας ή κλείσε ραντεβού online — εσύ επιλέγεις.",
-    },
-    {
-      emoji: "⭐",
-      title: "Αξιολόγηση",
-      desc:  "Άφησε κριτική μετά την υπηρεσία και βοήθησε την κοινότητα.",
-    },
+    { emoji: "🔍", title: t("customerStep1Title"), desc: t("customerStep1Desc") },
+    { emoji: "📋", title: t("customerStep2Title"), desc: t("customerStep2Desc") },
+    { emoji: "📞", title: t("customerStep3Title"), desc: t("customerStep3Desc") },
+    { emoji: "⭐", title: t("customerStep4Title"), desc: t("customerStep4Desc") },
   ];
 
   return (
@@ -320,9 +309,9 @@ function CustomerSteps() {
     >
       <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
         <SectionHeading
-          label="Για Πελάτες"
-          title="Βρες τον ειδικό σε 4 απλά βήματα"
-          sub="Δωρεάν για πελάτες. Πάντα."
+          label={t("customerLabel")}
+          title={t("customerTitle")}
+          sub={t("customerSub")}
         />
 
         <div
@@ -334,7 +323,7 @@ function CustomerSteps() {
         >
           {steps.map((s, i) => (
             <StepCard
-              key={s.title}
+              key={i}
               n={i + 1}
               emoji={s.emoji}
               title={s.title}
@@ -360,7 +349,7 @@ function CustomerSteps() {
               textDecoration:  "none",
             }}
           >
-            Ξεκίνα Αναζήτηση
+            {t("customerCta")}
             <ArrowRight size={16} />
           </Link>
         </div>
@@ -373,27 +362,13 @@ function CustomerSteps() {
 // SECTION 3 — PROFESSIONAL STEPS
 // =============================================================
 function ProfessionalSteps() {
+  const t = useTranslations("howItWorks");
+
   const steps = [
-    {
-      emoji: "✍️",
-      title: "Εγγραφή",
-      desc:  "Μόλις 2 λεπτά. 3 μήνες εντελώς ΔΩΡΕΑΝ. Δεν χρειάζεσαι πιστωτική κάρτα.",
-    },
-    {
-      emoji: "🪪",
-      title: "Δημιουργία Προφίλ",
-      desc:  "Φωτογραφίες, υπηρεσίες, τιμές, ωράριο. Σε λίγα λεπτά ορατός σε όλη την Ελλάδα.",
-    },
-    {
-      emoji: "📲",
-      title: "Λήψη Κρατήσεων",
-      desc:  "Τηλεφωνικά ή online — εσείς επιλέγετε. Πελάτες σε βρίσκουν μέσω αναζήτησης ή Google.",
-    },
-    {
-      emoji: "💰",
-      title: "Κέρδος χωρίς Προμήθεια",
-      desc:  "Εισπράττετε απευθείας. Εμείς παίρνουμε €0 από τις αμοιβές σας. Ποτέ.",
-    },
+    { emoji: "✍️", title: t("proPageStep1Title"), desc: t("proPageStep1Desc") },
+    { emoji: "🪪",  title: t("proPageStep2Title"), desc: t("proPageStep2Desc") },
+    { emoji: "📲", title: t("proPageStep3Title"), desc: t("proPageStep3Desc") },
+    { emoji: "💰", title: t("proPageStep4Title"), desc: t("proPageStep4Desc") },
   ];
 
   return (
@@ -406,9 +381,9 @@ function ProfessionalSteps() {
     >
       <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
         <SectionHeading
-          label="Για Επαγγελματίες"
-          title="Από την εγγραφή στα κέρδη σε 4 βήματα"
-          sub="Η δικαιότερη πλατφόρμα για επαγγελματίες στην Ελλάδα."
+          label={t("proLabel")}
+          title={t("proPageTitle")}
+          sub={t("proPageSub")}
         />
 
         <div
@@ -420,7 +395,7 @@ function ProfessionalSteps() {
         >
           {steps.map((s, i) => (
             <StepCard
-              key={s.title}
+              key={i}
               n={i + 1}
               emoji={s.emoji}
               title={s.title}
@@ -446,7 +421,7 @@ function ProfessionalSteps() {
               textDecoration:  "none",
             }}
           >
-            Ξεκίνα Δωρεάν
+            {t("proPageCta")}
             <ArrowRight size={16} />
           </Link>
         </div>
@@ -459,39 +434,39 @@ function ProfessionalSteps() {
 // SECTION 4 — BOOKING MODES (PRD §22)
 // =============================================================
 function BookingModesSection() {
+  const t = useTranslations("howItWorks");
+
+  // "badge" values are English code names — intentionally not translated
   const modes = [
     {
       icon:    <Phone size={28} style={{ color: "var(--color-primary)" }} />,
-      emoji:   "📞",
-      title:   "Μόνο Τηλέφωνο",
+      title:   t("mode1Title"),
       badge:   "Contact Only",
-      who:     "Ειδικοί, τεχνολογοφοβικοί",
-      sees:    "Ο πελάτης βλέπει τηλέφωνο + email και καλεί απευθείας.",
-      needs:   "Δεν απαιτεί επιχειρηματική σελίδα",
+      who:     t("mode1Who"),
+      sees:    t("mode1Sees"),
+      needs:   t("mode1Needs"),
       color:   "#6B7280",
       bgColor: "rgba(107,114,128,0.07)",
     },
     {
       icon:    <Calendar size={28} style={{ color: "#D97706" }} />,
-      emoji:   "📅",
-      title:   "Κράτηση Ημερομηνίας",
+      title:   t("mode2Title"),
       badge:   "Date Booking",
-      who:     "Τεχνίτες, γενικές υπηρεσίες",
-      sees:    "Ο πελάτης επιλέγει ημερομηνία και περιγράφει την ανάγκη του. Ο επαγγελματίας επιβεβαιώνει.",
-      needs:   "Δεν απαιτεί επιχειρηματική σελίδα",
+      who:     t("mode2Who"),
+      sees:    t("mode2Sees"),
+      needs:   t("mode2Needs"),
       color:   "#D97706",
       bgColor: "rgba(217,119,6,0.07)",
     },
     {
-      icon:    <CalendarDays size={28} style={{ color: "var(--color-primary)" }} />,
-      emoji:   "🗓️",
-      title:   "Πλήρες Ημερολόγιο",
-      badge:   "Full Calendar",
-      who:     "Ομορφιά, όλες οι κατηγορίες",
-      sees:    "Επιλογή υπηρεσίας → ημερομηνία → ώρα → υπολογισμός τιμής. Αυτόματη επιβεβαίωση.",
-      needs:   "Απαιτεί Επιχειρηματική Σελίδα + min 1 υπηρεσία",
-      color:   "var(--color-primary)",
-      bgColor: "var(--color-primary-bg)",
+      icon:      <CalendarDays size={28} style={{ color: "var(--color-primary)" }} />,
+      title:     t("mode3Title"),
+      badge:     "Full Calendar",
+      who:       t("mode3Who"),
+      sees:      t("mode3Sees"),
+      needs:     t("mode3Needs"),
+      color:     "var(--color-primary)",
+      bgColor:   "var(--color-primary-bg)",
       highlight: true,
     },
   ];
@@ -500,9 +475,9 @@ function BookingModesSection() {
     <section style={{ padding: "5rem 1.5rem", backgroundColor: "#fff" }}>
       <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
         <SectionHeading
-          label="Τρόποι Κράτησης"
-          title="Τρεις επιλογές — εσύ αποφασίζεις"
-          sub="Κάθε επαγγελματίας επιλέγει τον τρόπο που τον εξυπηρετεί κατά την εγγραφή. Μπορεί να τον αλλάξει οποτεδήποτε."
+          label={t("modesLabel")}
+          title={t("modesTitle")}
+          sub={t("modesSub")}
         />
 
         <div
@@ -514,7 +489,7 @@ function BookingModesSection() {
         >
           {modes.map((mode) => (
             <div
-              key={mode.title}
+              key={mode.badge}
               style={{
                 backgroundColor: mode.highlight ? mode.bgColor : "#fff",
                 border:          mode.highlight
@@ -528,7 +503,7 @@ function BookingModesSection() {
                   : "none",
               }}
             >
-              {/* Badge */}
+              {/* Badge (English code name) */}
               <span
                 style={{
                   display:         "inline-block",
@@ -564,12 +539,12 @@ function BookingModesSection() {
               {/* Who uses it */}
               <p
                 style={{
-                  fontSize:        "0.775rem",
-                  fontWeight:      600,
-                  color:           "var(--color-text-muted)",
-                  textTransform:   "uppercase",
-                  letterSpacing:   "0.05em",
-                  margin:          "0 0 0.5rem",
+                  fontSize:      "0.775rem",
+                  fontWeight:    600,
+                  color:         "var(--color-text-muted)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                  margin:        "0 0 0.5rem",
                 }}
               >
                 {mode.who}
@@ -590,14 +565,14 @@ function BookingModesSection() {
               {/* Requirements */}
               <p
                 style={{
-                  fontSize:        "0.775rem",
-                  color:           "var(--color-text-muted)",
-                  margin:          0,
-                  paddingTop:      "0.75rem",
-                  borderTop:       "1px solid var(--color-border)",
-                  display:         "flex",
-                  alignItems:      "center",
-                  gap:             "0.3rem",
+                  fontSize:    "0.775rem",
+                  color:       "var(--color-text-muted)",
+                  margin:      0,
+                  paddingTop:  "0.75rem",
+                  borderTop:   "1px solid var(--color-border)",
+                  display:     "flex",
+                  alignItems:  "center",
+                  gap:         "0.3rem",
                 }}
               >
                 <span
@@ -621,45 +596,22 @@ function BookingModesSection() {
 }
 
 // =============================================================
-// SECTION 5 — FAQ ACCORDION (client component)
+// SECTION 5 — FAQ ACCORDION
 // =============================================================
-// The accordion needs useState, so it must be "use client".
-// We keep the page as a Server Component and use a named export
-// pattern — the FAQ component is in the same file but declared
-// separately with its own "use client" directive.
-//
-// NOTE: In Next.js App Router, you CAN'T mix "use client" and
-// Server Components in the same file. So we inline the FAQ as
-// a STATIC list (no useState) — all FAQs open by default on
-// mobile via CSS detail/summary elements (native HTML accordion).
-// This keeps the page fully static while giving good UX.
+// Uses native <details>/<summary> — zero JS, accessible, works
+// as a Server Component. Answers expand on click without hydration.
 // =============================================================
 function FAQ() {
+  const t = useTranslations("howItWorks");
+
+  // Build FAQ items from message keys
   const items = [
-    {
-      q: "Πόσο κοστίζει για πελάτες;",
-      a: "Τίποτα. Η πλατφόρμα είναι εντελώς δωρεάν για πελάτες. Δεν χρειάζεσαι λογαριασμό για να βρεις επαγγελματία — απλά αναζήτησε και επικοινώνησε.",
-    },
-    {
-      q: "Πόσο κοστίζει για επαγγελματίες;",
-      a: "Από €2.75/μήνα με το ετήσιο πλάνο (Τιμή Γνωριμίας). Τα πρώτα 3 μήνα είναι εντελώς δωρεάν, χωρίς πιστωτική κάρτα. Μετά τη δωρεάν περίοδο επιλέγεις πλάνο ή το προφίλ παύει να εμφανίζεται (δεν διαγράφεται).",
-    },
-    {
-      q: "Πώς πληρώνω τον επαγγελματία;",
-      a: "Απευθείας — μετρητά, κάρτα ή τραπεζική μεταφορά. Το Trustia δεν μεσολαβεί στην πληρωμή και δεν παίρνει προμήθεια. Εσύ και ο επαγγελματίας τα κανονίζετε μεταξύ σας.",
-    },
-    {
-      q: "Μπορώ να ακυρώσω κράτηση;",
-      a: "Ναι. Η ακύρωση είναι δωρεάν και γίνεται οποτεδήποτε μέσα από τη σελίδα της κράτησης. Οι ακυρώσεις εμφανίζονται στο ιστορικό για τη διαφάνεια της κοινότητας.",
-    },
-    {
-      q: "Πώς λειτουργούν οι κριτικές;",
-      a: "Υπάρχουν τρεις τύποι κριτικών με διαφορετική βαρύτητα: ✓ Επαληθευμένη (από ολοκληρωμένη κράτηση, βάρος 2×), 🔗 Προσκεκλημένη (μέσω προσκλητηρίου link, βάρος 1×) και Χρήστη (οποιοσδήποτε εγγεγραμμένος, βάρος 0.5×). Η βαθμολογία είναι σταθμισμένος μέσος όρος.",
-    },
-    {
-      q: "Είναι ασφαλές;",
-      a: "Όλοι οι επαγγελματίες έχουν δημόσιο προφίλ με κριτικές από πραγματικούς πελάτες. Δεν κάνουμε εκ των προτέρων επαλήθευση ταυτότητας, αλλά το σύστημα κριτικών και η διαφάνεια του προφίλ (τηλέφωνο, πόλη, κατηγορία) βοηθούν στη λήψη τεκμηριωμένης απόφασης.",
-    },
+    { q: t("faq1Q"), a: t("faq1A") },
+    { q: t("faq2Q"), a: t("faq2A") },
+    { q: t("faq3Q"), a: t("faq3A") },
+    { q: t("faq4Q"), a: t("faq4A") },
+    { q: t("faq5Q"), a: t("faq5A") },
+    { q: t("faq6Q"), a: t("faq6A") },
   ];
 
   return (
@@ -671,17 +623,12 @@ function FAQ() {
     >
       <div style={{ maxWidth: "720px", margin: "0 auto" }}>
         <SectionHeading
-          label="Συχνές Ερωτήσεις"
-          title="Έχεις απορίες;"
+          label={t("faqLabel")}
+          title={t("faqTitle")}
         />
 
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           {items.map((item, i) => (
-            /*
-             * Using native <details>/<summary> for accordion behaviour.
-             * Zero JavaScript, zero layout shift, accessible out of the box,
-             * works perfectly as a Server Component.
-             */
             <details
               key={i}
               style={{
@@ -698,7 +645,7 @@ function FAQ() {
                   fontSize:       "0.9375rem",
                   color:          "var(--color-text)",
                   cursor:         "pointer",
-                  listStyle:      "none",      // Hide default marker
+                  listStyle:      "none",
                   display:        "flex",
                   justifyContent: "space-between",
                   alignItems:     "center",
@@ -707,15 +654,13 @@ function FAQ() {
                 }}
               >
                 {item.q}
-                {/* Custom chevron indicator — rotates via CSS when open */}
                 <span
                   aria-hidden="true"
                   style={{
-                    flexShrink:  0,
-                    fontSize:    "1.1rem",
-                    color:       "var(--color-text-muted)",
-                    transition:  "transform 0.2s",
-                    lineHeight:  1,
+                    flexShrink: 0,
+                    fontSize:   "1.1rem",
+                    color:      "var(--color-text-muted)",
+                    lineHeight: 1,
                   }}
                 >
                   ﹢
@@ -724,13 +669,12 @@ function FAQ() {
 
               <p
                 style={{
-                  padding:    "0 1.375rem 1.125rem",
+                  padding:    "1rem 1.375rem 1.125rem",
                   margin:     0,
                   fontSize:   "0.9rem",
                   color:      "var(--color-text-muted)",
                   lineHeight: 1.7,
                   borderTop:  "1px solid var(--color-border)",
-                  paddingTop: "1rem",
                 }}
               >
                 {item.a}
@@ -747,20 +691,21 @@ function FAQ() {
 // SECTION 6 — DUAL CTA
 // =============================================================
 function DualCTA() {
+  const t = useTranslations("howItWorks");
   return (
     <section style={{ padding: "5rem 1.5rem", backgroundColor: "#fff" }}>
       <div style={{ maxWidth: "900px", margin: "0 auto" }}>
         <h2
           style={{
-            textAlign:    "center",
-            fontSize:     "clamp(1.5rem, 4vw, 2rem)",
-            fontWeight:   800,
-            color:        "var(--color-text)",
-            margin:       "0 0 2.5rem",
-            lineHeight:   1.2,
+            textAlign:  "center",
+            fontSize:   "clamp(1.5rem, 4vw, 2rem)",
+            fontWeight: 800,
+            color:      "var(--color-text)",
+            margin:     "0 0 2.5rem",
+            lineHeight: 1.2,
           }}
         >
-          Ξεκίνα τώρα — για όλους
+          {t("dualCtaTitle")}
         </h2>
 
         <div
@@ -788,13 +733,13 @@ function DualCTA() {
             <div>
               <h3
                 style={{
-                  fontWeight:   800,
-                  fontSize:     "1.125rem",
-                  color:        "var(--color-text)",
-                  margin:       "0 0 0.375rem",
+                  fontWeight: 800,
+                  fontSize:   "1.125rem",
+                  color:      "var(--color-text)",
+                  margin:     "0 0 0.375rem",
                 }}
               >
-                Είμαι Πελάτης
+                {t("dualCtaCustomerTitle")}
               </h3>
               <p
                 style={{
@@ -804,7 +749,7 @@ function DualCTA() {
                   lineHeight: 1.5,
                 }}
               >
-                Βρες επαγγελματία κοντά σου δωρεάν.
+                {t("dualCtaCustomerDesc")}
               </p>
             </div>
             <Link
@@ -824,11 +769,11 @@ function DualCTA() {
                 justifyContent:  "center",
               }}
             >
-              Αναζήτηση Επαγγελματιών
+              {t("dualCtaCustomerBtn")}
               <ArrowRight size={16} />
             </Link>
             <p style={{ fontSize: "0.75rem", color: "var(--color-text-muted)", margin: 0 }}>
-              Δωρεάν · Χωρίς εγγραφή
+              {t("dualCtaCustomerNote")}
             </p>
           </div>
 
@@ -851,13 +796,13 @@ function DualCTA() {
             <div>
               <h3
                 style={{
-                  fontWeight:   800,
-                  fontSize:     "1.125rem",
-                  color:        "#fff",
-                  margin:       "0 0 0.375rem",
+                  fontWeight: 800,
+                  fontSize:   "1.125rem",
+                  color:      "#fff",
+                  margin:     "0 0 0.375rem",
                 }}
               >
-                Είμαι Επαγγελματίας
+                {t("dualCtaProTitle")}
               </h3>
               <p
                 style={{
@@ -867,7 +812,7 @@ function DualCTA() {
                   lineHeight: 1.5,
                 }}
               >
-                3 μήνες ΔΩΡΕΑΝ · 0% προμήθεια.
+                {t("dualCtaProDesc")}
               </p>
             </div>
             <Link
@@ -887,11 +832,11 @@ function DualCTA() {
                 justifyContent:  "center",
               }}
             >
-              Ξεκίνα Δωρεάν
+              {t("dualCtaProBtn")}
               <ArrowRight size={16} />
             </Link>
             <p style={{ fontSize: "0.75rem", opacity: 0.8, margin: 0 }}>
-              Δεν χρειάζεται πιστωτική κάρτα
+              {t("dualCtaProNote")}
             </p>
           </div>
         </div>

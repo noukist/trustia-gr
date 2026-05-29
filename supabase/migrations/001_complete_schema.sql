@@ -1400,6 +1400,10 @@ CREATE POLICY "announcements_admin" ON announcements
 -- ─────────────────────────────────────────────────────────────
 -- ROLES / PERMISSIONS / USER_ROLES — Admin only
 -- ─────────────────────────────────────────────────────────────
+-- Any authenticated user can read role names (needed for navbar admin-check).
+-- Write operations (INSERT/UPDATE/DELETE) remain admin-only.
+CREATE POLICY "roles_read_authenticated" ON roles
+  FOR SELECT USING (auth.role() = 'authenticated');
 CREATE POLICY "roles_admin" ON roles FOR ALL USING (is_admin());
 CREATE POLICY "role_permissions_admin" ON role_permissions FOR ALL USING (is_admin());
 
